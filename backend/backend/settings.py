@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 
     # my apps
     "authentication",
+    "users",
 ]
 
 MIDDLEWARE = [
@@ -147,3 +148,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+#setting customuser model as the default for authentication
+AUTH_USER_MODEL = 'users.CustomUser'
