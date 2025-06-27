@@ -1,0 +1,18 @@
+from django.db import models
+from project.models import Project
+from django.conf import settings
+from organization.models import Organization
+
+# Create your models here.
+class Team(models.Model):
+    name = models.CharField(max_length=255)
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='teams')
+    team_lead = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='led_teams')
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='teams')
+    projects = models.ManyToManyField(Project, related_name='teams')
+    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name

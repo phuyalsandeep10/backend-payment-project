@@ -29,3 +29,4 @@ class Command(BaseCommand):
 
         User.objects.create_superuser(username=username, email=email, password=password, role=User.Role.SUPER_ADMIN)
         self.stdout.write(self.style.SUCCESS(f'Successfully created super-admin user "{username}"'))
+        self.stdout.write(self.style.SUCCESS(f'Password: {password}'))

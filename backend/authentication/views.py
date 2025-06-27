@@ -1,31 +1,72 @@
 from django.contrib.auth import authenticate
 from .models import User
-from .serializers import LoginSerializer
+from .serializers import LoginSerializer, UserSerializer, UserCreateSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import status
+from rest_framework import status, viewsets
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.conf import settings
 import random
+from .filters import UserFilter
+from organization.permissions import HasPermission
 
-class CustomAuthToken(ObtainAuthToken):
-    serializer_class = LoginSerializer
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = User.objects.all()
+    filterset_class = UserFilter
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email,
-            'role': user.role
-        })
+    def get_queryset(self):
+        """
+        This view should return a list of all the users
+        for the currently authenticated user's organization.
+        Superusers can see all users.
+        """
+        # Short-circuit for schema generation to avoid AnonymousUser errors
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
+            
+        user = self.request.user
+        if user.is_superuser:
+            return User.objects.all()
+        return User.objects.filter(organization=user.organization)
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action == 'create':
+            self.permission_classes = [HasPermission('create_user')]
+        elif self.action in ['list', 'retrieve']:
+            self.permission_classes = [HasPermission('view_user')]
+        elif self.action in ['update', 'partial_update']:
+            self.permission_classes = [HasPermission('edit_user')]
+        elif self.action == 'destroy':
+            self.permission_classes = [HasPermission('delete_user')]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        """
+        If the creator is not a superuser, associate the new user
+        with the creator's organization.
+        """
+        if not self.request.user.is_superuser:
+            serializer.save(organization=self.request.user.organization)
+        else:
+            # Superuser must provide organization in the request data
+            serializer.save()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserCreateSerializer
+        return UserSerializer
 
 class LoginView(APIView):
     permission_classes = []
@@ -50,7 +91,7 @@ class LoginView(APIView):
                     "id": user.id,
                     "username": user.username,
                     "email": user.email,
-                    "role": user.role
+                    "role": user.org_role
                 }
             })
         
@@ -73,7 +114,7 @@ class SuperAdminLoginView(APIView):
 
         user = authenticate(username=username, password=password)
 
-        if not user or user.role != User.Role.SUPER_ADMIN:
+        if not user or user.org_role != User.Role.SUPER_ADMIN:
             return Response(
                 {"error": "Invalid credentials or not a Super Admin."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -83,8 +124,8 @@ class SuperAdminLoginView(APIView):
         otp = str(random.randint(100000, 999999))
         cache.set(f"otp_{user.username}", otp, timeout=300)  # OTP valid for 5 minutes
 
-        # Send OTP to the secure, predefined email from settings
-        recipient_email = settings.SUPER_ADMIN_OTP_EMAIL
+        # Send OTP to the user's email
+        recipient_email = user.email
         send_mail(
             subject="Your Admin Login OTP",
             message=f"Your One-Time Password is: {otp}",
@@ -128,5 +169,5 @@ class SuperAdminVerifyOTPView(APIView):
             'token': token.key,
             'user_id': user.pk,
             'email': user.email,
-            'role': user.role
+            'role': user.org_role
         })

@@ -3,26 +3,55 @@ from rest_framework import viewsets, generics, status
 from rest_framework.response import Response
 from .models import Organization
 from authentication.models import User
-from .serializers import OrganizationSerializer, OrgAdminSerializer, OrganizationRegistrationSerializer
-from .permissions import IsSuperAdmin
+from .serializers import OrganizationSerializer, OrganizationDetailSerializer, OrganizationRegistrationSerializer
+from .permissions import IsSuperAdmin, HasPermission
+from authentication.serializers import UserSerializer
 
 # Create your views here.
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     """
-    A viewset for viewing and editing organization instances.
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
     """
     queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
     permission_classes = [IsSuperAdmin]
 
-class OrgAdminViewSet(viewsets.ModelViewSet):
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return OrganizationDetailSerializer
+        return OrganizationSerializer
+
+class OrgAdminViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    A viewset for viewing and editing organization admin instances.
+    A viewset for listing organization admins. An admin is defined as a user
+    who has a role with 'manage_roles' permission.
     """
-    queryset = User.objects.filter(role=User.Role.ORG_ADMIN)
-    serializer_class = OrgAdminSerializer
-    permission_classes = [IsSuperAdmin]
+    serializer_class = UserSerializer
+    permission_classes = [HasPermission('view_user')]
+
+    def get_queryset(self):
+        """
+        This view should return a list of all users in the user's organization
+        who have the 'manage_roles' permission.
+        """
+        # Short-circuit for schema generation to avoid AnonymousUser errors
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
+
+        user = self.request.user
+        if user.is_superuser:
+            # Superusers see all organization admins across all orgs
+            return User.objects.filter(org_role__permissions__codename='manage_roles')
+        
+        if user.organization:
+            # Org users see admins within their own organization
+            return User.objects.filter(
+                organization=user.organization,
+                org_role__permissions__codename='manage_roles'
+            )
+        
+        return User.objects.none()
 
 class OrganizationRegistrationView(generics.CreateAPIView):
     """

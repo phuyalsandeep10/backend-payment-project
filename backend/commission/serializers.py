@@ -12,12 +12,18 @@ class CommissionSerializer(serializers.ModelSerializer):
             'commission_percentage', 'converted_amount',
             'start_date', 'end_date', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['organization', 'converted_amount']
+        read_only_fields = ['converted_amount']
 
     def create(self, validated_data):
-        # Automatically set the organization from the logged-in user's organization
         user = self.context['request'].user
-        validated_data['organization'] = user.organization
+        # Super Admins can create commissions for any organization
+        if user.is_superuser:
+            # For super admins, organization should be in validated_data
+            if 'organization' not in validated_data:
+                raise serializers.ValidationError({'organization': 'This field is required for super admins.'})
+        else:
+            # For other users, automatically set their organization
+            validated_data['organization'] = user.organization
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

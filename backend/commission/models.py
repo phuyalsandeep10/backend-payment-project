@@ -6,10 +6,10 @@ from organization.models import Organization
 
 class Commission(models.Model):
     organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name='commissions'
+        Organization, on_delete=models.PROTECT, related_name='commissions'
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='commissions'
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='commissions'
     )
     total_sales = models.DecimalField(max_digits=12, decimal_places=2)
     start_date = models.DateField()

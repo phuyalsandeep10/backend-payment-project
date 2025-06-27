@@ -58,6 +58,10 @@ INSTALLED_APPS = [
     "organization",
     "permissions",
     "commission",
+    "team",
+    "project",
+    'django_filters',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -150,7 +154,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
 
-CORS_ALLOW_ALL_ORIGINS = True # for development only
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -158,6 +163,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
     ],
 }
 
@@ -172,12 +180,16 @@ SWAGGER_SETTINGS = {
    }
 }
 
-# Email Configuration for SMTP
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = env('EMAIL_HOST')
-EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+# Email Configuration
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST')
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+
 SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL')

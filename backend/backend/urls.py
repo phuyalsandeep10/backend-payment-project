@@ -38,6 +38,8 @@ urlpatterns = [
     path('api/org/', include('organization.urls')),
     path('api/permissions/', include('permissions.urls')),
     path('api/commissions/', include('commission.urls')),
+    path('api/projects/', include('project.urls')),
+    path('api/teams/', include('team.urls')),
 
     # API documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

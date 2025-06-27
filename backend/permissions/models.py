@@ -19,7 +19,7 @@ class Role(models.Model):
     e.g., "Salesperson" for "CG Group Pvt.Ltd".
     """
     name = models.CharField(max_length=100)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='roles')
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='roles')
     permissions = models.ManyToManyField(Permission, blank=True)
 
     class Meta:

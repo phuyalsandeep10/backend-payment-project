@@ -2,19 +2,16 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from organization.models import Organization
 from permissions.models import Role as OrgRole
+# from team.models import Team # This is removed to prevent circular import
 
 class User(AbstractUser):
     """
     Custom user model with roles and organization linkage.
     """
-    class Role(models.TextChoices):
-        SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
-        ORG_ADMIN = 'ORG_ADMIN', 'Organization Admin'
-        USER = 'USER', 'User' # General user role
-
-    role = models.CharField(max_length=50, choices=Role.choices, default=Role.USER)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
+    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
     org_role = models.ForeignKey(OrgRole, on_delete=models.SET_NULL, null=True, blank=True)
+    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
 
     def __str__(self):
         return self.username

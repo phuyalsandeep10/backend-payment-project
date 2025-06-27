@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Organization
 from authentication.models import User
+from authentication.serializers import UserSerializer
+from permissions.serializers import RoleSerializer
 
 class OrganizationSerializer(serializers.ModelSerializer):
     """
@@ -9,6 +11,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = ['id', 'name', 'is_active', 'created_at']
+
+class OrganizationDetailSerializer(serializers.ModelSerializer):
+    users = UserSerializer(many=True, read_only=True, source='user_set')
+    roles = RoleSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Organization
+        fields = ['id', 'name', 'is_active', 'created_at', 'users', 'roles']
 
 class OrgAdminSerializer(serializers.ModelSerializer):
     """
