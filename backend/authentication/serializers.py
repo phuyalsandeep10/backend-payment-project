@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User
+from .models import User, UserSession
+from user_agents import parse
 from permissions.models import Role
 from permissions.serializers import RoleSerializer
 # from team.serializers import TeamSerializer # This is moved to prevent circular import
@@ -18,12 +19,17 @@ class UserSerializer(serializers.ModelSerializer):
     Serializer for the User model.
     """
     team = serializers.SerializerMethodField()
-    org_role = RoleSerializer()
+    org_role = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'email', 'organization', 'org_role', 'team', 'contact_number', 'is_active')
     
+    def get_org_role(self, obj):
+        if obj.org_role:
+            return obj.org_role.name
+        return None
+
     def get_team(self, obj):
         from team.serializers import TeamSerializer
         if obj.team:
@@ -44,6 +50,43 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
+
+class UserSessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the UserSession model.
+    Parses the user agent string into a readable format.
+    """
+    device = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserSession
+        fields = ['id', 'ip_address', 'created_at', 'device']
+        read_only_fields = fields
+
+    def get_device(self, obj):
+        if not obj.user_agent:
+            return "Unknown Device"
+        ua = parse(obj.user_agent)
+        return f"{ua.browser.family} on {ua.os.family}"
+    
+    def to_representation(self, instance):
+        """
+        Add a flag to indicate if the session is the current one.
+        """
+        representation = super().to_representation(instance)
+        current_session_key = self.context['request'].session.session_key
+        # Note: DRF Token Auth is stateless, so we check against the token key
+        auth_header = self.context['request'].headers.get('Authorization')
+        if auth_header:
+            try:
+                current_token_key = auth_header.split(' ')[1]
+                representation['is_current_session'] = (instance.session_key == current_token_key)
+            except IndexError:
+                representation['is_current_session'] = False
+        else:
+            representation['is_current_session'] = False
+        return representation
+
 
 class LoginSerializer(serializers.Serializer):
     """
