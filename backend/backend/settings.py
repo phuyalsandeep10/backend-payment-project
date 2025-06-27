@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     # my apps
     "authentication",
     "users",
+    "clients",
 ]
 
 REST_FRAMEWORK = {

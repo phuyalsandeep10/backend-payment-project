@@ -14,7 +14,7 @@ class UserListCreateView(generics.ListCreateAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
-    
+    #change the permission later
       # Only admin can list/create users
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
