@@ -22,11 +22,10 @@ from drf_yasg import openapi
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Backend API",
+        title="Payment Receiving System API",
         default_version='v1',
-        description="API documentation for the backend service",
-        terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="contact@backend.local"),
+        description="API documentation for the PRS project.",
+        contact=openapi.Contact(email="contact@prs.local"),
         license=openapi.License(name="BSD License"),
     ),
     public=True,
@@ -35,9 +34,14 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/auth/', include('authentication.urls')),
+    path('api/auth/', include('authentication.urls')),
+    path('api/org/', include('organization.urls')),
+    path('api/permissions/', include('permissions.urls')),
+    path('api/commissions/', include('commission.urls')),
+    path('api/projects/', include('project.urls')),
+    path('api/teams/', include('team.urls')),
 
-    # api documentation
+    # API documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
