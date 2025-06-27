@@ -55,6 +55,10 @@ INSTALLED_APPS = [
 
     # my apps
     "authentication",
+
+    "users",
+    "clients",
+
     "organization",
     "permissions",
     "commission",
@@ -62,7 +66,18 @@ INSTALLED_APPS = [
     "project",
     'django_filters',
     'django_extensions',
+
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -169,6 +184,10 @@ REST_FRAMEWORK = {
     ],
 }
 
+
+#setting customuser model as the default for authentication
+AUTH_USER_MODEL = 'users.CustomUser'
+=======
 SWAGGER_SETTINGS = {
    'SECURITY_DEFINITIONS': {
       'Token': {
@@ -193,3 +212,4 @@ else:
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
 SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL')
+
