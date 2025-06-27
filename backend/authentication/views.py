@@ -1,10 +1,11 @@
 from django.contrib.auth import authenticate
-from .models import User
-from .serializers import LoginSerializer, UserSerializer, UserCreateSerializer
+from .models import User, UserSession
+from .serializers import LoginSerializer, UserSerializer, UserCreateSerializer, UserSessionSerializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, viewsets
 from django.core.cache import cache
 from django.core.mail import send_mail
@@ -12,6 +13,25 @@ from django.conf import settings
 import random
 from .filters import UserFilter
 from organization.permissions import HasPermission
+
+
+def _create_user_session(request, user, token):
+    """
+    Helper function to create a UserSession record.
+    """
+    # Clean up old sessions for the same user to avoid clutter
+    # This is optional but good practice. You might want to limit the number of active sessions.
+    # UserSession.objects.filter(user=user).delete()
+
+    ip_address = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    
+    UserSession.objects.create(
+        user=user,
+        session_key=token.key,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -84,15 +104,12 @@ class LoginView(APIView):
         if user:
             # You can decide here which roles are allowed to log in via this endpoint
             token, _ = Token.objects.get_or_create(user=user)
+            _create_user_session(request, user, token)
+            user_data = UserSerializer(user).data
             return Response({
                 "token": token.key,
                 "message": "Login successful",
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "role": user.org_role
-                }
+                "user": user_data
             })
         
         return Response(
@@ -161,6 +178,7 @@ class SuperAdminVerifyOTPView(APIView):
 
         user = User.objects.get(username=username)
         token, _ = Token.objects.get_or_create(user=user)
+        _create_user_session(request, user, token)
 
         # Clear the OTP from cache after successful verification
         cache.delete(f"otp_{username}")
@@ -171,3 +189,41 @@ class SuperAdminVerifyOTPView(APIView):
             'email': user.email,
             'role': user.org_role
         })
+
+
+class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint that allows users to view and revoke their sessions.
+    """
+    serializer_class = UserSessionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the sessions
+        for the currently authenticated user.
+        """
+        # Short-circuit for schema generation to avoid AnonymousUser errors
+        if getattr(self, 'swagger_fake_view', False):
+            return UserSession.objects.none()
+        return UserSession.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Revoke a session (delete it).
+        Users can only revoke their own sessions.
+        """
+        session = self.get_object()
+        # Prevent users from deleting their current session token, which would be confusing.
+        # The frontend should ideally prevent this action.
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            try:
+                current_token_key = auth_header.split(' ')[1]
+                if session.session_key == current_token_key:
+                    return Response({'error': 'You cannot revoke your current session.'}, status=status.HTTP_400_BAD_REQUEST)
+            except IndexError:
+                pass # Should not happen with token auth
+
+        session.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
