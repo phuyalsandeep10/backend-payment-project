@@ -1,0 +1,4 @@
+
+
+cd backend                                               
+venv/scripts/activate 
