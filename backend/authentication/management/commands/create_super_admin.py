@@ -11,9 +11,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Enforce a single super-admin policy
-        # if User.objects.filter(role=User.Role.SUPER_ADMIN).exists():
-        #     self.stdout.write(self.style.WARNING('A super-admin user already exists. Skipping creation.'))
-        #     return
+        if User.objects.filter(role=User.Role.SUPER_ADMIN).exists():
+            self.stdout.write(self.style.WARNING('A super-admin user already exists. Skipping creation.'))
+            return
 
         username = os.environ.get('ADMIN_USER')
         email = os.environ.get('ADMIN_EMAIL')
@@ -27,5 +27,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'User "{username}" already exists. Skipping.'))
             return
 
-        User.objects.create_superuser(username=username, email=email, password=password)
+        User.objects.create_superuser(username=username, email=email, password=password, role=User.Role.SUPER_ADMIN)
         self.stdout.write(self.style.SUCCESS(f'Successfully created super-admin user "{username}"'))
+        self.stdout.write(self.style.SUCCESS(f'Password: {password}'))
