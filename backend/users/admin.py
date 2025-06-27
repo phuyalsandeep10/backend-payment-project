@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
-from .models import CustomUser
+from .models import CustomUser,LoginSession
 # Register your models here.
 
 # ----------------------
@@ -82,3 +82,7 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
+    
+class LoginSessionAdmin(admin.ModelAdmin):
+    list_display = ['user','location','ip_address','login_time']    
+admin.site.register(LoginSession,LoginSessionAdmin)

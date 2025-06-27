@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser,LoginSession
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -60,3 +60,12 @@ class UserSerializer(serializers.ModelSerializer):
         if instance and hasattr(instance, 'is_active') and not instance.is_active:
             raise serializers.ValidationError('Cannot update or delete an inactive (soft-deleted) user.')
         return data
+    
+
+class LoginSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoginSession
+        fields = '__all__'
+        
+        
+    
