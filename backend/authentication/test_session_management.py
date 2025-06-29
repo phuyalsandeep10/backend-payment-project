@@ -17,22 +17,25 @@ class SessionManagementTests(APITestCase):
         self.member_role = OrgRole.objects.create(name='Member', organization=self.organization)
 
         self.user1 = User.objects.create_user(
-            username='testuser1',
-            password='password123',
             email='test1@example.com',
+            password='password123',
+            username='testuser1',
             organization=self.organization,
-            org_role=self.admin_role
+            role=self.admin_role
         )
         self.token1, _ = Token.objects.get_or_create(user=self.user1)
 
         self.user2 = User.objects.create_user(
-            username='testuser2',
-            password='password123',
             email='test2@example.com',
+            password='password123',
+            username='testuser2',
             organization=self.organization,
-            org_role=self.member_role
+            role=self.member_role
         )
         self.token2, _ = Token.objects.get_or_create(user=self.user2)
+
+        self.login_url = '/api/v1/auth/login/'
+        self.sessions_url = '/api/v1/auth/sessions/'
 
     def test_session_creation_on_login(self):
         """
@@ -41,9 +44,8 @@ class SessionManagementTests(APITestCase):
         # Ensure no sessions exist for the user initially
         self.assertEqual(UserSession.objects.filter(user=self.user1).count(), 0)
 
-        url = reverse('login')
-        data = {'username': 'testuser1', 'password': 'password123'}
-        response = self.client.post(url, data, format='json')
+        data = {'email': 'test1@example.com', 'password': 'password123'}
+        response = self.client.post(self.login_url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Now, one session should exist
@@ -64,8 +66,7 @@ class SessionManagementTests(APITestCase):
         )
 
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token1.key)
-        url = reverse('usersession-list')
-        response = self.client.get(url, format='json')
+        response = self.client.get(self.sessions_url, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -85,8 +86,7 @@ class SessionManagementTests(APITestCase):
 
         # user2 tries to list user1's sessions - should get an empty list
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token2.key)
-        url = reverse('usersession-list')
-        response = self.client.get(url, format='json')
+        response = self.client.get(self.sessions_url, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
@@ -111,7 +111,7 @@ class SessionManagementTests(APITestCase):
         )
 
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token1.key)
-        url = reverse('usersession-detail', kwargs={'pk': session_to_revoke.pk})
+        url = f"{self.sessions_url}{session_to_revoke.pk}/"
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
@@ -130,7 +130,7 @@ class SessionManagementTests(APITestCase):
         )
 
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token1.key)
-        url = reverse('usersession-detail', kwargs={'pk': current_session.pk})
+        url = f"{self.sessions_url}{current_session.pk}/"
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -151,7 +151,7 @@ class SessionManagementTests(APITestCase):
 
         # user2 tries to revoke user1's session
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token2.key)
-        url = reverse('usersession-detail', kwargs={'pk': session1.pk})
+        url = f"{self.sessions_url}{session1.pk}/"
         response = self.client.delete(url)
 
         # Should return 404 Not Found because the query for the object will fail

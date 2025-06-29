@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from django.contrib.auth import authenticate
 from .models import User, UserSession
 from user_agents import parse
@@ -8,27 +8,22 @@ from permissions.serializers import RoleSerializer
 
 class UserLiteSerializer(serializers.ModelSerializer):
     """
-    A 'lite' serializer for the User model, exposing only essential, non-sensitive fields.
+    A lightweight serializer for User model, showing only essential info.
     """
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name')
+        fields = ['id', 'username']
 
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for the User model.
     """
     team = serializers.SerializerMethodField()
-    org_role = serializers.SerializerMethodField()
+    role = RoleSerializer(read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'organization', 'org_role', 'team', 'contact_number', 'is_active')
-    
-    def get_org_role(self, obj):
-        if obj.org_role:
-            return obj.org_role.name
-        return None
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'organization', 'role', 'team', 'contact_number', 'is_active')
 
     def get_team(self, obj):
         from team.serializers import TeamSerializer
@@ -92,7 +87,7 @@ class LoginSerializer(serializers.Serializer):
     """
     Serializer for the login endpoint.
     """
-    username = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(
         required=True,
         write_only=True,
@@ -100,18 +95,18 @@ class LoginSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        username = attrs.get('username')
+        email = attrs.get('email')
         password = attrs.get('password')
 
-        if username and password:
+        if email and password:
             user = authenticate(request=self.context.get('request'),
-                                username=username, password=password)
+                                email=email, password=password)
             if not user:
                 msg = 'Unable to log in with provided credentials.'
-                raise serializers.ValidationError(msg, code='authorization')
+                raise exceptions.AuthenticationFailed(msg, code='authorization')
         else:
-            msg = 'Must include "username" and "password".'
-            raise serializers.ValidationError(msg, code='authorization')
+            msg = 'Must include "email" and "password".'
+            raise exceptions.AuthenticationFailed(msg, code='authorization')
 
         attrs['user'] = user
         return attrs 

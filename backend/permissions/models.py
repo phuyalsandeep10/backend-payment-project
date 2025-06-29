@@ -19,11 +19,13 @@ class Role(models.Model):
     e.g., "Salesperson" for "CG Group Pvt.Ltd".
     """
     name = models.CharField(max_length=100)
-    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='roles')
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='roles', null=True, blank=True)
     permissions = models.ManyToManyField(Permission, blank=True)
 
     class Meta:
         unique_together = ('name', 'organization')
 
     def __str__(self):
-        return f"{self.name} ({self.organization.name})"
+        if self.organization:
+            return f"{self.name} ({self.organization.name})"
+        return f"{self.name} (System Role)"
