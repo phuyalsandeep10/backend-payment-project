@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Organization
 from authentication.models import User
 from authentication.serializers import UserSerializer
-from permissions.models import Role
+from permissions.models import Role, Permission
 
 class OrganizationSerializer(serializers.ModelSerializer):
     """
@@ -36,6 +36,7 @@ class OrganizationRegistrationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
     admin_email = serializers.EmailField()
     admin_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    is_active = serializers.BooleanField(default=True)
 
     # Response fields
     organization = OrganizationSerializer(read_only=True)
@@ -53,13 +54,22 @@ class OrganizationRegistrationSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         # Create the organization
-        org = Organization.objects.create(name=validated_data['name'])
+        org = Organization.objects.create(
+            name=validated_data['name'],
+            is_active=validated_data['is_active']
+        )
         
         # Ensure the 'Org Admin' role exists for this organization.
         org_admin_role, _ = Role.objects.get_or_create(
             name='Org Admin',
             organization=org
         )
+
+        # Grant default admin permissions to this new role
+        default_admin_permissions = Permission.objects.filter(
+            category__in=["User and Role Management", "Client Management", "Deal Management"]
+        )
+        org_admin_role.permissions.set(default_admin_permissions)
 
         # Create the organization admin
         user = User.objects.create_user(
@@ -73,4 +83,17 @@ class OrganizationRegistrationSerializer(serializers.Serializer):
         return {
             'organization': org,
             'admin_user': user
+        }
+
+    def to_representation(self, instance):
+        """
+        Explicitly define the output format for the registration response.
+        """
+        # 'instance' here is the dict returned by the 'create' method
+        org_serializer = OrganizationSerializer(instance['organization'])
+        user_serializer = UserSerializer(instance['admin_user'])
+        
+        return {
+            'organization': org_serializer.data,
+            'admin_user': user_serializer.data
         } 

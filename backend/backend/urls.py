@@ -19,6 +19,9 @@ from django.urls import path, include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from organization.views import OrganizationRegistrationView
+from deals.views import DealViewSet
+from rest_framework.routers import DefaultRouter
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -35,14 +38,18 @@ schema_view = get_schema_view(
 # Centralized API URL patterns
 api_urlpatterns = [
     path('auth/', include('authentication.urls')),
+    path('register/', OrganizationRegistrationView.as_view(), name='register-organization'),
     path('organizations/', include('organization.urls')),
     path('permissions/', include('permissions.urls')),
     path('commissions/', include('commission.urls')),
     path('projects/', include('project.urls')),
     path('teams/', include('team.urls')),
     path('clients/', include('clients.urls')),
-    path('deals/', include('deals.urls')),
 ]
+
+router = DefaultRouter()
+# The 'deals' router is now nested under 'clients' and should not be registered here directly
+# router.register(r'deals', DealViewSet, basename='deal')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

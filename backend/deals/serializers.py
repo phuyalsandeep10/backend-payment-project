@@ -20,6 +20,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'id', 'deal', 'payment_date', 'receipt_file', 'payment_remarks',
             'received_amount', 'cheque_number', 'payment_type'
         ]
+        read_only_fields = ['deal']  # Deal is set automatically from URL
 
 class DealSerializer(serializers.ModelSerializer):
     """

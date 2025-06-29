@@ -6,12 +6,13 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.conf import settings
 import random
 from .filters import UserFilter
+from organization.models import Organization
 
 
 def _create_user_session(request, user, token):
@@ -44,26 +45,23 @@ class UserPermissions(IsAuthenticated):
         if not super().has_permission(request, view):
             return False
             
-        required_perms = {
-            'create': 'create_user',
-            'list': 'view_user',
-            'retrieve': 'view_user',
-            'update': 'edit_user',
-            'partial_update': 'edit_user',
-            'destroy': 'delete_user',
+        required_perms_map = {
+            'create': ['create_user'],
+            'list': ['view_all_users'],
+            'retrieve': ['view_all_users'],
+            'update': ['edit_user'],
+            'partial_update': ['edit_user'],
+            'destroy': ['delete_user'],
         }
         
-        perm_codename = required_perms.get(view.action)
-        if not perm_codename:
-            # Default to deny access if action not in map
-            return False
-
+        required_perms = required_perms_map.get(view.action, [])
+        
         # Superusers have all permissions
         if request.user.is_superuser:
             return True
             
         # Check if the user's role has the required permission
-        if request.user.role and request.user.role.permissions.filter(codename=perm_codename).exists():
+        if request.user.role and request.user.role.permissions.filter(codename__in=required_perms).exists():
             return True
             
         return False
@@ -79,18 +77,23 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        This view should return a list of all the users
-        for the currently authenticated user's organization.
-        Superusers can see all users.
+        This view should return a list of all the users.
+        Superusers can filter by organization.
+        Non-superusers are restricted to their own organization.
         """
-        # Short-circuit for schema generation to avoid AnonymousUser errors
-        if getattr(self, 'swagger_fake_view', False):
-            return User.objects.none()
-            
         user = self.request.user
+        queryset = User.objects.all()
+
         if user.is_superuser:
-            return User.objects.all()
-        return User.objects.filter(organization=user.organization)
+            org_id = self.request.query_params.get('organization')
+            if org_id:
+                return queryset.filter(organization_id=org_id)
+            return queryset
+
+        if user.organization:
+            return queryset.filter(organization=user.organization)
+        
+        return User.objects.none()
 
     def perform_create(self, serializer):
         """
@@ -127,18 +130,18 @@ class LoginView(APIView):
 class SuperAdminLoginView(APIView):
     """
     Step 1 of Super Admin login.
-    Takes username and password, and if valid for a super admin,
+    Takes email and password, and if valid for a super admin,
     sends an OTP to their email.
     """
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        username = request.data.get("username")
+        email = request.data.get("email")
         password = request.data.get("password")
 
-        user = authenticate(username=username, password=password)
+        user = authenticate(request=request, email=email, password=password)
 
-        if not user or not user.is_superuser or user.role.name != 'Super Admin':
+        if not user or not user.is_superuser or not user.role or user.role.name != 'Super Admin':
             return Response(
                 {"error": "Invalid credentials or not a Super Admin."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -146,7 +149,7 @@ class SuperAdminLoginView(APIView):
 
         # Generate and send OTP
         otp = str(random.randint(100000, 999999))
-        cache.set(f"otp_{user.username}", otp, timeout=300)  # OTP valid for 5 minutes
+        cache.set(f"otp_{user.email}", otp, timeout=300)  # OTP valid for 5 minutes
 
         # Send OTP to the user's email
         recipient_email = user.email
@@ -167,15 +170,15 @@ class SuperAdminLoginView(APIView):
 class SuperAdminVerifyOTPView(APIView):
     """
     Step 2 of Super Admin login.
-    Takes username and OTP, and if valid, returns the auth token.
+    Takes email and OTP, and if valid, returns the auth token.
     """
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        username = request.data.get("username")
+        email = request.data.get("email")
         otp = request.data.get("otp")
 
-        stored_otp = cache.get(f"otp_{username}")
+        stored_otp = cache.get(f"otp_{email}")
 
         if not stored_otp or stored_otp != otp:
             return Response(
@@ -183,12 +186,16 @@ class SuperAdminVerifyOTPView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = User.objects.get(username=username)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
         token, _ = Token.objects.get_or_create(user=user)
         _create_user_session(request, user, token)
 
         # Clear the OTP from cache after successful verification
-        cache.delete(f"otp_{username}")
+        cache.delete(f"otp_{email}")
 
         return Response({
             'token': token.key,

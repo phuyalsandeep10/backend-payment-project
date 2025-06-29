@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from authentication.models import User
 from organization.models import Organization
-from permissions.models import Role
+from permissions.models import Role, Permission
 from .models import Client
 
 class ClientAPITests(APITestCase):
@@ -13,6 +13,12 @@ class ClientAPITests(APITestCase):
         # Orgs
         self.org1 = Organization.objects.create(name='Org 1')
         self.org2 = Organization.objects.create(name='Org 2')
+
+        # Create permissions
+        self.create_client_perm, _ = Permission.objects.get_or_create(name='Create Client', codename='create_client', defaults={'category': 'Client Management'})
+        self.view_all_clients_perm, _ = Permission.objects.get_or_create(name='View All Clients', codename='view_all_clients', defaults={'category': 'Client Management'})
+        self.edit_client_perm, _ = Permission.objects.get_or_create(name='Edit Client Details', codename='edit_client_details', defaults={'category': 'Client Management'})
+        self.delete_user_perm, _ = Permission.objects.get_or_create(name='Delete User', codename='delete_user', defaults={'category': 'User Management'})
 
         # Super Admin
         self.super_admin_role = Role.objects.create(name='Super Admin')
@@ -24,8 +30,12 @@ class ClientAPITests(APITestCase):
             is_superuser=True
         )
 
-        # Org 1 Admin and User
+        # Org 1 Admin and User with proper permissions
         self.org1_admin_role = Role.objects.create(name='Org Admin', organization=self.org1)
+        self.org1_admin_role.permissions.set([
+            self.create_client_perm, self.view_all_clients_perm, 
+            self.edit_client_perm, self.delete_user_perm
+        ])
         self.org1_admin = User.objects.create_user(
             email='admin1@test.com',
             username='admin1',
@@ -35,8 +45,12 @@ class ClientAPITests(APITestCase):
         )
         self.org1_user = User.objects.create_user(email='user1@test.com', username='user1', password='password123', organization=self.org1)
 
-        # Org 2 Admin
+        # Org 2 Admin with proper permissions
         self.org2_admin_role = Role.objects.create(name='Org Admin', organization=self.org2)
+        self.org2_admin_role.permissions.set([
+            self.create_client_perm, self.view_all_clients_perm, 
+            self.edit_client_perm, self.delete_user_perm
+        ])
         self.org2_admin = User.objects.create_user(
             email='admin2@test.com',
             username='admin2',

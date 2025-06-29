@@ -41,10 +41,15 @@ class RoleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_superuser:
-            return Role.objects.all()
         
-        # Org Admins should be able to see their own roles and system-wide roles
+        if user.is_superuser:
+            queryset = Role.objects.all()
+            org_id = self.request.query_params.get('organization')
+            if org_id:
+                return queryset.filter(organization_id=org_id)
+            return queryset
+
+        # Org Admins see their own org roles + system-wide roles
         if user.organization:
             return Role.objects.filter(Q(organization=user.organization) | Q(organization__isnull=True))
             

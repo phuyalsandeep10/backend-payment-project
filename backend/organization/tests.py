@@ -12,16 +12,11 @@ class OrganizationTests(APITestCase):
     def setUp(self):
         self.register_url = reverse('register-organization')
         self.valid_payload = {
-            "organization": {
-                "name": "Test Corp"
-            },
-            "admin_user": {
-                "email": "admin@testcorp.com",
-                "password": "strongpassword123"
-            }
+            "name": "Test Corp",
+            "admin_email": "admin@testcorp.com",
+            "admin_password": "strongpassword123"
         }
 
-    @unittest.expectedFailure
     def test_successful_registration(self):
         """
         Ensure a new organization and its admin can be created successfully.
@@ -36,7 +31,6 @@ class OrganizationTests(APITestCase):
         self.assertEqual(admin_user.organization.name, 'Test Corp')
         self.assertEqual(admin_user.role.name, 'Org Admin')
 
-    @unittest.expectedFailure
     def test_duplicate_organization_name(self):
         """
         Ensure registration fails if the organization name already exists.
@@ -44,9 +38,8 @@ class OrganizationTests(APITestCase):
         Organization.objects.create(name='Test Corp')
         response = self.client.post(self.register_url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('name', response.data['organization'])
+        self.assertIn('name', response.data)
 
-    @unittest.expectedFailure
     def test_duplicate_admin_email(self):
         """
         Ensure registration fails if the admin email already exists.
@@ -54,4 +47,4 @@ class OrganizationTests(APITestCase):
         User.objects.create_user(email='admin@testcorp.com', password='password')
         response = self.client.post(self.register_url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('email', response.data['admin_user'])
+        self.assertIn('admin_email', response.data)

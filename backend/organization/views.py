@@ -11,11 +11,15 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     """
     This viewset automatically provides `list`, `create`, 'retrieve',
     'update' and 'destroy' actions for Organizations.
+    The 'create' action is special, using a dedicated serializer to create
+    an organization and its first admin simultaneously.
     """
     queryset = Organization.objects.all()
     permission_classes = [IsAdminUser] # Only SuperAdmins can manage organizations directly
 
     def get_serializer_class(self):
+        if self.action == 'create':
+            return OrganizationRegistrationSerializer
         if self.action == 'retrieve':
             return OrganizationDetailSerializer
         return OrganizationSerializer

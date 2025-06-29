@@ -1,16 +1,15 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, serializers
 from .models import Client
 from .serializers import ClientSerializer
-from permissions.permissions import IsOrgAdminOrSuperAdmin
+from .permissions import HasClientPermission
 from organization.models import Organization
-from rest_framework import serializers
 
 class ClientViewSet(viewsets.ModelViewSet):
     """
-    A viewset for viewing and editing Client instances.
+    A viewset for viewing and editing Client instances, with granular permissions.
     """
     serializer_class = ClientSerializer
-    permission_classes = [IsOrgAdminOrSuperAdmin]
+    permission_classes = [HasClientPermission]
 
     def get_queryset(self):
         """
@@ -22,8 +21,14 @@ class ClientViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return Client.objects.all()
         
-        if user.organization:
+        if not user.organization:
+            return Client.objects.none()
+
+        if user.role and user.role.permissions.filter(codename='view_all_clients').exists():
             return Client.objects.filter(organization=user.organization)
+
+        if user.role and user.role.permissions.filter(codename='view_own_clients').exists():
+            return Client.objects.filter(organization=user.organization, created_by=user)
             
         return Client.objects.none()
 
