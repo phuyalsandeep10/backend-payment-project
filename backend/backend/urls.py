@@ -41,6 +41,7 @@ api_urlpatterns = [
     path('projects/', include('project.urls')),
     path('teams/', include('team.urls')),
     path('clients/', include('clients.urls')),
+    path('deals/', include('deals.urls')),
 ]
 
 urlpatterns = [
