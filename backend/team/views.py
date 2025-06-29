@@ -2,19 +2,21 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from .models import Team
 from .serializers import TeamSerializer
+from .permissions import HasTeamPermission
 from permissions.permissions import IsOrgAdminOrSuperAdmin
 from organization.models import Organization
 from rest_framework import serializers
+from django.db import models
 
 # Create your views here.
 
 class TeamViewSet(viewsets.ModelViewSet):
     """
     A viewset for managing Team instances.
-    Access is restricted to Org Admins and Super Admins.
+    Now uses role-based permissions with granular access control.
     """
     serializer_class = TeamSerializer
-    permission_classes = [IsOrgAdminOrSuperAdmin]
+    permission_classes = [HasTeamPermission]
 
     def get_queryset(self):
         """
@@ -26,9 +28,20 @@ class TeamViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return Team.objects.all()
 
-        if user.organization:
+        if not user.organization:
+            return Team.objects.none()
+
+        if user.role and user.role.permissions.filter(codename='view_all_teams').exists():
             return Team.objects.filter(organization=user.organization)
 
+        if user.role and user.role.permissions.filter(codename='view_own_teams').exists():
+            # Show teams where user is team lead or member
+            return Team.objects.filter(
+                organization=user.organization
+            ).filter(
+                models.Q(team_lead=user) | models.Q(members=user)
+            ).distinct()
+            
         return Team.objects.none()
 
     def perform_create(self, serializer):

@@ -2,7 +2,7 @@ from django.db import models
 import uuid
 from organization.models import Organization
 from django.conf import settings
-from .validators import validate_file_type
+from .validators import validate_file_security
 from PIL import Image
 from django.core.files.base import ContentFile
 import io
@@ -82,7 +82,7 @@ class Payment(models.Model):
         upload_to='receipts/', 
         blank=True, 
         null=True,
-        validators=[validate_file_type]
+        validators=[validate_file_security]
     )
     payment_remarks = models.TextField(blank=True,null=True)
     
@@ -96,21 +96,40 @@ class Payment(models.Model):
         return f"payment for {self.deal.deal_id} on {self.payment_date}"
     
     def save(self, *args, **kwargs):
-        # Compress image if it's too large
+        # Enhanced image compression with security checks
         if self.receipt_file and self.receipt_file.size > 1024 * 1024: # 1MB
-            # Note: PDF compression is complex and not handled here.
-            # This logic only compresses images.
             try:
-                # Open the image
+                # Security: Verify file is actually an image before processing
                 img = Image.open(self.receipt_file)
+                
+                # Additional security: Check image format
+                if img.format.lower() not in ['jpeg', 'jpg', 'png']:
+                    # If not a supported image format, don't process but allow save
+                    # (other validation will catch non-image files)
+                    super().save(*args, **kwargs)
+                    return
 
-                # Check if it's an image
+                # Check if it's an image that can be compressed
                 if img.format.lower() in ['jpeg', 'jpg', 'png']:
                     # Create a buffer to hold the compressed image
                     buffer = io.BytesIO()
                     
+                    # Convert to RGB if necessary (for JPEG)
+                    if img.mode in ['RGBA', 'P'] and img.format.lower() in ['jpeg', 'jpg']:
+                        # Create a white background for transparency
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                        img = background
+                    
+                    # Compress with quality optimization
+                    quality = 85
+                    if self.receipt_file.size > 5 * 1024 * 1024:  # If > 5MB, compress more
+                        quality = 70
+                        
                     # Save the image to the buffer with optimization
-                    img.save(buffer, format=img.format, optimize=True, quality=85)
+                    img.save(buffer, format=img.format, optimize=True, quality=quality)
                     
                     # Rewind the buffer
                     buffer.seek(0)
@@ -122,12 +141,15 @@ class Payment(models.Model):
                     file_name, file_ext = os.path.splitext(self.receipt_file.name)
                     
                     # Save the compressed file
-                    self.receipt_file.save(f"{file_name}_compressed{file_ext}", new_file, save=False)
+                    self.receipt_file.save(f"{file_name}_optimized{file_ext}", new_file, save=False)
 
             except Exception as e:
-                # If it's not a valid image or another error occurs,
-                # we can choose to log it and save the original file,
-                # or raise an error. For now, we'll just proceed.
+                # Security: Log the exception but don't expose details to user
+                import logging
+                logger = logging.getLogger('security')
+                logger.warning(f"File processing error for payment {self.id}: {str(e)}")
+                
+                # Continue with save - validation will catch any real issues
                 pass 
                 
         super().save(*args, **kwargs)
