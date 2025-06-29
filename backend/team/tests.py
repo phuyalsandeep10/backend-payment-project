@@ -81,7 +81,11 @@ class TeamAPITests(APITestCase):
 
     def test_org_admin_can_create_team(self):
         self.client.force_authenticate(user=self.org1_admin)
-        data = {'name': 'Team Gamma', 'members': [self.org1_user.id]}
+        data = {
+            'name': 'Team Gamma', 
+            'members': [self.org1_user.id],
+            'organization': self.org1.id
+        }
         response = self.client.post(self.team_list_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertTrue(Team.objects.filter(name='Team Gamma', organization=self.org1).exists())
@@ -92,7 +96,11 @@ class TeamAPITests(APITestCase):
         self.client.force_authenticate(user=self.org1_admin)
         # Add user to team
         self.team1_org1.members.add(self.org1_user)
-        data = {'name': 'Team Alpha Updated', 'members': []} # Remove user
+        data = {
+            'name': 'Team Alpha Updated', 
+            'members': [], # Remove user
+            'organization': self.org1.id
+        } 
         response = self.client.put(self.team_detail_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.team1_org1.refresh_from_db()

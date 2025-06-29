@@ -56,7 +56,6 @@ class User(AbstractUser):
     organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     contact_number = models.CharField(max_length=20, blank=True, null=True)
-    team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
 
     objects = CustomUserManager()
 

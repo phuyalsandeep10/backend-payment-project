@@ -63,7 +63,7 @@ class UserPermissions(IsAuthenticated):
             return True
             
         # Check if the user's role has the required permission
-        if request.user.org_role and request.user.org_role.permissions.filter(codename=perm_codename).exists():
+        if request.user.role and request.user.role.permissions.filter(codename=perm_codename).exists():
             return True
             
         return False
@@ -138,7 +138,7 @@ class SuperAdminLoginView(APIView):
 
         user = authenticate(username=username, password=password)
 
-        if not user or not user.is_superuser or user.org_role.name != 'Super Admin':
+        if not user or not user.is_superuser or user.role.name != 'Super Admin':
             return Response(
                 {"error": "Invalid credentials or not a Super Admin."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -194,7 +194,7 @@ class SuperAdminVerifyOTPView(APIView):
             'token': token.key,
             'user_id': user.pk,
             'email': user.email,
-            'role': user.org_role.name if user.org_role else None
+            'role': user.role.name if user.role else None
         })
 
 

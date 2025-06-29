@@ -18,28 +18,28 @@ class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for the User model.
     """
-    team = serializers.SerializerMethodField()
+    teams = serializers.SerializerMethodField()
     role = RoleSerializer(read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'organization', 'role', 'team', 'contact_number', 'is_active')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'organization', 'role', 'teams', 'contact_number', 'is_active')
 
-    def get_team(self, obj):
+    def get_teams(self, obj):
         from team.serializers import TeamSerializer
-        if obj.team:
-            return TeamSerializer(obj.team).data
-        return None
+        if hasattr(obj, 'teams'):
+            return TeamSerializer(obj.teams.all(), many=True).data
+        return []
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating a new user.
     """
-    org_role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
     
     class Meta:
         model = User
-        fields = ('username', 'password', 'first_name', 'last_name', 'email', 'organization', 'org_role', 'team', 'contact_number', 'is_active')
+        fields = ('username', 'password', 'first_name', 'last_name', 'email', 'organization', 'role', 'contact_number', 'is_active')
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):

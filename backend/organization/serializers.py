@@ -67,7 +67,7 @@ class OrganizationRegistrationSerializer(serializers.Serializer):
             email=validated_data['admin_email'],
             password=validated_data['admin_password'],
             organization=org,
-            org_role=org_admin_role
+            role=org_admin_role
         )
         
         return {

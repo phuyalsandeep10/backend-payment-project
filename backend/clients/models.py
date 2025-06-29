@@ -17,7 +17,7 @@ class Client(models.Model):
         ('prospect', 'Prospect'),
     ]
     client_name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     phone_number = models.CharField(max_length=20, validators=[RegexValidator(r'^\+?\d{10,15}$', 'Enter a valid phone number')],)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -31,7 +31,8 @@ class Client(models.Model):
     class Meta:
         ordering = ["client_name"]
         verbose_name = ("Client")
-        verbose_name_plural = ("Clients") 
+        verbose_name_plural = ("Clients")
+        unique_together = ('email', 'organization')
         
     def __str__(self):
         return self.client_name
