@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Permission, Role
+from .models import Permission, Role, Organization
 from .serializers import PermissionSerializer, RoleSerializer
+from .permissions import IsOrgAdminOrSuperAdmin
 from authentication.models import User
-from organization.permissions import HasPermission
+from django.db.models import Q
+from rest_framework import serializers
 
 # Create your views here.
 
@@ -15,7 +16,7 @@ class PermissionListView(generics.ListAPIView):
     """
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = [HasPermission('manage_roles')]
+    permission_classes = [IsOrgAdminOrSuperAdmin]
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -36,29 +37,37 @@ class RoleViewSet(viewsets.ModelViewSet):
     A viewset for an Org Admin to manage roles within their own organization.
     """
     serializer_class = RoleSerializer
-    permission_classes = [HasPermission('manage_roles')]
+    permission_classes = [IsOrgAdminOrSuperAdmin]
 
     def get_queryset(self):
-        # Short-circuit for schema generation to avoid AnonymousUser errors
-        if getattr(self, 'swagger_fake_view', False):
-            return Role.objects.none()
-        
         user = self.request.user
         if user.is_superuser:
             return Role.objects.all()
         
-        # Crucially, only return roles for the user's organization
-        return Role.objects.filter(organization=user.organization)
+        # Org Admins should be able to see their own roles and system-wide roles
+        if user.organization:
+            return Role.objects.filter(Q(organization=user.organization) | Q(organization__isnull=True))
+            
+        return Role.objects.none() # Should not happen for an Org Admin
 
     def perform_create(self, serializer):
         user = self.request.user
-        # Super Admins can create roles for any organization
         if user.is_superuser:
-            # Organization must be provided in the request data for super admins
-            organization = serializer.validated_data.get('organization')
-            if not organization:
-                raise serializers.ValidationError({'organization': 'This field is required for super admins.'})
+            # Super admins can create roles for any organization or system-wide
+            # The organization ID can be passed in the request data
+            org_id = self.request.data.get('organization')
+            organization = None
+            if org_id:
+                try:
+                    organization = Organization.objects.get(id=org_id)
+                except Organization.DoesNotExist:
+                    raise serializers.ValidationError({'organization': 'Organization not found.'})
             serializer.save(organization=organization)
         else:
-            # Org Admins can only create roles for their own organization
+            # Org Admins can only create roles for their own organization.
+            # Fail if they try to specify a different one.
+            if 'organization' in self.request.data and self.request.data['organization'] is not None:
+                raise serializers.ValidationError({
+                    'organization': 'You do not have permission to create roles for other organizations.'
+                })
             serializer.save(organization=user.organization)

@@ -19,5 +19,4 @@ class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['id', 'name', 'organization', 'organization_name', 'permissions']
-        # The organization will be set from the logged-in user, so it's not directly writable
-        extra_kwargs = {'organization': {'write_only': True, 'required': False}} 
+        read_only_fields = ['organization', 'organization_name'] 

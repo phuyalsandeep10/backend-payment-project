@@ -12,7 +12,6 @@ from django.core.mail import send_mail
 from django.conf import settings
 import random
 from .filters import UserFilter
-from organization.permissions import HasPermission
 
 
 def _create_user_session(request, user, token):
@@ -21,7 +20,7 @@ def _create_user_session(request, user, token):
     """
     # Clean up old sessions for the same user to avoid clutter
     # This is optional but good practice. You might want to limit the number of active sessions.
-    # UserSession.objects.filter(user=user).delete()
+    UserSession.objects.filter(user=user).delete()
 
     ip_address = request.META.get('REMOTE_ADDR')
     user_agent = request.META.get('HTTP_USER_AGENT', '')
@@ -33,12 +32,50 @@ def _create_user_session(request, user, token):
         user_agent=user_agent
     )
 
+class UserPermissions(IsAuthenticated):
+    """
+    Handles permissions for the UserViewSet.
+    - 'create_user': Allows creating users.
+    - 'view_user': Allows listing and retrieving users.
+    - 'edit_user': Allows updating users.
+    - 'delete_user': Allows deleting users.
+    """
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+            
+        required_perms = {
+            'create': 'create_user',
+            'list': 'view_user',
+            'retrieve': 'view_user',
+            'update': 'edit_user',
+            'partial_update': 'edit_user',
+            'destroy': 'delete_user',
+        }
+        
+        perm_codename = required_perms.get(view.action)
+        if not perm_codename:
+            # Default to deny access if action not in map
+            return False
+
+        # Superusers have all permissions
+        if request.user.is_superuser:
+            return True
+            
+        # Check if the user's role has the required permission
+        if request.user.org_role and request.user.org_role.permissions.filter(codename=perm_codename).exists():
+            return True
+            
+        return False
+
+
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.all()
     filterset_class = UserFilter
+    permission_classes = [UserPermissions]
 
     def get_queryset(self):
         """
@@ -54,23 +91,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             return User.objects.all()
         return User.objects.filter(organization=user.organization)
-
-    def get_permissions(self):
-        """
-        Instantiates and returns the list of permissions that this view requires.
-        """
-        if self.action == 'create':
-            self.permission_classes = [HasPermission('create_user')]
-        elif self.action in ['list', 'retrieve']:
-            self.permission_classes = [HasPermission('view_user')]
-        elif self.action in ['update', 'partial_update']:
-            self.permission_classes = [HasPermission('edit_user')]
-        elif self.action == 'destroy':
-            self.permission_classes = [HasPermission('delete_user')]
-        else:
-            self.permission_classes = [IsAuthenticated]
-        
-        return super().get_permissions()
 
     def perform_create(self, serializer):
         """
@@ -90,32 +110,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class LoginView(APIView):
     permission_classes = []
-    serializer_class = LoginSerializer
 
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+    def post(self, request, *args, **kwargs):
+        serializer = LoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        _create_user_session(request, user, token)
         
-        username = serializer.validated_data.get("username")
-        password = serializer.validated_data.get("password")
+        return Response({
+            'token': token.key,
+            'user': UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
 
-        user = authenticate(username=username, password=password)
-
-        if user:
-            # You can decide here which roles are allowed to log in via this endpoint
-            token, _ = Token.objects.get_or_create(user=user)
-            _create_user_session(request, user, token)
-            user_data = UserSerializer(user).data
-            return Response({
-                "token": token.key,
-                "message": "Login successful",
-                "user": user_data
-            })
-        
-        return Response(
-            {"error": "Invalid credentials"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
 
 class SuperAdminLoginView(APIView):
     """
@@ -131,7 +138,7 @@ class SuperAdminLoginView(APIView):
 
         user = authenticate(username=username, password=password)
 
-        if not user or user.org_role != User.Role.SUPER_ADMIN:
+        if not user or not user.is_superuser or user.org_role.name != 'Super Admin':
             return Response(
                 {"error": "Invalid credentials or not a Super Admin."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -187,7 +194,7 @@ class SuperAdminVerifyOTPView(APIView):
             'token': token.key,
             'user_id': user.pk,
             'email': user.email,
-            'role': user.org_role
+            'role': user.org_role.name if user.org_role else None
         })
 
 
@@ -227,3 +234,25 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
         session.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class LogoutView(APIView):
+    """
+    An endpoint for logging out a user.
+    This revokes the user's authentication token and server-side session.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Delete the token to invalidate it
+        try:
+            request.user.auth_token.delete()
+        except (AttributeError, Token.DoesNotExist):
+            pass  # The user might not have a token
+
+        # Delete the server-side session record
+        UserSession.objects.filter(user=request.user).delete()
+
+        return Response(
+            {"message": "Successfully logged out."},
+            status=status.HTTP_200_OK
+        )

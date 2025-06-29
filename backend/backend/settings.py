@@ -56,7 +56,6 @@ INSTALLED_APPS = [
     # my apps
     "authentication",
 
-    "users",
     "clients",
 
     "organization",
@@ -71,11 +70,14 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ]
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
 }
 
 
@@ -172,22 +174,6 @@ AUTH_USER_MODEL = 'authentication.User'
 CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend'
-    ],
-}
-
-
-#setting customuser model as the default for authentication
-AUTH_USER_MODEL = 'users.CustomUser'
-=======
 SWAGGER_SETTINGS = {
    'SECURITY_DEFINITIONS': {
       'Token': {
@@ -212,4 +198,9 @@ else:
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
 SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL')
+
+# Custom settings for management commands
+ADMIN_USER = env('ADMIN_USER', default='admin')
+ADMIN_EMAIL = env('ADMIN_EMAIL', default='admin@example.com')
+ADMIN_PASS = env('ADMIN_PASS', default='password')
 

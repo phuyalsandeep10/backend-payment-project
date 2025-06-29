@@ -1,11 +1,14 @@
 from rest_framework import serializers
-from .models import Clients
+from .models import Client
 
 
-class ClientsSerializers(serializers.ModelSerializer):
+class ClientSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Client model.
+    """
     class Meta:
-        model = Clients
+        model = Client
         fields = '__all__'
-        read_only_fields =  ('created_at','updated_at')
+        read_only_fields = ['created_by', 'organization']
         
         

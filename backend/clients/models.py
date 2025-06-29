@@ -1,8 +1,10 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.conf import settings
+from organization.models import Organization
 
 # Create your models here.
-class Clients(models.Model):
+class Client(models.Model):
     SATISFACTION_CHOICES = [
         ('excellent', 'Excellent'),
         ('good', 'Good'),
@@ -23,6 +25,8 @@ class Clients(models.Model):
     remarks = models.TextField(blank=True, null=True)
     satisfaction = models.CharField(max_length=255,choices=SATISFACTION_CHOICES,blank=True, null=True)
     status = models.CharField(max_length=255,choices=STATUS_CHOICES,blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='clients')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='clients')
     
     class Meta:
         ordering = ["client_name"]

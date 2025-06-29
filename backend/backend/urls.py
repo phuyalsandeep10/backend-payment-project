@@ -32,23 +32,23 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+# Centralized API URL patterns
+api_urlpatterns = [
+    path('auth/', include('authentication.urls')),
+    path('organizations/', include('organization.urls')),
+    path('permissions/', include('permissions.urls')),
+    path('commissions/', include('commission.urls')),
+    path('projects/', include('project.urls')),
+    path('teams/', include('team.urls')),
+    path('clients/', include('clients.urls')),
+]
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/auth/', include('authentication.urls')),
-    path('api/org/', include('organization.urls')),
-    path('api/permissions/', include('permissions.urls')),
-    path('api/commissions/', include('commission.urls')),
-    path('api/projects/', include('project.urls')),
-    path('api/teams/', include('team.urls')),
+    path('api/v1/', include(api_urlpatterns)),
 
     # API documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    
-    
-    path('usersapi/', include('users.urls')),
-    path('clientsapi/', include('clients.urls')),
-    
-
 ]
