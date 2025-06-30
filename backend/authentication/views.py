@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, viewsets, serializers
 from django.core.cache import cache
-from django.core.mail import send_mail
+
 from django.conf import settings
 import secrets
 import string
@@ -272,22 +272,33 @@ class SuperAdminLoginView(APIView):
         otp = generate_secure_otp(length=8)
         store_otp_securely(user.email, otp, timeout=300)  # 5 minutes
 
-        # Send OTP to the user's email
+        # Send OTP to the user's email using robust email backend
         try:
-            send_mail(
+            from core_config.email_backend import EmailService
+            
+            # Get OTP destination email (might be different from user.email)
+            otp_email = getattr(settings, 'SUPER_ADMIN_OTP_EMAIL', user.email)
+            
+            success = EmailService.send_email(
                 subject="Your Admin Login OTP - PRS System",
                 message=f"Your One-Time Password is: {otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please contact your system administrator immediately.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
+                recipient_list=[otp_email],
                 fail_silently=False,
             )
             
-            security_logger.info(f"OTP sent to super admin {user.email} from IP {client_ip}")
-            
-            return Response(
-                {"message": "An OTP has been sent to the designated admin email. It is valid for 5 minutes."},
-                status=status.HTTP_200_OK,
-            )
+            if success:
+                security_logger.info(f"OTP sent to super admin {otp_email} from IP {client_ip}")
+                
+                return Response(
+                    {"message": f"An OTP has been sent to the designated admin email. It is valid for 5 minutes."},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                security_logger.error(f"Failed to send OTP to {otp_email}: Email service returned False")
+                return Response(
+                    {"error": "Failed to send OTP. Please try again."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             
         except Exception as e:
             security_logger.error(f"Failed to send OTP to {user.email}: {str(e)}")

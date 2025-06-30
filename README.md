@@ -1,111 +1,242 @@
-# Payment Receiving System (PRS) - Backend
+# 🚀 PRS Backend Documentation
 
-This repository contains the backend for the Payment Receiving System (PRS), a multi-tenant application designed to manage payments for various organizations. It is built with Django and Django Rest Framework, providing a robust and secure API.
+## Payment Receiving System (PRS) - Backend API
 
-## Project Overview
+Welcome to the PRS Backend documentation! This comprehensive guide will help you understand, integrate with, and maintain the PRS system.
 
-The system is designed with a clear administrative hierarchy:
+---
 
--   **Super Admins (`SUPER_ADMIN`):** Have top-level control over the entire system. They can create, manage, and oversee all organizations.
--   **Organization Admins (`ORG_ADMIN`):** Manage a single, specific organization. They are created and assigned to an organization by a Super Admin.
+## 📋 **TABLE OF CONTENTS**
 
-The backend provides API endpoints for all administrative functions, including user authentication, organization management, and admin creation.
+### 🚀 **Getting Started**
+- [📖 Installation & Setup Guide](./setup_guide.md)
+- [🔧 Configuration Guide](./configuration_guide.md)
+- [🐳 Docker Setup](./docker_setup.md)
 
-## Tech Stack
+### 🌐 **API Documentation**
+- [🔑 Authentication API](./api_authentication.md)
+- [📊 Complete API Reference](./api_reference.md)
+- [🔗 Frontend Integration Guide](./frontend_integration.md)
 
--   **Framework:** Django
--   **API:** Django Rest Framework
--   **Database:** PostgreSQL
--   **Authentication:** Token-based authentication
+### 🔧 **System Components**
+- [📧 Email System](./email_system_implementation.md)
+- [🗄️ Database Schema](./database_schema.md)
+- [🔒 Security & Permissions](./security_guide.md)
 
-## Local Development Setup
+### 🛠️ **Development**
+- [📝 Coding Standards](./coding_rules.md)
+- [🧪 Testing Guide](./testing_guide.md)
+- [🚀 Deployment Guide](./deployment_guide.md)
 
-To run this project on your local machine, follow these steps:
+### 📖 **Reference**
+- [🔍 Troubleshooting](./troubleshooting.md)
+- [📈 Performance Guide](./performance_guide.md)
+- [🔄 Migration Guide](./migration_guide.md)
 
-### 1. Prerequisites
+---
 
--   Python 3.10+
--   PostgreSQL installed and running
--   `pip` and `venv`
+## 🎯 **QUICK START**
 
-### 2. Clone the Repository
-
+### 1. **Installation**
 ```bash
-git clone <your-repository-url>
-cd Backend_PRS
+# Clone the repository
+git clone <repository-url>
+cd Backend_PRS-1/backend
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup database
+python manage.py migrate
+
+# Create superadmin
+python manage.py setup_superadmin --email admin@example.com --password your_password
+
+# Run development server
+python manage.py runserver
 ```
 
-### 3. Set Up the Environment
+### 2. **API Base URL**
+```
+Development: http://localhost:8000/api/v1/
+Production: https://your-domain.com/api/v1/
+```
 
-Create a virtual environment to manage project dependencies:
+### 3. **First API Call**
+```javascript
+// Test API connectivity
+fetch('http://localhost:8000/api/v1/auth/', {
+    method: 'GET',
+    headers: {
+        'Content-Type': 'application/json'
+    }
+})
+.then(response => response.json())
+.then(data => console.log('API is working:', data));
+```
 
+---
+
+## 🏗️ **SYSTEM ARCHITECTURE**
+
+### **Backend Components**
+```
+PRS Backend
+├── 🔑 Authentication System
+│   ├── User Management
+│   ├── Role-Based Permissions
+│   └── OTP-based Super Admin Login
+├── 🏢 Organization Management
+│   ├── Multi-tenant Architecture
+│   ├── Role Assignments
+│   └── Team Management
+├── 👥 Client Management
+│   ├── Client Registration
+│   ├── Contact Information
+│   └── Organization Association
+├── 💼 Deal Management
+│   ├── Deal Creation & Tracking
+│   ├── Payment Processing
+│   └── Receipt Management
+├── 💰 Commission System
+│   ├── Automatic Calculations
+│   ├── Multi-level Commissions
+│   └── Payment Tracking
+├── 📧 Notification System
+│   ├── Real-time Notifications
+│   ├── Email Notifications
+│   └── Notification Preferences
+└── 🔒 Security Features
+    ├── Rate Limiting
+    ├── Session Management
+    └── Audit Logging
+```
+
+---
+
+## 🔑 **AUTHENTICATION OVERVIEW**
+
+### **Authentication Flow**
+```mermaid
+graph TD
+    A[Frontend] --> B[Login Request]
+    B --> C{User Type?}
+    C -->|Regular User| D[Username/Password Auth]
+    C -->|Super Admin| E[Email/Password + OTP]
+    D --> F[Token Response]
+    E --> G[OTP Email Sent]
+    G --> H[OTP Verification]
+    H --> F[Token Response]
+    F --> I[Authenticated Requests]
+```
+
+### **API Endpoints Quick Reference**
+```
+POST /api/v1/auth/login/                    # Regular user login
+POST /api/v1/auth/super-admin/login/        # Super admin login (step 1)
+POST /api/v1/auth/super-admin/verify/       # Super admin OTP verification (step 2)
+POST /api/v1/auth/logout/                   # Logout
+GET  /api/v1/auth/sessions/                 # List user sessions
+```
+
+---
+
+## 🌟 **KEY FEATURES**
+
+### ✅ **Robust Email System**
+- **Multi-provider SMTP support** with automatic fallbacks
+- **Retry logic** with exponential backoff
+- **Console fallback** for development
+- **OTP email delivery** for super admin authentication
+
+### ✅ **Multi-tenant Architecture**
+- **Organization-based data isolation**
+- **Role-based access control**
+- **Scalable user management**
+
+### ✅ **Comprehensive API**
+- **RESTful design** with consistent responses
+- **Token-based authentication**
+- **Detailed error handling**
+- **API documentation** with Swagger/OpenAPI
+
+### ✅ **Security First**
+- **Rate limiting** on sensitive endpoints
+- **Session management** with audit trails
+- **Input validation** and sanitization
+- **CORS protection** and security headers
+
+---
+
+## 🛡️ **SECURITY CONSIDERATIONS**
+
+### **Authentication Security**
+- Token-based authentication with session tracking
+- Rate limiting on login attempts
+- Secure OTP generation and verification
+- Password strength requirements
+
+### **Data Protection**
+- Organization-based data isolation
+- Role-based access control
+- Audit logging for sensitive operations
+- Secure file upload handling
+
+### **Network Security**
+- HTTPS enforcement in production
+- CORS configuration
+- Security headers middleware
+- Input validation and sanitization
+
+---
+
+## 📞 **SUPPORT & MAINTENANCE**
+
+### **Common Tasks**
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+# Create superadmin user
+python manage.py setup_superadmin --email admin@example.com
+
+# Clean up test data
+python manage.py cleanup_test_data
+
+# Database backup
+python manage.py dumpdata > backup.json
+
+# Check system health
+python manage.py check
 ```
 
-Install the required packages:
+### **Logs & Monitoring**
+- Security logs: `logs/security.log`
+- Email logs: Check console output or email notification logs
+- Django logs: Standard Django logging configuration
 
-```bash
-pip install -r backend/requirements.txt
-```
+---
 
-### 4. Configure the Database
+## 🔗 **USEFUL LINKS**
 
-1.  Create a PostgreSQL database for the project (e.g., `payment_db`).
-2.  Create a `.env` file in the `backend/` directory by copying the example:
+- **Django Documentation**: https://docs.djangoproject.com/
+- **Django REST Framework**: https://www.django-rest-framework.org/
+- **API Testing**: Use Postman, Insomnia, or built-in Swagger UI
+- **Database**: SQLite (development) / PostgreSQL (production)
 
-    ```bash
-    cp backend/.env.example backend/.env
-    ```
+---
 
-3.  Update the `backend/.env` file with your PostgreSQL database credentials:
+## 📝 **CHANGELOG**
 
-    ```
-    DB_NAME=your_db_name
-    DB_USER=your_db_user
-    DB_PASSWORD=your_db_password
-    DB_HOST=localhost
-    DB_PORT=5432
-    ```
+### **Latest Updates**
+- ✅ **Robust Email Backend**: Multi-provider SMTP with fallbacks
+- ✅ **Enhanced Security**: Rate limiting and session management
+- ✅ **API Improvements**: Consistent error handling and responses
+- ✅ **Documentation**: Comprehensive guides for all components
 
-### 5. Run Database Migrations
+---
 
-Apply the database schema:
+For detailed information on any topic, please refer to the specific documentation files linked above.
 
-```bash
-python backend/manage.py migrate
-```
-
-### 6. Create a Super Administrator
-
-To access the administrative features, you need a super admin account. Set the following environment variables in your `.env` file:
-
-```
-ADMIN_USER=your_admin_username
-ADMIN_EMAIL=your_admin_email@example.com
-ADMIN_PASS=your_strong_password
-```
-
-Then, run the management command:
-
-```bash
-python backend/manage.py create_super_admin
-```
-
-### 7. Run the Development Server
-
-Start the Django development server:
-
-```bash
-python backend/manage.py runserver
-```
-
-The API will be available at `http://127.0.0.1:8000/`.
-
-## API Endpoints
-
--   **Authentication:** `/api/auth/`
--   **Organization Management:** `/api/org/`
-
-All administrative endpoints under `/api/org/` require token authentication and `SUPER_ADMIN` privileges.
+**Happy coding! 🚀** 

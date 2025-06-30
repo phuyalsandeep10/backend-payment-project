@@ -13,3 +13,5 @@ __pycache__/
 # IDE folders
 .vscode/
 .idea/
+.logs
+.log

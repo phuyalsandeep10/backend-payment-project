@@ -242,17 +242,22 @@ SWAGGER_SETTINGS = {
    }
 }
 
-# Email Configuration
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = env('EMAIL_HOST')
-    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+# Email Configuration - Robust Email Backend
+# Uses our custom RobustEmailBackend with retry logic and fallback providers
+EMAIL_BACKEND = 'core_config.email_backend.RobustEmailBackend'
+
+# SMTP Configuration (used by RobustEmailBackend)
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=f"PRS System <{env('EMAIL_HOST_USER', default='noreply@prs.com')}>")
+
+# Email Backend Features
+EMAIL_TIMEOUT = 30
+EMAIL_USE_LOCALTIME = False
 
 SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL')
 
@@ -306,6 +311,11 @@ LOGGING = {
         'django.security': {
             'handlers': ['security_file'],
             'level': 'WARNING',
+            'propagate': False,
+        },
+        'prs.email': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

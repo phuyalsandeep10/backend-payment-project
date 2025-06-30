@@ -1,4 +1,4 @@
-from django.core.mail import send_mail
+
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
@@ -325,18 +325,24 @@ class NotificationService:
     @staticmethod
     def _send_email_notification(email_log):
         """
-        Send email notification and update log status.
+        Send email notification using robust email backend.
         """
         try:
-            send_mail(
+            from core_config.email_backend import EmailService
+            
+            success = EmailService.send_email(
                 subject=email_log.subject,
                 message=email_log.content,
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email_log.recipient_email],
-                fail_silently=False,
+                fail_silently=True  # Don't break system on email failures
             )
-            email_log.mark_sent()
-            logger.info(f"Email sent successfully to {email_log.recipient_email}")
+            
+            if success:
+                email_log.mark_sent()
+                logger.info(f"Email sent successfully to {email_log.recipient_email}")
+            else:
+                email_log.mark_failed("Email sending failed via robust backend")
+                logger.warning(f"Email sending failed to {email_log.recipient_email}")
             
         except Exception as e:
             error_message = str(e)
