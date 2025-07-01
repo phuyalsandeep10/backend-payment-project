@@ -1,0 +1,47 @@
+Of course. Here is a complete list of the API endpoints we created in the `Sales_dashboard` app, along with a description of what each one does.
+
+All these URLs are designed to be accessed by a logged-in salesperson and are prefixed with `/api/v1/dashboard/`.
+
+***
+
+### 1. Main Dashboard
+
+*   **URL**: `/api/v1/dashboard/`
+*   **View**: `DashboardView`
+*   **Purpose**: This is the main endpoint for the initial dashboard screen. It provides a comprehensive overview of the salesperson's individual performance.
+*   **Data Returned**:
+    *   `sales_target` & `current_sales`: The salesperson's personal sales goal and their progress toward it.
+    *   `streak`: The salesperson's current performance streak.
+    *   `payment_verification_status`: A summary of the total value of deals, categorized as "cleared," "not verified," and "rejected."
+    *   `outstanding_deals`: A list of the top 5 deals with payments that are still pending.
+    *   `payment_verification_graph`: Time-series data (monthly or weekly) showing the amount of verified payments over time.
+
+### 2. Daily Standings
+
+*   **URL**: `/api/v1/dashboard/standings/`
+*   **View**: `DailyStandingsView`
+*   **Purpose**: This endpoint powers the leaderboard, showing daily performance rankings. It has two modes controlled by a query parameter.
+*   **Query Parameters**:
+    *   `?type=individual`: Returns a ranked list of individual salespeople in the organization based on their total sales for the current day.
+    *   `?type=team`: Returns a ranked list of teams in the organization based on the combined sales of their members for the current day.
+
+### 3. Commission Overview
+
+*   **URL**: `/api/v1/dashboard/commission-overview/`
+*   **View**: `CommissionOverviewView`
+*   **Purpose**: This endpoint provides the data for the "Commission" page, focusing on broader company goals and client performance.
+*   **Data Returned**:
+    *   `company_goal`: The entire organization's sales goal, its current progress, and the month-over-month growth percentage.
+    *   `top_clients`: A list of the salesperson's top 5 clients for a specific period (monthly, weekly, or daily, controlled by the `?period=` query parameter), perfect for a bar chart.
+    *   `regular_clients`: A list of the salesperson's top 5 all-time regular clients based on total sales.
+
+### 4. Salesperson's Client List
+
+*   **URL**: `/api/v1/dashboard/client-list/`
+*   **View**: `SalespersonClientListView`
+*   **Purpose**: This endpoint returns the detailed, table-view list of all clients managed by the salesperson.
+*   **Data Returned**: For each client, it provides:
+    *   `client_name`: The name of the client.
+    *   `total_sales`: The total sales value from that client.
+    *   `status`: The client's current payment status (`Clear`, `Pending`, or `Bad Debt`).
+    *   `remarks`: Any notes or remarks related to the client.
