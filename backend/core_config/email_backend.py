@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.message import EmailMessage
+from django.core.mail import send_mail
 import ssl
 
 # Set up logging
@@ -56,13 +57,15 @@ class RobustEmailBackend(BaseEmailBackend):
         self.retry_backoff = 2  # exponential backoff multiplier
         
         logger.info(f"RobustEmailBackend initialized with {len(self.smtp_providers)} providers")
+        logger.info(f"Email user: {self.email_host_user}")
+        logger.info(f"Default from: {self.default_from_email}")
 
     def _get_smtp_providers(self) -> List[SMTPConfig]:
         """Get list of SMTP providers to try"""
         providers = []
         
-        # Primary provider from settings
-        primary_host = getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com')
+        # Primary provider from settings - clean up any whitespace
+        primary_host = getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com').strip()
         primary_port = getattr(settings, 'EMAIL_PORT', 587)
         primary_tls = getattr(settings, 'EMAIL_USE_TLS', True)
         primary_ssl = getattr(settings, 'EMAIL_USE_SSL', False)
@@ -90,47 +93,45 @@ class RobustEmailBackend(BaseEmailBackend):
         try:
             logger.info(f"Attempting connection to {smtp_config}")
             
-            # Force IPv4 resolution to avoid IPv6 issues
-            original_getaddrinfo = socket.getaddrinfo
+            # Create connection without IPv4 forcing to avoid conflicts
+            connection = None
             
-            def ipv4_getaddrinfo(*args, **kwargs):
-                kwargs['family'] = socket.AF_INET  # Force IPv4
-                return original_getaddrinfo(*args, **kwargs)
+            if smtp_config.use_ssl:
+                connection = smtplib.SMTP_SSL(
+                    smtp_config.host, 
+                    smtp_config.port, 
+                    timeout=smtp_config.timeout
+                )
+            else:
+                connection = smtplib.SMTP(
+                    smtp_config.host, 
+                    smtp_config.port, 
+                    timeout=smtp_config.timeout
+                )
             
-            socket.getaddrinfo = ipv4_getaddrinfo
+            # Enable debug output for troubleshooting
+            # connection.set_debuglevel(1)
             
-            try:
-                # Create connection
-                if smtp_config.use_ssl:
-                    connection = smtplib.SMTP_SSL(
-                        smtp_config.host, 
-                        smtp_config.port, 
-                        timeout=smtp_config.timeout
-                    )
-                else:
-                    connection = smtplib.SMTP(
-                        smtp_config.host, 
-                        smtp_config.port, 
-                        timeout=smtp_config.timeout
-                    )
-                
-                # Start TLS if required
-                if smtp_config.use_tls and not smtp_config.use_ssl:
-                    connection.starttls(context=ssl.create_default_context())
-                
-                # Authenticate
-                if self.email_host_user and self.email_host_password:
-                    connection.login(self.email_host_user, self.email_host_password)
-                
-                logger.info(f"Successfully connected to {smtp_config}")
-                return connection
-                
-            finally:
-                # Restore original getaddrinfo
-                socket.getaddrinfo = original_getaddrinfo
+            # Start TLS if required
+            if smtp_config.use_tls and not smtp_config.use_ssl:
+                logger.info("Starting TLS...")
+                connection.starttls(context=ssl.create_default_context())
+            
+            # Authenticate
+            if self.email_host_user and self.email_host_password:
+                logger.info(f"Authenticating as {self.email_host_user}")
+                connection.login(self.email_host_user, self.email_host_password)
+                logger.info("Authentication successful")
+            else:
+                logger.warning("No email credentials provided")
+            
+            logger.info(f"Successfully connected to {smtp_config}")
+            return connection
                 
         except Exception as e:
-            logger.warning(f"Connection failed for {smtp_config}: {e}")
+            logger.error(f"Connection failed for {smtp_config}: {e}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
         
         return None
 
@@ -151,22 +152,28 @@ class RobustEmailBackend(BaseEmailBackend):
                     sent_count = 0
                     for message in email_messages:
                         try:
-                            # Convert Django EmailMessage to standard email
-                            msg = MIMEMultipart()
+                            logger.info(f"Sending email: {message.subject} to {message.to}")
+                            
+                            # Use Django's built-in email handling
+                            # Convert to proper email format
+                            from_email = message.from_email or self.default_from_email
+                            
+                            # Create MIMEText message directly
+                            msg = MIMEText(message.body, 'plain', 'utf-8')
                             msg['Subject'] = message.subject
-                            msg['From'] = message.from_email or self.default_from_email
+                            msg['From'] = from_email
                             msg['To'] = ', '.join(message.to)
                             
-                            # Add body
-                            msg.attach(MIMEText(message.body, 'plain'))
-                            
-                            # Send email
-                            recipients = message.to
-                            connection.send_message(msg, to_addrs=recipients)
+                            # Send the email
+                            text = msg.as_string()
+                            connection.sendmail(from_email, message.to, text)
                             sent_count += 1
+                            logger.info(f"Email sent successfully to {message.to}")
                             
                         except Exception as e:
                             logger.error(f"Failed to send individual message: {e}")
+                            import traceback
+                            logger.error(f"Full traceback: {traceback.format_exc()}")
                     
                     connection.quit()
                     
@@ -175,10 +182,13 @@ class RobustEmailBackend(BaseEmailBackend):
                         return sent_count
                         
                 except Exception as e:
-                    logger.warning(f"Attempt {attempt + 1} failed for {provider}: {e}")
+                    logger.error(f"Attempt {attempt + 1} failed for {provider}: {e}")
+                    import traceback
+                    logger.error(f"Full traceback: {traceback.format_exc()}")
                     
                     if attempt < self.max_retries - 1:
                         delay = self.retry_delay * (self.retry_backoff ** attempt)
+                        logger.info(f"Waiting {delay} seconds before retry...")
                         time.sleep(delay)
         
         # All providers failed - fallback to console
@@ -208,25 +218,42 @@ class EmailService:
     
     @staticmethod
     def send_email(subject, message, from_email=None, recipient_list=None, fail_silently=False):
-        """Enhanced send_email function"""
+        """Enhanced send_email function with better error handling"""
         try:
             if not recipient_list:
+                logger.error("No recipient list provided")
                 return False
             
-            backend = RobustEmailBackend(fail_silently=fail_silently)
+            if not subject or not message:
+                logger.error("Subject or message is empty")
+                return False
             
-            email_msg = EmailMessage(
+            # Use Django's built-in send_mail with our custom backend
+            from django.core.mail import send_mail
+            
+            from_email = from_email or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+            if not from_email:
+                logger.error("No from_email provided and DEFAULT_FROM_EMAIL not set")
+                return False
+            
+            logger.info(f"Sending email: {subject} to {recipient_list} from {from_email}")
+            
+            sent_count = send_mail(
                 subject=subject,
-                body=message,
-                from_email=from_email or getattr(settings, 'DEFAULT_FROM_EMAIL', ''),
-                to=recipient_list
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                fail_silently=fail_silently
             )
             
-            sent_count = backend.send_messages([email_msg])
-            return sent_count > 0
+            success = sent_count > 0
+            logger.info(f"Email send result: {success}, sent_count: {sent_count}")
+            return success
                 
         except Exception as e:
             logger.error(f"EmailService.send_email failed: {e}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             if not fail_silently:
                 raise
             return False
@@ -241,7 +268,12 @@ class EmailService:
             'successful_provider': None,
             'total_providers': len(backend.smtp_providers),
             'connection_successful': False,
-            'error_details': []
+            'error_details': [],
+            'configuration': {
+                'email_host_user': backend.email_host_user,
+                'default_from_email': backend.default_from_email,
+                'has_password': bool(backend.email_host_password)
+            }
         }
         
         for provider in backend.smtp_providers:
@@ -249,6 +281,8 @@ class EmailService:
                 'name': provider.name,
                 'host': provider.host,
                 'port': provider.port,
+                'use_tls': provider.use_tls,
+                'use_ssl': provider.use_ssl,
                 'connected': False,
                 'error': None
             }
@@ -268,6 +302,7 @@ class EmailService:
                     provider_result['error'] = "Connection failed"
             except Exception as e:
                 provider_result['error'] = str(e)
+                results['error_details'].append(f"{provider.name}: {str(e)}")
             
             results['providers_tested'].append(provider_result)
         

@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "project",
     "deals",
     "notifications",
+    'Sales_dashboard',
     'django_filters',
     'django_extensions',
 ]
@@ -253,13 +254,19 @@ EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=f"PRS System <{env('EMAIL_HOST_USER', default='noreply@prs.com')}>")
+
+# Fix DEFAULT_FROM_EMAIL to avoid circular reference issues
+if env('EMAIL_HOST_USER', default=''):
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=f"PRS System <{env('EMAIL_HOST_USER')}>")
+else:
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='PRS System <noreply@prs.com>')
 
 # Email Backend Features
 EMAIL_TIMEOUT = 30
 EMAIL_USE_LOCALTIME = False
 
-SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL')
+# Super Admin OTP Email - this should be set in .env file
+SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL', default=env('EMAIL_HOST_USER', default='admin@example.com'))
 
 # Custom settings for management commands
 ADMIN_USER = env('ADMIN_USER', default='admin')

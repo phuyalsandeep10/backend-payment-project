@@ -9,6 +9,8 @@ from team.models import Team
 from project.models import Project
 from commission.models import Commission
 from .services import NotificationService
+from django.db.models import Q
+from notifications.models import Notification
 
 User = get_user_model()
 
@@ -38,40 +40,45 @@ def notify_new_client(sender, instance, created, **kwargs):
 # DEAL NOTIFICATIONS  
 # =============================================================================
 
+def create_notification(recipients, title, message, notification_type, created_by):
+    """Helper function to create notifications."""
+    for recipient in recipients:
+        Notification.objects.create(
+            recipient=recipient,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            created_by=created_by
+        )
+
 @receiver(post_save, sender=Deal)
 def notify_deal_changes(sender, instance, created, **kwargs):
     """Send notification when a deal is created or updated."""
     if created:
-        # New deal created
-        NotificationService.notify_role_based_users(
-            organization=instance.organization,
+        log_message = f"Deal '{instance.deal_id}' created by {instance.created_by.username}."
+        recipients = User.objects.filter(Q(role__name='Admin') | Q(is_superuser=True), organization=instance.organization)
+        
+        create_notification(
+            recipients=recipients,
+            title=f'New Deal: {instance.client_name}',
+            message=log_message,
             notification_type='deal_created',
-            title=f'New Deal Created: {instance.title}',
-            message=f'A new deal "{instance.title}" worth ${instance.value} has been created for client {instance.client.client_name}.',
-            target_roles=['admin', 'manager', 'team_lead', 'salesperson'],
-            priority='high',
-            category='business',
-            related_object_type='deal',
-            related_object_id=instance.id,
-            send_email_to_superadmin=True
+            created_by=instance.created_by
         )
     else:
-        # Deal updated - check for significant changes
+        # Log activity for deal updates
         try:
             old_instance = Deal.objects.get(pk=instance.pk)
-            if old_instance.status != instance.status:
-                # Status changed
-                NotificationService.notify_role_based_users(
-                    organization=instance.organization,
-                    notification_type='deal_status_changed',
-                    title=f'Deal Status Updated: {instance.title}',
-                    message=f'Deal "{instance.title}" status changed from {old_instance.status} to {instance.status}.',
-                    target_roles=['admin', 'manager', 'team_lead', 'salesperson'],
-                    priority='medium',
-                    category='business',
-                    related_object_type='deal',
-                    related_object_id=instance.id,
-                    send_email_to_superadmin=False
+            if old_instance.deal_status != instance.deal_status:
+                log_message = f"Deal '{instance.deal_id}' status changed to {instance.deal_status} by system/user."
+                
+                # Notify the user who created the deal
+                create_notification(
+                    recipients=[instance.created_by],
+                    title=f'Deal Status Updated: {instance.client_name}',
+                    message=log_message,
+                    notification_type='deal_status_change',
+                    created_by=None  # System-generated
                 )
         except Deal.DoesNotExist:
             pass

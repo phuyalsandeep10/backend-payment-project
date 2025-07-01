@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from organization.models import Organization
 from permissions.models import Role
+from django.core.validators import MinValueValidator
 # from team.models import Team # This is removed to prevent circular import
 
 class CustomUserManager(BaseUserManager):
@@ -56,6 +57,8 @@ class User(AbstractUser):
     organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     contact_number = models.CharField(max_length=20, blank=True, null=True)
+    sales_target = models.DecimalField(max_digits=15, decimal_places=2, default=15000.00)
+    streak = models.IntegerField(default=0, validators=[MinValueValidator(0)])
 
     objects = CustomUserManager()
 

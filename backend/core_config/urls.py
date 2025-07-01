@@ -46,6 +46,7 @@ api_urlpatterns = [
     path('teams/', include('team.urls')),
     path('clients/', include('clients.urls')),
     path('notifications/', include('notifications.urls')),
+    path('dashboard/', include('Sales_dashboard.urls')),
 ]
 
 router = DefaultRouter()

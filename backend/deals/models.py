@@ -12,8 +12,8 @@ import os
 ##  Deals Section
 ##
 class Deal(models.Model):
-    PAY_STATUS_CHOICES = [
-        ('partial_payment','Partial Payment'),
+    PAY_STATUS_CHOICES = [        ('initial payment','Initial Payment'),
+       ('partial_payment','Partial Payment'),
         ('full_payment','Full Payment'),
     ]
     
@@ -23,9 +23,14 @@ class Deal(models.Model):
         ('cheque', 'Cheque'),
         ('cash', 'Cash'),
     ]
+    DEAL_STATUS = [
+        ('verified', 'Verified'),
+        ('pending', 'Pending_Verification'),
+        ('rejected', 'Rejected'),
+    ]
     
     SOURCE_TYPES = [
-        ('linkedin', 'Linkedin'),
+        ('linkedin', 'LinkedIn'),
         ('instagram', 'Instagram'),
         ('google','Google'),
         ('referral','Referral'),
@@ -43,6 +48,7 @@ class Deal(models.Model):
     due_date = models.DateField()
     payment_method = models.CharField(max_length=100,choices=PAYMENT_METHOD_CHOICES)
     deal_remarks = models.TextField(blank=True,null=True)
+    deal_status = models.CharField(max_length=100,choices=DEAL_STATUS,default='pending')
     
     
     def __str__(self):

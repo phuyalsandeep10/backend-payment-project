@@ -279,6 +279,12 @@ class SuperAdminLoginView(APIView):
             # Get OTP destination email (might be different from user.email)
             otp_email = getattr(settings, 'SUPER_ADMIN_OTP_EMAIL', user.email)
             
+            # Log the email configuration for debugging
+            security_logger.info(f"Attempting to send OTP to: {otp_email}")
+            security_logger.info(f"From email: {getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not set')}")
+            security_logger.info(f"Email host: {getattr(settings, 'EMAIL_HOST', 'Not set')}")
+            security_logger.info(f"Email user: {getattr(settings, 'EMAIL_HOST_USER', 'Not set')}")
+            
             success = EmailService.send_email(
                 subject="Your Admin Login OTP - PRS System",
                 message=f"Your One-Time Password is: {otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please contact your system administrator immediately.",
@@ -290,20 +296,31 @@ class SuperAdminLoginView(APIView):
                 security_logger.info(f"OTP sent to super admin {otp_email} from IP {client_ip}")
                 
                 return Response(
-                    {"message": f"An OTP has been sent to the designated admin email. It is valid for 5 minutes."},
+                    {"message": f"An OTP has been sent to the designated admin email ({otp_email}). It is valid for 5 minutes."},
                     status=status.HTTP_200_OK,
                 )
             else:
                 security_logger.error(f"Failed to send OTP to {otp_email}: Email service returned False")
+                
+                # Test email connection for debugging
+                from core_config.email_backend import EmailService
+                test_result = EmailService.test_email_connection()
+                security_logger.error(f"Email connection test result: {test_result}")
+                
                 return Response(
-                    {"error": "Failed to send OTP. Please try again."},
+                    {"error": "Failed to send OTP. Please check email configuration. Please try again."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             
         except Exception as e:
-            security_logger.error(f"Failed to send OTP to {user.email}: {str(e)}")
+            security_logger.error(f"Failed to send OTP to {otp_email}: {str(e)}")
+            
+            # Import traceback for detailed error logging
+            import traceback
+            security_logger.error(f"Full traceback: {traceback.format_exc()}")
+            
             return Response(
-                {"error": "Failed to send OTP. Please try again."},
+                {"error": f"Failed to send OTP: {str(e)}. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
