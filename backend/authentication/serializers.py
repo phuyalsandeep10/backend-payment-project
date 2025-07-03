@@ -86,31 +86,6 @@ class UserSessionSerializer(serializers.ModelSerializer):
             representation['is_current_session'] = False
         return representation
 
-
-class LoginSerializer(serializers.Serializer):
-    """
-    Serializer for user login
-    """
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-
-    def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-
-        if email and password:
-            user = authenticate(request=self.context.get('request'),
-                                email=email, password=password)
-            if not user:
-                raise serializers.ValidationError("Invalid credentials")
-            if not user.is_active:
-                raise serializers.ValidationError("User account is disabled")
-        else:
-            raise serializers.ValidationError("Must include 'email' and 'password'")
-
-        attrs['user'] = user
-        return attrs 
-
 class UserLoginSerializer(serializers.Serializer):
     """
     Serializer for user login with automatic streak calculation
@@ -401,3 +376,35 @@ class ErrorResponseSerializer(serializers.Serializer):
     error = serializers.CharField(help_text="Error message")
     detail = serializers.CharField(help_text="Detailed error description", required=False)
     code = serializers.CharField(help_text="Error code", required=False) 
+
+
+class AuthSuccessResponseSerializer(serializers.Serializer):
+    """
+    Standard serializer for successful authentication (login/registration).
+    Includes an authentication token and nested user details.
+    """
+    token = serializers.CharField(read_only=True, help_text="Authentication token for API access.")
+    user = UserDetailSerializer(read_only=True, help_text="Detailed information of the authenticated user.")
+
+class UserProfileResponseSerializer(serializers.Serializer):
+    """
+    Standard serializer for user profile responses.
+    Wraps the user details under a 'user' key.
+    """
+    user = UserDetailSerializer(read_only=True, help_text="Detailed information of the user.")
+
+
+class UserLoginInitiateResponseSerializer(serializers.Serializer):
+    """
+    Serializer for the response when initiating a user login, which starts the OTP flow.
+    """
+    message = serializers.CharField(help_text="Status message indicating that an OTP has been sent.")
+    session_id = serializers.CharField(help_text="A unique session ID to be used in the verification step.")
+    
+    
+class UserLoginVerifySerializer(serializers.Serializer):
+    """
+    Serializer for the second step of user login, verifying the OTP.
+    """
+    session_id = serializers.CharField(required=True, help_text="The session ID received from the login initiation step.")
+    otp = serializers.CharField(required=True, write_only=True, help_text="The One-Time Password sent to the user's email.") 

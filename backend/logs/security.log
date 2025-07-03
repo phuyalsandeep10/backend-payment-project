@@ -1984,3 +1984,9 @@ Traceback (most recent call last):
   File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
     raise DisallowedHost(msg)
 django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-03 15:05:29,087 views 8140 20360 Failed to send OTP email to salesperson@apex.com: No module named 'core_config.email_providers'
+ERROR 2025-07-03 15:24:46,445 views 21496 24444 Failed to send OTP email to admin@example.com: No module named 'core_config.email_providers'
+ERROR 2025-07-03 15:24:56,050 views 21496 24444 Failed to send OTP email to admin@example.com: No module named 'core_config.email_providers'
+ERROR 2025-07-03 15:25:49,525 views 21496 24444 Failed to send OTP email to admin@example.com: No module named 'core_config.email_providers'
+ERROR 2025-07-03 15:27:18,642 views 21496 24444 Failed to send OTP email to admin@example.com: No module named 'core_config.email_providers'
+ERROR 2025-07-03 15:27:27,468 views 21496 24444 Failed to send OTP email to admin@example.com: No module named 'core_config.email_providers'

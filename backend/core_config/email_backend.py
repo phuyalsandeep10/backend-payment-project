@@ -16,6 +16,10 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.message import EmailMessage
 from django.core.mail import send_mail
 import ssl
+from django.core.mail.backends.smtp import EmailBackend as SmtpEmailBackend
+from django.core.mail.message import sanitize_address
+from smtplib import SMTPException, SMTPAuthenticationError
+from .email_providers import get_email_providers
 
 # Set up logging
 logger = logging.getLogger('prs.email')
@@ -128,6 +132,14 @@ class RobustEmailBackend(BaseEmailBackend):
             logger.info(f"Successfully connected to {smtp_config}")
             return connection
                 
+        except SMTPAuthenticationError as e:
+            logger.error(f"Authentication failed for {self.email_host_user} with provider {smtp_config}: {e}")
+            logger.error("This is often due to incorrect credentials or security settings on the email account.")
+            logger.error("If using Gmail, you may need to generate an 'App Password' if you have 2-Factor Authentication enabled.")
+            logger.error("See: https://support.google.com/accounts/answer/185833")
+            # Don't retry on auth failure, as it won't succeed.
+            # Re-raise to be handled by the outer loop which will then fallback.
+            raise
         except Exception as e:
             logger.error(f"Connection failed for {smtp_config}: {e}")
             import traceback

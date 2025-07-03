@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Sum, Q, Count, Avg
+from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from decimal import Decimal
@@ -499,8 +500,6 @@ def commission_overview_view(request):
         user=user
     ).aggregate(total=Sum('converted_amount'))['total'] or Decimal('0')
     
-
-    
     # Get top clients
     top_clients_data = get_top_clients_data(user, start_date, include_details)
     
@@ -509,7 +508,8 @@ def commission_overview_view(request):
         'goal_progress': round(goal_progress, 2),
         'user_commissions': user_commissions,
         'total_commissions': total_commissions,
-        'top_clients': top_clients_data,
+        'top_clients_this_period': top_clients_data,
+        'regular_clients_all_time': get_all_time_top_clients_data(user),
         'commission_trends': get_commission_trends(user, period, start_date) if include_details else [],
         'period_summary': {
             'period': period,
@@ -750,7 +750,7 @@ def get_team_standings(user, target_date, limit):
     }
 
 def get_top_clients_data(user, start_date, include_details):
-    """Get top clients data with deal information"""
+    """Get top clients data with deal information for the specified period"""
     clients_data = []
     
     # Get clients with deals in the period
@@ -786,7 +786,40 @@ def get_top_clients_data(user, start_date, include_details):
     
     return clients_data
 
+def get_all_time_top_clients_data(user):
+    """Get top 5 all-time clients based on total sales value."""
+    client_deals = Deal.objects.filter(
+        created_by=user,
+        pay_status__in=['verified', 'partial']
+    ).values('client_name').annotate(
+        total_deals=Count('id'),
+        total_value=Sum('deal_value')
+    ).order_by('-total_value')[:5]
+
+    return list(client_deals)
+
 def get_commission_trends(user, period, start_date):
-    """Get commission trend data for charts"""
-    # Implementation for commission trends
-    return []
+    """Get commission trend data for charts."""
+    if period == 'yearly':
+        trunc_period = TruncMonth
+    elif period == 'quarterly':
+        trunc_period = TruncWeek
+    else:  # monthly
+        trunc_period = TruncDay
+
+    trends = Commission.objects.filter(
+        user=user,
+        created_at__gte=start_date
+    ).annotate(
+        period_start=trunc_period('created_at')
+    ).values('period_start').annotate(
+        total_commission=Sum('converted_amount')
+    ).order_by('period_start')
+
+    return [
+        {
+            'date': item['period_start'].strftime('%Y-%m-%d'),
+            'amount': item['total_commission']
+        }
+        for item in trends
+    ]

@@ -1,23 +1,16 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    NotificationViewSet, NotificationSettingsViewSet, 
-    EmailNotificationLogViewSet, NotificationTemplateViewSet,
-    NotificationDashboardView, TestNotificationView
-)
+from . import views
 
-# Create router and register viewsets
+app_name = 'notifications'
+
+# Create a router and register our viewsets with it.
 router = DefaultRouter()
-router.register(r'notifications', NotificationViewSet, basename='notification')
-router.register(r'settings', NotificationSettingsViewSet, basename='notification-settings')
-router.register(r'email-logs', EmailNotificationLogViewSet, basename='email-logs')
-router.register(r'templates', NotificationTemplateViewSet, basename='notification-templates')
+router.register(r'notifications', views.NotificationViewSet, basename='notification')
+router.register(r'notification-settings', views.NotificationSettingsViewSet, basename='notification-settings')
+router.register(r'notification-admin', views.NotificationAdminViewSet, basename='notification-admin')
 
+# The API URLs are now determined automatically by the router.
 urlpatterns = [
-    # Router URLs
     path('', include(router.urls)),
-    
-    # Additional utility endpoints
-    path('dashboard/', NotificationDashboardView.as_view(), name='notification-dashboard'),
-    path('test/', TestNotificationView.as_view(), name='test-notification'),
 ] 

@@ -48,7 +48,8 @@ class NgrokCompatibilityMiddleware(MiddlewareMixin):
                     'X-Forwarded-For',
                     'X-Forwarded-Proto',
                     'X-Real-IP',
-                    'ngrok-trace-id'
+                    'ngrok-trace-id',
+                    'ngrok-skip-browser-warning'
                 ])
                 response['Access-Control-Max-Age'] = '86400'  # 24 hours
         
@@ -67,7 +68,8 @@ class NgrokCompatibilityMiddleware(MiddlewareMixin):
                 'User-Agent',
                 'X-CSRFToken',
                 'X-Requested-With',
-                'Cache-Control'
+                'Cache-Control',
+                'ngrok-skip-browser-warning'
             ])
             response['Access-Control-Max-Age'] = '86400'
             response['Access-Control-Allow-Credentials'] = 'true'

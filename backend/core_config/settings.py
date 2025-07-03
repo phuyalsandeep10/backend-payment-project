@@ -436,3 +436,26 @@ LOGGING = {
     },
 }
 
+# If in development, add ngrok tunnel to allowed hosts
+if DEBUG:
+    try:
+        from pyngrok import ngrok
+        
+        # Get the ngrok tunnel
+        tunnels = ngrok.get_tunnels()
+        if tunnels:
+            # Get the public URL of the first tunnel
+            public_url = tunnels[0].public_url
+            
+            # Extract the hostname
+            hostname = public_url.split('//')[1]
+            
+            # Add to allowed hosts
+            ALLOWED_HOSTS.append(hostname)
+            
+            print(f"[INFO] Added ngrok host {hostname} to ALLOWED_HOSTS")
+            
+    except Exception as e:
+        print(f"[WARNING] Could not get ngrok tunnel: {e}")
+        print("[WARNING] If you are using ngrok, you may need to add your tunnel hostname to ALLOWED_HOSTS manually.")
+

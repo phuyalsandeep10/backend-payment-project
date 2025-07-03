@@ -5,8 +5,8 @@ app_name = 'authentication'
 
 urlpatterns = [
     # ==================== AUTHENTICATION ENDPOINTS ====================
-    path('login/', views.login_view, name='login'),
-    path('login/enhanced/', views.user_login_view, name='enhanced_login'),
+    path('login/', views.user_login_view, name='login'),
+    path('login/verify/', views.user_login_verify_view, name='login_verify'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     

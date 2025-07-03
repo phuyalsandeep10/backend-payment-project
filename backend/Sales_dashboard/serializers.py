@@ -247,10 +247,11 @@ class CommissionOverviewResponseSerializer(serializers.Serializer):
     goal_progress = serializers.FloatField(help_text="Goal completion percentage")
     user_commissions = serializers.DecimalField(max_digits=15, decimal_places=2)
     total_commissions = serializers.DecimalField(max_digits=15, decimal_places=2)
-    top_clients = TopClientSerializer(many=True)
+    top_clients_this_period = TopClientSerializer(many=True, help_text="Top clients for the selected period.")
+    regular_clients_all_time = TopClientSerializer(many=True, help_text="Top 5 all-time clients.")
     commission_trends = serializers.ListField(
         child=serializers.DictField(),
-        help_text="Commission trend data"
+        help_text="Commission trend data for charts."
     )
     period_summary = serializers.DictField(help_text="Period summary statistics")
 

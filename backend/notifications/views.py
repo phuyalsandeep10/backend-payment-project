@@ -1,7 +1,7 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
@@ -16,23 +16,19 @@ from .serializers import (
 )
 from .services import NotificationService
 
+@swagger_auto_schema(tags=['Notifications'])
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for managing user notifications.
-    Provides list, retrieve, and custom actions for notifications.
+    Provides endpoints for listing, retrieving, and managing notifications.
     """
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Return notifications for the current user."""
-        # Handle schema generation when user is anonymous
-        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+        if getattr(self, 'swagger_fake_view', False):
             return Notification.objects.none()
-            
-        return Notification.objects.filter(recipient=self.request.user).select_related(
-            'recipient', 'organization'
-        )
+        return Notification.objects.filter(recipient=self.request.user)
     
     def list(self, request, *args, **kwargs):
         """List notifications with optional filtering."""
@@ -64,160 +60,101 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['post'])
-    def mark_as_read(self, request):
-        """Mark notifications as read."""
-        serializer = MarkAsReadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        notification_ids = serializer.validated_data.get('notification_ids')
-        count = NotificationService.mark_notifications_as_read(
-            user=request.user,
-            notification_ids=notification_ids
-        )
-        
-        return Response({
-            'message': f'{count} notifications marked as read.',
-            'count': count
-        })
+    @action(detail=False, methods=['post'], serializer_class=MarkAsReadSerializer)
+    def mark_all_as_read(self, request):
+        """Mark multiple notifications as read for the current user."""
+        notification_ids = request.data.get('notification_ids', [])
+        count = NotificationService.mark_notifications_as_read(user=request.user, notification_ids=notification_ids)
+        return Response({'message': f'{count} notifications marked as read.', 'count': count})
     
     @action(detail=True, methods=['post'])
-    def mark_read(self, request, pk=None):
-        """Mark a specific notification as read."""
-        notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    def mark_as_read(self, request, pk=None):
+        """Mark a single notification as read."""
+        notification = self.get_object()
         notification.mark_as_read()
-        
-        return Response({
-            'message': 'Notification marked as read.',
-            'notification': NotificationSerializer(notification).data
-        })
+        return Response({'message': 'Notification marked as read.'})
     
     @action(detail=False, methods=['get'])
     def unread_count(self, request):
-        """Get count of unread notifications."""
+        """Get the count of unread notifications for the current user."""
         count = NotificationService.get_unread_count(request.user)
         return Response({'unread_count': count})
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], serializer_class=NotificationStatsSerializer)
     def stats(self, request):
-        """Get notification statistics for the user."""
-        user = request.user
-        
-        # Get all notifications for user
-        notifications = Notification.objects.filter(recipient=user)
-        
-        # Count by type
-        by_type = notifications.values('notification_type').annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
-        # Count by priority
-        by_priority = notifications.values('priority').annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
-        # Recent notifications (last 10)
-        recent = notifications[:10]
-        
-        stats_data = {
-            'total_notifications': notifications.count(),
-            'unread_count': notifications.filter(is_read=False).count(),
-            'by_type': {item['notification_type']: item['count'] for item in by_type},
-            'by_priority': {item['priority']: item['count'] for item in by_priority},
-            'recent_notifications': NotificationSerializer(recent, many=True).data
-        }
-        
-        serializer = NotificationStatsSerializer(stats_data)
-        return Response(serializer.data)
+        """Get notification statistics for the current user."""
+        stats_data = NotificationService.get_user_notification_stats(request.user)
+        return Response(stats_data)
 
-class NotificationSettingsViewSet(viewsets.ModelViewSet):
+@swagger_auto_schema(tags=['Notifications'])
+class NotificationSettingsViewSet(viewsets.GenericViewSet):
     """
-    ViewSet for managing user notification settings.
+    ViewSet for managing a user's notification settings.
     """
     serializer_class = NotificationSettingsSerializer
     permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        """Return notification settings for the current user."""
-        # Handle schema generation when user is anonymous
-        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
-            return NotificationSettings.objects.none()
-            
-        return NotificationSettings.objects.filter(user=self.request.user)
-    
+    queryset = NotificationSettings.objects.none()  # Required for schema generation
+
     def get_object(self):
-        """Get or create notification settings for the current user."""
-        settings, created = NotificationSettings.objects.get_or_create(
-            user=self.request.user
-        )
+        settings, _ = NotificationSettings.objects.get_or_create(user=self.request.user)
         return settings
-    
-    def list(self, request, *args, **kwargs):
-        """Return user's notification settings."""
+
+    def list(self, request):
+        """Get the current user's notification settings."""
         settings = self.get_object()
-        serializer = self.get_serializer(settings)
+        serializer = self.serializer_class(settings)
         return Response(serializer.data)
-    
-    def update(self, request, *args, **kwargs):
-        """Update user's notification settings."""
+
+    def partial_update(self, request):
+        """Update the current user's notification settings."""
         settings = self.get_object()
-        serializer = self.get_serializer(settings, data=request.data, partial=True)
+        serializer = self.serializer_class(settings, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        
-        return Response({
-            'message': 'Notification settings updated successfully.',
-            'settings': serializer.data
-        })
+        return Response(serializer.data)
 
-class EmailNotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
+@swagger_auto_schema(tags=['Notifications'])
+class NotificationAdminViewSet(viewsets.GenericViewSet):
     """
-    ViewSet for viewing email notification logs (admin only).
+    Admin ViewSet for managing notification templates, logs, and testing.
+    Requires admin privileges.
     """
-    serializer_class = EmailNotificationLogSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        """Return email logs - super admin sees all, org admin sees their org only."""
-        # Handle schema generation when user is anonymous
-        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
-            return EmailNotificationLog.objects.none()
-            
-        user = self.request.user
-        
-        if user.is_superuser:
-            return EmailNotificationLog.objects.all().select_related('organization')
-        elif hasattr(user, 'organization') and user.organization and hasattr(user, 'role') and user.role and 'admin' in user.role.name.lower():
-            return EmailNotificationLog.objects.filter(
-                organization=user.organization
-            ).select_related('organization')
-        else:
-            # Regular users can't see email logs
-            return EmailNotificationLog.objects.none()
+    permission_classes = [IsAdminUser]
+    serializer_class = NotificationTemplateSerializer  # Default serializer
+    queryset = NotificationTemplate.objects.none()  # Required for schema generation
 
-class NotificationTemplateViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing notification templates (admin only).
-    """
-    serializer_class = NotificationTemplateSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        """Return notification templates for admins only."""
-        user = self.request.user
-        
-        if user.is_superuser or (hasattr(user, 'role') and user.role and 'admin' in user.role.name.lower()):
-            return NotificationTemplate.objects.all()
-        else:
-            return NotificationTemplate.objects.none()
-    
-    def perform_create(self, serializer):
-        """Create notification template."""
+    @action(detail=False, methods=['get'], serializer_class=NotificationTemplateSerializer)
+    def list_templates(self, request):
+        """List all notification templates."""
+        queryset = NotificationTemplate.objects.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], serializer_class=NotificationTemplateSerializer)
+    def create_template(self, request):
+        """Create a new notification template."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         serializer.save()
-    
-    def perform_update(self, serializer):
-        """Update notification template."""
-        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], serializer_class=EmailNotificationLogSerializer)
+    def list_logs(self, request):
+        """List all email notification logs."""
+        queryset = EmailNotificationLog.objects.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def send_test_notification(self, request):
+        """Send a test notification to the current admin user."""
+        NotificationService.create_notification(
+            recipient=request.user,
+            notification_type='system_alert',
+            title='Admin Test Notification',
+            message='This is a test notification sent from the admin panel.'
+        )
+        return Response({'message': 'Test notification sent successfully.'})
 
 # Additional utility views
 from rest_framework.views import APIView
