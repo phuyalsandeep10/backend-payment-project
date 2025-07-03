@@ -20,3 +20,8 @@ whitenoise==6.7.0
 # Testing
 factory-boy==3.3.1
 faker==28.4.1
+
+drf-yasg==1.21.7
+djangorestframework-simplejwt==5.3.1
+setuptools
+gunicorn
