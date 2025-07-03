@@ -1,7 +1,7 @@
 Django==5.2.2
 djangorestframework==3.15.2
 django-environ==0.11.2
-psycopg2-binary==2.9.9
+psycopg[binary]
 django-cors-headers==4.4.0
 drf-yasg==1.21.7
 django-filter==24.3
@@ -21,10 +21,7 @@ whitenoise==6.7.0
 factory-boy==3.3.1
 faker==28.4.1
 
-drf-yasg==1.21.7
 djangorestframework-simplejwt==5.3.1
 setuptools
-gunicorn
-psycopg2-binary
 dj-database-url
 pyngrok
