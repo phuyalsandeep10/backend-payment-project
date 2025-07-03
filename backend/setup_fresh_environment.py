@@ -183,8 +183,7 @@ from django.contrib.auth import get_user_model
 # Create Super Admin role
 role, created = Role.objects.get_or_create(
     name='Super Admin',
-    organization=None,
-    defaults={'description': 'System Super Administrator'}
+    organization=None
 )
 
 if created:
@@ -196,6 +195,17 @@ else:
 email = "admin@example.com"
 username = "admin"
 password = "defaultpass"
+
+# Check if username is already taken by another user
+if User.objects.filter(username=username).exclude(email=email).exists():
+    print(f"WARNING: Username '{username}' already exists for different email")
+    # Generate unique username
+    counter = 1
+    original_username = username
+    while User.objects.filter(username=username).exists():
+        username = f"{original_username}_{counter}"
+        counter += 1
+    print(f"INFO: Using unique username: {username}")
 
 user, created = User.objects.get_or_create(
     email=email,

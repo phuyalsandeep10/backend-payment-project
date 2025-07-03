@@ -159,8 +159,7 @@ class Command(BaseCommand):
             # Create new Super Admin role
             super_admin_role = OrgRole.objects.create(
                 name='Super Admin',
-                organization=None,
-                description='System Super Administrator'
+                organization=None
             )
             self.stdout.write(self.style.SUCCESS('[SUCCESS] Super Admin role created'))
         
@@ -197,15 +196,31 @@ class Command(BaseCommand):
         else:
             self.stdout.write("[ERROR] User not found. Creating new super-admin...")
             
+            # Check if username is already taken
+            existing_username_user = User.objects.filter(username=admin_username).first()
+            if existing_username_user:
+                self.stdout.write(f"[WARNING] Username '{admin_username}' already exists for {existing_username_user.email}")
+                # Generate unique username
+                counter = 1
+                original_username = admin_username
+                while User.objects.filter(username=admin_username).exists():
+                    admin_username = f"{original_username}_{counter}"
+                    counter += 1
+                self.stdout.write(f"[INFO] Using unique username: {admin_username}")
+            
             # Create super admin user
-            user = User.objects.create_superuser(
-                username=admin_username,
-                email=admin_email,
-                password=admin_password,
-            )
-            self.set_user_role(user, super_admin_role, role_field_name)
-            user.save()
-            self.stdout.write(f"[SUCCESS] Super-admin created: {user.email}")
+            try:
+                user = User.objects.create_superuser(
+                    username=admin_username,
+                    email=admin_email,
+                    password=admin_password,
+                )
+                self.set_user_role(user, super_admin_role, role_field_name)
+                user.save()
+                self.stdout.write(f"[SUCCESS] Super-admin created: {user.email}")
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"[ERROR] Failed to create user: {e}"))
+                return None
         
         # Show final status
         self.stdout.write('\n[STATUS] FINAL USER STATUS:')
