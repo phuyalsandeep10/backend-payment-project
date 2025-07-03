@@ -33,25 +33,34 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
+    authentication_classes=[],  # Remove authentication for schema view
 )
 
 # Centralized API URL patterns
 api_urlpatterns = [
+    # Authentication & User Management
     path('auth/', include('authentication.urls')),
-    path('register/', OrganizationRegistrationView.as_view(), name='register-organization'),
+    path('organizations/register/', OrganizationRegistrationView.as_view(), name='organization-register'),
     path('organizations/', include('organization.urls')),
-    path('permissions/', include('permissions.urls')),
-    path('commissions/', include('commission.urls')),
-    path('projects/', include('project.urls')),
+    
+    # Core Business Logic
+    path('clients/', include('clients.urls')),  # Includes nested deals
+    path('deals/', include('deals.urls')),      # Standalone deals access
+    path('commission/', include('commission.urls')),
+    
+    # Team & Project Management  
     path('teams/', include('team.urls')),
-    path('clients/', include('clients.urls')),
+    path('projects/', include('project.urls')),
+    
+    # System Management
+    path('permissions/', include('permissions.urls')),
     path('notifications/', include('notifications.urls')),
+    
+    # Analytics & Dashboard
     path('dashboard/', include('Sales_dashboard.urls')),
 ]
 
-router = DefaultRouter()
-# The 'deals' router is now nested under 'clients' and should not be registered here directly
-# router.register(r'deals', DealViewSet, basename='deal')
+# All endpoints are now organized through app-specific URL includes
 
 urlpatterns = [
     path('admin/', admin.site.urls),

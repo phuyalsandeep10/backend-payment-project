@@ -1,9 +1,20 @@
 from django.urls import path
-from .views import DashboardView, DailyStandingsView, CommissionOverviewView, SalespersonClientListView
+from . import views
+
+app_name = 'sales_dashboard'
 
 urlpatterns = [
-    path('', DashboardView.as_view(), name='dashboard'),
-    path('standings/', DailyStandingsView.as_view(), name='daily-standings'),
-    path('commission-overview/', CommissionOverviewView.as_view(), name='commission-overview'),
-    path('client-list/', SalespersonClientListView.as_view(), name='client-list'),
+    # ==================== MAIN DASHBOARD ====================
+    path('', views.dashboard_view, name='dashboard'),
+    
+    # ==================== STREAK MANAGEMENT ====================
+    path('streak/', views.streak_view, name='streak'),
+    path('streak/leaderboard/', views.streak_leaderboard_view, name='leaderboard'),
+    
+    # ==================== PERFORMANCE TRACKING ====================
+    path('standings/', views.daily_standings_view, name='standings'),
+    path('commission/', views.commission_overview_view, name='commission'),
+    
+    # ==================== CLIENT MANAGEMENT ====================
+    path('clients/', views.client_list_view, name='clients'),
 ] 

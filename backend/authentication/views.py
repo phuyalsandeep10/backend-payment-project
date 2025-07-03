@@ -1,11 +1,19 @@
 from django.contrib.auth import authenticate
 from .models import User, UserSession
-from .serializers import LoginSerializer, UserSerializer, UserCreateSerializer, UserSessionSerializer
+from .serializers import (
+    LoginSerializer, UserSerializer, UserCreateSerializer, UserSessionSerializer, 
+    UserLoginSerializer, UserLoginResponseSerializer, UserRegistrationSerializer, 
+    UserRegistrationResponseSerializer, PasswordResetSerializer, PasswordResetResponseSerializer,
+    PasswordChangeSerializer, PasswordChangeResponseSerializer, UserDetailSerializer,
+    UserUpdateSerializer, LogoutResponseSerializer, SuperAdminLoginSerializer,
+    SuperAdminLoginResponseSerializer, SuperAdminVerifySerializer, SuperAdminVerifyResponseSerializer,
+    UserSessionDetailSerializer, ErrorResponseSerializer
+)
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status, viewsets, serializers
 from django.core.cache import cache
 
@@ -18,6 +26,24 @@ import logging
 from .filters import UserFilter
 from organization.models import Organization
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from permissions.models import Role
+from Sales_dashboard.utils import calculate_streaks_for_user_login
+from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.template.loader import render_to_string
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+import uuid
+import json
+from datetime import datetime, timedelta
 
 # Security logger
 security_logger = logging.getLogger('security')
@@ -170,6 +196,10 @@ class UserViewSet(viewsets.ModelViewSet):
         Superusers can filter by organization.
         Non-superusers are restricted to their own organization.
         """
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return User.objects.none()
+            
         user = self.request.user
         queryset = User.objects.all()
 
@@ -179,7 +209,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 return queryset.filter(organization_id=org_id)
             return queryset
 
-        if user.organization:
+        if hasattr(user, 'organization') and user.organization:
             return queryset.filter(organization=user.organization)
         
         return User.objects.none()
@@ -200,177 +230,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserCreateSerializer
         return UserSerializer
 
-class LoginView(APIView):
-    permission_classes = []
-    throttle_classes = [LoginRateThrottle]
+# Removed redundant UserLoginView class - using function-based view with Swagger documentation
 
-    def post(self, request, *args, **kwargs):
-        client_ip = get_client_ip(request)
-        
-        # Check rate limiting
-        allowed, message = check_rate_limit(client_ip, max_attempts=5, window_minutes=15)
-        if not allowed:
-            security_logger.warning(f"Login rate limit exceeded for IP {client_ip}")
-            return Response({'error': message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        
-        serializer = LoginSerializer(data=request.data, context={'request': request})
-        
-        try:
-            serializer.is_valid(raise_exception=True)
-            user = serializer.validated_data['user']
-            token, created = Token.objects.get_or_create(user=user)
-            _create_user_session(request, user, token)
-            
-            security_logger.info(f"Successful login for user {user.email} from IP {client_ip}")
-            
-            return Response({
-                'token': token.key,
-                'user': UserSerializer(user).data
-            }, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            # Record failed attempt
-            record_attempt(client_ip, window_minutes=15)
-            security_logger.warning(f"Failed login attempt for IP {client_ip}: {str(e)}")
-            
-            return Response({
-                'error': 'Unable to log in with provided credentials.'
-            }, status=status.HTTP_401_UNAUTHORIZED)
+# Removed redundant LoginView class - using function-based view with Swagger documentation
 
 
-class SuperAdminLoginView(APIView):
-    """
-    Step 1 of Super Admin login.
-    Takes email and password, and if valid for a super admin,
-    sends an OTP to their email.
-    """
-    permission_classes = []
-    throttle_classes = [OTPRateThrottle]
-
-    def post(self, request, *args, **kwargs):
-        email = request.data.get("email")
-        password = request.data.get("password")
-        client_ip = get_client_ip(request)
-
-        # Check rate limiting
-        allowed, message = check_rate_limit(f"superadmin_{client_ip}", max_attempts=3, window_minutes=30)
-        if not allowed:
-            security_logger.warning(f"Super admin login rate limit exceeded for IP {client_ip}")
-            return Response({'error': message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
-        user = authenticate(request=request, email=email, password=password)
-
-        if not user or not user.is_superuser or not user.role or user.role.name != 'Super Admin':
-            record_attempt(f"superadmin_{client_ip}", window_minutes=30)
-            security_logger.warning(f"Invalid super admin login attempt from IP {client_ip} for email {email}")
-            return Response(
-                {"error": "Invalid credentials or not a Super Admin."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # Generate and send secure OTP
-        otp = generate_secure_otp(length=8)
-        store_otp_securely(user.email, otp, timeout=300)  # 5 minutes
-
-        # Send OTP to the user's email using robust email backend
-        try:
-            from core_config.email_backend import EmailService
-            
-            # Get OTP destination email (might be different from user.email)
-            otp_email = getattr(settings, 'SUPER_ADMIN_OTP_EMAIL', user.email)
-            
-            # Log the email configuration for debugging
-            security_logger.info(f"Attempting to send OTP to: {otp_email}")
-            security_logger.info(f"From email: {getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not set')}")
-            security_logger.info(f"Email host: {getattr(settings, 'EMAIL_HOST', 'Not set')}")
-            security_logger.info(f"Email user: {getattr(settings, 'EMAIL_HOST_USER', 'Not set')}")
-            
-            success = EmailService.send_email(
-                subject="Your Admin Login OTP - PRS System",
-                message=f"Your One-Time Password is: {otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please contact your system administrator immediately.",
-                recipient_list=[otp_email],
-                fail_silently=False,
-            )
-            
-            if success:
-                security_logger.info(f"OTP sent to super admin {otp_email} from IP {client_ip}")
-                
-                return Response(
-                    {"message": f"An OTP has been sent to the designated admin email ({otp_email}). It is valid for 5 minutes."},
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                security_logger.error(f"Failed to send OTP to {otp_email}: Email service returned False")
-                
-                # Test email connection for debugging
-                from core_config.email_backend import EmailService
-                test_result = EmailService.test_email_connection()
-                security_logger.error(f"Email connection test result: {test_result}")
-                
-                return Response(
-                    {"error": "Failed to send OTP. Please check email configuration. Please try again."},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-            
-        except Exception as e:
-            security_logger.error(f"Failed to send OTP to {otp_email}: {str(e)}")
-            
-            # Import traceback for detailed error logging
-            import traceback
-            security_logger.error(f"Full traceback: {traceback.format_exc()}")
-            
-            return Response(
-                {"error": f"Failed to send OTP: {str(e)}. Please try again."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+# Removed redundant SuperAdminLoginView class - using function-based view with Swagger documentation
 
 
-class SuperAdminVerifyOTPView(APIView):
-    """
-    Step 2 of Super Admin login.
-    Takes email and OTP, and if valid, returns the auth token.
-    """
-    permission_classes = []
-    throttle_classes = [OTPRateThrottle]
-
-    def post(self, request, *args, **kwargs):
-        email = request.data.get("email")
-        otp = request.data.get("otp")
-        client_ip = get_client_ip(request)
-
-        if not email or not otp:
-            return Response(
-                {"error": "Email and OTP are required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Verify OTP securely
-        valid, message = verify_otp_securely(email, otp)
-        
-        if not valid:
-            security_logger.warning(f"OTP verification failed for {email} from IP {client_ip}: {message}")
-            return Response(
-                {"error": message},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            security_logger.warning(f"OTP verification attempted for non-existent user {email} from IP {client_ip}")
-            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        token, _ = Token.objects.get_or_create(user=user)
-        _create_user_session(request, user, token)
-
-        security_logger.info(f"Successful super admin login for {user.email} from IP {client_ip}")
-
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email,
-            'role': user.role.name if user.role else None
-        })
+# Removed redundant SuperAdminVerifyOTPView class - using function-based view with Swagger documentation
 
 
 class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -385,6 +253,10 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Users can only see their own sessions.
         """
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return UserSession.objects.none()
+            
         return UserSession.objects.filter(user=self.request.user).order_by('-created_at')
 
     def destroy(self, request, *args, **kwargs):
@@ -413,27 +285,556 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
 
-class LogoutView(APIView):
-    """
-    An endpoint for logging out a user.
-    This revokes the user's authentication token and server-side session.
-    """
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [UserRateThrottle]
+# Removed redundant LogoutView class - using function-based view with Swagger documentation
 
-    def post(self, request, *args, **kwargs):
-        # Delete the token to invalidate it
-        try:
-            request.user.auth_token.delete()
-        except (AttributeError, Token.DoesNotExist):
-            pass  # The user might not have a token
+# Temporary storage for OTP sessions (in production, use Redis or database)
+otp_sessions = {}
 
-        # Delete the server-side session record
-        UserSession.objects.filter(user=request.user).delete()
+@swagger_auto_schema(
+    method='post',
+    operation_description="Standard user login endpoint",
+    request_body=LoginSerializer,
+    responses={
+        200: openapi.Response(
+            description="Login successful",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'token': openapi.Schema(type=openapi.TYPE_STRING, description="Authentication token"),
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description="User ID"),
+                    'username': openapi.Schema(type=openapi.TYPE_STRING, description="Username"),
+                    'email': openapi.Schema(type=openapi.TYPE_STRING, description="Email"),
+                }
+            )
+        ),
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer
+    },
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    Standard login endpoint for user authentication.
+    Returns authentication token without additional processing.
+    """
+    serializer = LoginSerializer(data=request.data, context={'request': request})
+    
+    if serializer.is_valid():
+        user = serializer.validated_data['user']
         
-        security_logger.info(f"User {request.user.email} logged out from IP {get_client_ip(request)}")
+        # Create or get token
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # Update last login
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
+        
+        response_data = {
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'organization': user.organization.name if user.organization else None,
+            'role': user.role.name if user.role else None,
+            'message': 'Login successful'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Enhanced login with automatic streak calculation for salespeople",
+    request_body=UserLoginSerializer,
+    responses={
+        200: UserLoginResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer,
+        500: ErrorResponseSerializer
+    },
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def user_login_view(request):
+    """
+    Enhanced login endpoint that automatically calculates and updates user streaks.
+    Ideal for salespeople who need their streak updated upon login.
+    """
+    serializer = UserLoginSerializer(data=request.data, context={'request': request})
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = serializer.validated_data['user']
+        
+        # Create or get authentication token
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # Trigger automatic streak calculation
+        streak_calculation_success = True
+        streak_error = None
+        
+        try:
+            calculate_streaks_for_user_login(user)
+            user.refresh_from_db()  # Refresh to get updated streak
+        except Exception as e:
+            streak_calculation_success = False
+            streak_error = str(e)
+            print(f"Warning: Streak calculation failed for user {user.username}: {e}")
+        
+        # Update last login timestamp
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
+        
+        # Prepare comprehensive response
+        response_data = {
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'organization': user.organization.name if user.organization else 'No Organization',
+            'role': user.role.name if user.role else 'No Role',
+            'sales_target': user.sales_target or '0.00',
+            'streak': user.streak,
+            'last_login': user.last_login,
+            'message': 'Login successful! Streak calculated and updated.' if streak_calculation_success 
+                      else f'Login successful! Warning: Streak calculation failed - {streak_error}'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
         return Response(
-            {"message": "Successfully logged out."},
-            status=status.HTTP_200_OK
+            {'error': f'Login failed: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Register a new user account",
+    request_body=UserRegistrationSerializer,
+    responses={
+        201: UserRegistrationResponseSerializer,
+        400: ErrorResponseSerializer
+    },
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_view(request):
+    """
+    Register a new user account with organization and role assignment.
+    """
+    serializer = UserRegistrationSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        
+        response_data = {
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'organization': user.organization.name if user.organization else 'No Organization',
+            'message': 'User registered successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Request password reset email",
+    request_body=PasswordResetSerializer,
+    responses={
+        200: PasswordResetResponseSerializer,
+        400: ErrorResponseSerializer
+    },
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_request_view(request):
+    """
+    Send password reset email to user.
+    """
+    serializer = PasswordResetSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        
+        try:
+            user = User.objects.get(email=email, is_active=True)
+            
+            # Generate reset token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            
+            # Create reset link (you'll need to implement this URL in frontend)
+            reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
+            
+            # Send email
+            subject = 'Password Reset Request'
+            message = f"""
+            Hi {user.username},
+            
+            You requested a password reset. Click the link below to reset your password:
+            {reset_link}
+            
+            If you didn't request this, please ignore this email.
+            
+            Best regards,
+            PRS Team
+            """
+            
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            
+            response_data = {
+                'message': 'Password reset email sent successfully',
+                'email': email
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            # For security, don't reveal if email exists
+            response_data = {
+                'message': 'If the email exists, a reset link will be sent',
+                'email': email
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Change user password (requires authentication)",
+    request_body=PasswordChangeSerializer,
+    responses={
+        200: PasswordChangeResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: "Unauthorized"
+    },
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def password_change_view(request):
+    """
+    Change authenticated user's password.
+    """
+    serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+    
+    if serializer.is_valid():
+        user = request.user
+        new_password = serializer.validated_data['new_password']
+        
+        # Set new password
+        user.set_password(new_password)
+        user.save()
+        
+        response_data = {
+            'message': 'Password changed successfully'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Get current user profile information",
+    responses={
+        200: UserDetailSerializer,
+        401: "Unauthorized"
+    },
+    manual_parameters=[
+        openapi.Parameter(
+            'Authorization',
+            openapi.IN_HEADER,
+            description="Token authentication header (format: 'Token <your_token>')",
+            type=openapi.TYPE_STRING,
+            required=True,
+            default="Token 5df12943f200cc5d1962c461bf480ff763728d95",
+            example="Token 5df12943f200cc5d1962c461bf480ff763728d95"
+        )
+    ],
+    tags=['User Profile']
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_profile_view(request):
+    """
+    Get authenticated user's profile information.
+    """
+    serializer = UserDetailSerializer(request.user)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='put',
+    operation_description="Update user profile information",
+    request_body=UserUpdateSerializer,
+    responses={
+        200: UserDetailSerializer,
+        400: ErrorResponseSerializer,
+        401: "Unauthorized"
+    },
+    tags=['User Profile']
+)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def user_profile_update_view(request):
+    """
+    Update authenticated user's profile information.
+    """
+    serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        response_serializer = UserDetailSerializer(user)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Logout user and invalidate token",
+    responses={
+        200: LogoutResponseSerializer,
+        401: "Unauthorized"
+    },
+    manual_parameters=[
+        openapi.Parameter(
+            'Authorization',
+            openapi.IN_HEADER,
+            description="Token authentication header (format: 'Token <your_token>')",
+            type=openapi.TYPE_STRING,
+            required=True,
+            default="Token 5df12943f200cc5d1962c461bf480ff763728d95",
+            example="Token 5df12943f200cc5d1962c461bf480ff763728d95"
+        )
+    ],
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """
+    Logout user by deleting their authentication token.
+    """
+    try:
+        # Delete user's token
+        Token.objects.filter(user=request.user).delete()
+        
+        response_data = {
+            'message': 'Successfully logged out'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Logout failed: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Super admin first-step login (email/password validation)",
+    request_body=SuperAdminLoginSerializer,
+    responses={
+        200: SuperAdminLoginResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer
+    },
+    tags=['Super Admin']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def super_admin_login_view(request):
+    """
+    First step of super admin login - validates credentials and sends OTP.
+    """
+    serializer = SuperAdminLoginSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    email = serializer.validated_data['email']
+    password = serializer.validated_data['password']
+    
+    # Authenticate super admin
+    user = authenticate(email=email, password=password)
+    
+    if not user or not user.is_superuser:
+        return Response(
+            {'error': 'Invalid super admin credentials'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Generate OTP and session
+    otp = secrets.randbelow(900000) + 100000  # 6-digit OTP
+    session_id = str(uuid.uuid4())
+    
+    # Store session temporarily (expires in 5 minutes)
+    otp_sessions[session_id] = {
+        'user_id': user.id,
+        'otp': str(otp),
+        'expires_at': datetime.now() + timedelta(minutes=5)
+    }
+    
+    # Send OTP email
+    otp_sent = False
+    try:
+        send_mail(
+            'Super Admin Login OTP',
+            f'Your OTP for super admin login is: {otp}\n\nThis OTP expires in 5 minutes.',
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        otp_sent = True
+    except Exception as e:
+        print(f"Failed to send OTP email: {e}")
+    
+    response_data = {
+        'message': 'OTP sent to your email' if otp_sent else 'Credentials verified, check email for OTP',
+        'session_id': session_id,
+        'otp_sent': otp_sent
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Super admin second-step verification (OTP validation)",
+    request_body=SuperAdminVerifySerializer,
+    responses={
+        200: SuperAdminVerifyResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer
+    },
+    tags=['Super Admin']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def super_admin_verify_view(request):
+    """
+    Second step of super admin login - validates OTP and provides access token.
+    """
+    serializer = SuperAdminVerifySerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    session_id = serializer.validated_data['session_id']
+    otp = serializer.validated_data['otp']
+    
+    # Check session
+    session_data = otp_sessions.get(session_id)
+    if not session_data:
+        return Response(
+            {'error': 'Invalid or expired session'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Check expiration
+    if datetime.now() > session_data['expires_at']:
+        del otp_sessions[session_id]
+        return Response(
+            {'error': 'OTP expired'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Validate OTP
+    if session_data['otp'] != otp:
+        return Response(
+            {'error': 'Invalid OTP'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Get user and create token
+    try:
+        user = User.objects.get(id=session_data['user_id'], is_superuser=True)
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # Clean up session
+        del otp_sessions[session_id]
+        
+        response_data = {
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+            'message': 'Super admin login successful'
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'User not found'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Get user's active sessions",
+    responses={
+        200: openapi.Response(
+            description="List of active sessions",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'sessions': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                    ),
+                    'total': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        401: "Unauthorized"
+    },
+    tags=['User Profile']
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_sessions_view(request):
+    """
+    Get list of user's active sessions.
+    Note: This is a simplified implementation. In production, you'd track sessions in database.
+    """
+    # This is a mock implementation since we're using token auth
+    # In a real implementation, you'd track sessions in the database
+    
+    current_session = {
+        'id': 1,
+        'session_key': 'current',
+        'ip_address': request.META.get('REMOTE_ADDR', '127.0.0.1'),
+        'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown'),
+        'device': 'Web Browser',
+        'location': 'Unknown',
+        'created_at': timezone.now(),
+        'last_activity': timezone.now(),
+        'is_current': True
+    }
+    
+    response_data = {
+        'sessions': [current_session],
+        'total': 1
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)

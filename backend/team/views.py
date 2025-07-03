@@ -24,17 +24,21 @@ class TeamViewSet(viewsets.ModelViewSet):
         for the currently authenticated user's organization.
         Superusers can see all teams.
         """
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Team.objects.none()
+            
         user = self.request.user
         if user.is_superuser:
             return Team.objects.all()
 
-        if not user.organization:
+        if not hasattr(user, 'organization') or not user.organization:
             return Team.objects.none()
 
-        if user.role and user.role.permissions.filter(codename='view_all_teams').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_teams').exists():
             return Team.objects.filter(organization=user.organization)
 
-        if user.role and user.role.permissions.filter(codename='view_own_teams').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_teams').exists():
             # Show teams where user is team lead or member
             return Team.objects.filter(
                 organization=user.organization

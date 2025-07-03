@@ -22,17 +22,21 @@ class ProjectViewSet(viewsets.ModelViewSet):
         for the currently authenticated user's organization.
         Superusers can see all projects.
         """
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Project.objects.none()
+            
         user = self.request.user
         if user.is_superuser:
             return Project.objects.all()
         
-        if not user.organization:
+        if not hasattr(user, 'organization') or not user.organization:
             return Project.objects.none()
 
-        if user.role and user.role.permissions.filter(codename='view_all_projects').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_projects').exists():
             return Project.objects.filter(organization=user.organization)
 
-        if user.role and user.role.permissions.filter(codename='view_own_projects').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_projects').exists():
             return Project.objects.filter(organization=user.organization, created_by=user)
             
         return Project.objects.none()

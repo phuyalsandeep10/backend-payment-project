@@ -23,20 +23,24 @@ class DealViewSet(viewsets.ModelViewSet):
         return DealSerializer
 
     def get_queryset(self):
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Deal.objects.none()
+            
         user = self.request.user
         if user.is_superuser:
             return Deal.objects.all()
         
         # Should not happen due to permission check, but as a safeguard
-        if not user.organization:
+        if not hasattr(user, 'organization') or not user.organization:
             return Deal.objects.none()
 
         # Users with 'view_all_deals' can see all deals in their org
-        if user.role and user.role.permissions.filter(codename='view_all_deals').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_deals').exists():
             return Deal.objects.filter(organization=user.organization)
         
         # Users with 'view_own_deals' can only see deals they created
-        if user.role and user.role.permissions.filter(codename='view_own_deals').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_deals').exists():
             return Deal.objects.filter(organization=user.organization, created_by=user)
         
         return Deal.objects.none()
@@ -111,11 +115,15 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [HasPermission]
 
     def get_queryset(self):
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return ActivityLog.objects.none()
+            
         # Handle three-level nesting: clients/{client_pk}/deals/{deal_pk}/activity/
         deal_pk = self.kwargs.get('deal_pk')
         user = self.request.user
         if user.is_superuser:
             return ActivityLog.objects.filter(deal_id=deal_pk)
-        if user.organization:
+        if hasattr(user, 'organization') and user.organization:
             return ActivityLog.objects.filter(deal_id=deal_pk, deal__organization=user.organization)
         return ActivityLog.objects.none()

@@ -1,25 +1,25 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import (
-    LoginView, 
-    LogoutView,
-    SuperAdminLoginView, 
-    SuperAdminVerifyOTPView, 
-    UserViewSet, 
-    UserSessionViewSet
-)
+from django.urls import path
+from . import views
 
-user_router = DefaultRouter()
-user_router.register(r'users', UserViewSet, basename='user')
-
-session_router = DefaultRouter()
-session_router.register(r'sessions', UserSessionViewSet, basename='usersession')
+app_name = 'authentication'
 
 urlpatterns = [
-    path('', include(user_router.urls)),
-    path('', include(session_router.urls)),
-    path('login/', LoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(), name='logout'),
-    path('super-admin/login/', SuperAdminLoginView.as_view(), name='super-admin-login'),
-    path('super-admin/verify/', SuperAdminVerifyOTPView.as_view(), name='super-admin-verify'),
+    # ==================== AUTHENTICATION ENDPOINTS ====================
+    path('login/', views.login_view, name='login'),
+    path('login/enhanced/', views.user_login_view, name='enhanced_login'),
+    path('register/', views.register_view, name='register'),
+    path('logout/', views.logout_view, name='logout'),
+    
+    # ==================== PASSWORD MANAGEMENT ====================
+    path('password/reset/', views.password_reset_request_view, name='password_reset'),
+    path('password/change/', views.password_change_view, name='password_change'),
+    
+    # ==================== USER PROFILE ====================
+    path('profile/', views.user_profile_view, name='profile'),
+    path('profile/update/', views.user_profile_update_view, name='profile_update'),
+    path('sessions/', views.user_sessions_view, name='sessions'),
+    
+    # ==================== SUPER ADMIN ====================
+    path('super-admin/login/', views.super_admin_login_view, name='super_admin_login'),
+    path('super-admin/verify/', views.super_admin_verify_view, name='super_admin_verify'),
 ]

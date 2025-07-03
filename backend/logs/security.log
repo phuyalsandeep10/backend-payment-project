@@ -1675,3 +1675,312 @@ Traceback (most recent call last):
     raise DisallowedHost(msg)
 django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
 WARNING 2025-06-29 21:58:11,808 views 16320 18412 Invalid super admin login attempt from IP 127.0.0.1 for email samip@gmail.com
+ERROR 2025-07-02 09:55:44,097 exception 2992 16344 Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:55:44,606 exception 2992 17104 Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:56:46,347 exception 2992 9072 Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:56:46,662 exception 2992 3368 Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '12d3-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:56:57,453 exception 2992 18032 Invalid HTTP_HOST header: 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:56:57,762 exception 2992 8960 Invalid HTTP_HOST header: 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'b274-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:57:24,440 exception 5128 14976 Invalid HTTP_HOST header: '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:57:24,769 exception 5128 15008 Invalid HTTP_HOST header: '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add '41bc-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:59:56,818 exception 15312 18140 Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 09:59:57,148 exception 15312 16264 Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 10:01:43,096 exception 8272 17104 Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 10:01:43,412 exception 8272 11784 Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 10:01:44,984 exception 8272 14364 Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 10:01:45,244 exception 8272 18428 Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app'. You may need to add 'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app' to ALLOWED_HOSTS.
+WARNING 2025-07-02 11:37:26,268 views 15808 20936 Failed login attempt for IP 127.0.0.1: Unable to log in with provided credentials.
+ERROR 2025-07-02 12:36:12,681 exception 11924 9640 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:36:13,478 exception 11924 21256 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:37:07,092 exception 9580 18352 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:37:07,451 exception 9580 6800 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\OneDrive\Desktop\prs\PRS\Backend_PRS-1\.venv\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:43:16,441 exception 19648 6800 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:43:16,988 exception 19648 4212 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:43:24,752 exception 19648 18984 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+ERROR 2025-07-02 12:43:25,157 exception 19648 12676 Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samip\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\http\request.py", line 191, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app'. You may need to add '8518-2404-7c00-43-6889-e1f7-5d44-aa89-9045.ngrok-free.app' to ALLOWED_HOSTS.

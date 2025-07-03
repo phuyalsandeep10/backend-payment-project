@@ -40,6 +40,10 @@ class RoleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOrgAdminOrSuperAdmin]
 
     def get_queryset(self):
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Role.objects.none()
+            
         user = self.request.user
         
         if user.is_superuser:
@@ -50,7 +54,7 @@ class RoleViewSet(viewsets.ModelViewSet):
             return queryset
 
         # Org Admins see their own org roles + system-wide roles
-        if user.organization:
+        if hasattr(user, 'organization') and user.organization:
             return Role.objects.filter(Q(organization=user.organization) | Q(organization__isnull=True))
             
         return Role.objects.none() # Should not happen for an Org Admin

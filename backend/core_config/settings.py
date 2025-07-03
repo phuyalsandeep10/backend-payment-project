@@ -38,15 +38,20 @@ DEBUG = env('DEBUG')
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '0.0.0.0',  # For development
-    # Add your production domain here
-    # 'your-domain.com',
+    '0.0.0.0',
+    # Ngrok domains (enhanced for reliability)
+    '*.ngrok.io',
+    '*.ngrok-free.app',
+    '*.ngrok.app',
+    'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app',
+    # Allow all for development (use with caution in production)
+    '*',
 ]
 
-# Security Headers
+# Security Headers (adjusted for ngrok compatibility)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = 'SAMEORIGIN'  # Less restrictive than DENY for ngrok development
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Session Security
@@ -55,9 +60,22 @@ SESSION_COOKIE_SAMESITE = 'Strict'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600  # 1 hour
 
-# CSRF Protection
+# CSRF Protection (relaxed for development/ngrok)
 CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'Strict'
+CSRF_COOKIE_SAMESITE = 'Lax'  # Changed from 'Strict' to 'Lax' for ngrok compatibility
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3001', 
+    'http://localhost:4200',
+    'http://localhost:8080',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:4200', 
+    'http://127.0.0.1:8080',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://*',
+]
 
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -99,6 +117,7 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Keep for admin but not default
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -115,7 +134,13 @@ REST_FRAMEWORK = {
         'user': '1000/hour',
         'login': '5/min',
         'otp': '3/min'
-    }
+    },
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'UNAUTHENTICATED_USER': 'django.contrib.auth.models.AnonymousUser',
+    'UNAUTHENTICATED_TOKEN': None,
 }
 
 
@@ -123,6 +148,10 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    # Custom ngrok compatibility middleware (must be early in the chain)
+    "core_config.ngrok_middleware.NgrokCompatibilityMiddleware",
+    # Token authentication middleware (must be before AuthenticationMiddleware)
+    "core_config.token_middleware.TokenAuthMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -229,8 +258,69 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
 
-CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+# CORS Configuration for Frontend Integration and Ngrok Compatibility
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)  # Enable for development
+
+# Comprehensive origin allowlist for local development and ngrok
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+    "http://localhost:3000",    # React development server
+    "http://localhost:3001",    # Alternative frontend port  
+    "http://localhost:4200",    # Angular development server
+    "http://localhost:8080",    # Vue.js development server
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001", 
+    "http://127.0.0.1:4200",
+    "http://127.0.0.1:8080",
+    "http://*",
+])
+
+# Ngrok-specific regex patterns for dynamic subdomains
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.ngrok\.io$",
+    r"^https://.*\.ngrok-free\.app$", 
+    r"^https://.*\.ngrok\.app$",
+    r"^http://.*\.ngrok\.io$",
+    r"^http://.*\.ngrok-free\.app$",
+    r"^http://.*\.ngrok\.app$",
+]
+
+# Allow credentials for token-based authentication (required for auth headers)
+CORS_ALLOW_CREDENTIALS = True
+
+# Extended preflight cache for better performance
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
+
+# Allow all origins for development (this overrides the specific origins above)
+# Set to False in production and use specific origins
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Allow comprehensive headers for API requests and ngrok compatibility
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'cache-control',
+    'x-forwarded-for',
+    'x-forwarded-proto',
+    'x-real-ip',
+    'ngrok-trace-id',  # Ngrok specific header
+]
+
+# Allow common HTTP methods
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 SWAGGER_SETTINGS = {
    'SECURITY_DEFINITIONS': {
@@ -238,9 +328,27 @@ SWAGGER_SETTINGS = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': "Enter 'Token [your_token]' to authorize."
-      }
-   }
+            'description': "Enter your token here (e.g., '5df12943f200cc5d1962c461bf480ff763728d95'). The 'Token ' prefix will be added automatically."
+        }
+    },
+    'USE_SESSION_AUTH': False,  # Disable session auth to prevent Django login redirect
+    'LOGIN_URL': None,  # Remove login URL to prevent redirect
+    'LOGOUT_URL': None,  # Remove logout URL
+    'PERSIST_AUTH': True,  # Keep token auth persistent
+    'REFETCH_SCHEMA_WITH_AUTH': True,  # Refetch schema when authenticated
+    'REFETCH_SCHEMA_ON_LOGOUT': True,  # Refetch schema when logged out
+    'DEFAULT_INFO': 'core_config.urls.api_info',  # Custom API info
+    'DEFAULT_FIELD_INSPECTORS': [
+        'drf_yasg.inspectors.CamelCaseJSONFilter',
+        'drf_yasg.inspectors.InlineSerializerInspector',
+        'drf_yasg.inspectors.RelatedFieldInspector',
+        'drf_yasg.inspectors.ChoiceFieldInspector',
+        'drf_yasg.inspectors.FileFieldInspector',
+        'drf_yasg.inspectors.DictFieldInspector',
+        'drf_yasg.inspectors.SimpleFieldInspector',
+        'drf_yasg.inspectors.StringDefaultFieldInspector',
+    ],
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'drf_yasg.inspectors.SwaggerAutoSchema',
 }
 
 # Email Configuration - Robust Email Backend

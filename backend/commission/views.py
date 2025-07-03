@@ -22,14 +22,18 @@ class CommissionViewSet(viewsets.ModelViewSet):
         Returns commissions for the user's organization.
         Superusers can see all commissions across all organizations.
         """
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Commission.objects.none()
+            
         user = self.request.user
         if user.is_superuser:
             return Commission.objects.all()
         
-        if not user.organization:
+        if not hasattr(user, 'organization') or not user.organization:
             return Commission.objects.none()
 
-        if user.role and user.role.permissions.filter(codename='view_all_commissions').exists():
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_commissions').exists():
             return Commission.objects.filter(organization=user.organization)
             
         return Commission.objects.none()

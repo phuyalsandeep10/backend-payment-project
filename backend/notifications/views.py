@@ -2,9 +2,12 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .models import Notification, NotificationSettings, EmailNotificationLog, NotificationTemplate
 from .serializers import (
     NotificationSerializer, NotificationSettingsSerializer, 
@@ -23,6 +26,10 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """Return notifications for the current user."""
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Notification.objects.none()
+            
         return Notification.objects.filter(recipient=self.request.user).select_related(
             'recipient', 'organization'
         )
@@ -132,6 +139,10 @@ class NotificationSettingsViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Return notification settings for the current user."""
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return NotificationSettings.objects.none()
+            
         return NotificationSettings.objects.filter(user=self.request.user)
     
     def get_object(self):
@@ -168,11 +179,15 @@ class EmailNotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """Return email logs - super admin sees all, org admin sees their org only."""
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return EmailNotificationLog.objects.none()
+            
         user = self.request.user
         
         if user.is_superuser:
             return EmailNotificationLog.objects.all().select_related('organization')
-        elif user.organization and hasattr(user, 'role') and user.role and 'admin' in user.role.name.lower():
+        elif hasattr(user, 'organization') and user.organization and hasattr(user, 'role') and user.role and 'admin' in user.role.name.lower():
             return EmailNotificationLog.objects.filter(
                 organization=user.organization
             ).select_related('organization')
@@ -213,6 +228,25 @@ class NotificationDashboardView(APIView):
     """
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_description="Get notification system dashboard with statistics and recent activity",
+        responses={
+            200: openapi.Response(
+                description="Dashboard data",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'total_notifications': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'unread_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'recent_notifications': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                        'system_health': openapi.Schema(type=openapi.TYPE_OBJECT),
+                    }
+                )
+            ),
+            401: "Unauthorized"
+        },
+        tags=['Notifications']
+    )
     def get(self, request):
         """Get comprehensive notification dashboard data."""
         user = request.user
@@ -256,6 +290,25 @@ class TestNotificationView(APIView):
     """
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_description="Send test notification to verify system functionality (admin only)",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'message': openapi.Schema(type=openapi.TYPE_STRING, description="Test message content"),
+                'recipient_email': openapi.Schema(type=openapi.TYPE_STRING, description="Email to send test to"),
+                'notification_type': openapi.Schema(type=openapi.TYPE_STRING, description="Type of notification to test"),
+            },
+            required=['message']
+        ),
+        responses={
+            200: openapi.Response(description="Test notification sent successfully"),
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden"
+        },
+        tags=['Notifications']
+    )
     def post(self, request):
         """Create a test notification."""
         user = request.user
