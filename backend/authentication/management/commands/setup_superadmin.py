@@ -1,16 +1,17 @@
 """
 Django Management Command: Setup Super Admin
-Robust super admin creation and verification
+Robust super admin creation and verification with field compatibility
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import authenticate
 from authentication.models import User
 from permissions.models import Role as OrgRole
 from django.conf import settings
+from django.db import connection
 import os
 
 class Command(BaseCommand):
-    help = 'Creates or updates super admin user with robust verification'
+    help = 'Creates or updates super admin user with robust verification and field compatibility'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -51,7 +52,11 @@ class Command(BaseCommand):
         self.stdout.write(f"🏷️  Username: {admin_username}")
         
         try:
-            user = self.check_and_create_superadmin(admin_email, admin_password, admin_username)
+            # Detect role field name first
+            role_field_name = self.detect_role_field_name()
+            self.stdout.write(f"🔍 Detected role field name: {role_field_name}")
+            
+            user = self.check_and_create_superadmin(admin_email, admin_password, admin_username, role_field_name)
             if user:
                 self.test_authentication(admin_email, admin_password)
                 self.stdout.write(self.style.SUCCESS('\n🎉 SUPER-ADMIN READY!'))
@@ -62,19 +67,101 @@ class Command(BaseCommand):
                 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'❌ Error: {e}'))
+            # Additional debugging info
+            self.stdout.write(self.style.WARNING('🔧 Debugging info:'))
+            self.stdout.write(f"   Django DB table columns: {self.get_user_table_columns()}")
 
-    def check_and_create_superadmin(self, admin_email, admin_password, admin_username):
+    def detect_role_field_name(self):
+        """Detect whether the role field is named 'role' or 'org_role'"""
+        try:
+            # Try to access the role field on the model
+            test_user = User.objects.first()
+            if test_user:
+                # Try accessing role field
+                try:
+                    _ = test_user.role
+                    return 'role'
+                except AttributeError:
+                    # Try org_role field
+                    try:
+                        _ = test_user.org_role
+                        return 'org_role'
+                    except AttributeError:
+                        pass
+            
+            # Fallback: check model meta fields
+            user_fields = [field.name for field in User._meta.fields]
+            if 'role' in user_fields:
+                return 'role'
+            elif 'org_role' in user_fields:
+                return 'org_role'
+            else:
+                # Check database table directly
+                table_columns = self.get_user_table_columns()
+                if 'role_id' in table_columns:
+                    return 'role'
+                elif 'org_role_id' in table_columns:
+                    return 'org_role'
+                    
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'⚠️  Field detection failed: {e}'))
+        
+        # Default to 'role' if detection fails
+        return 'role'
+
+    def get_user_table_columns(self):
+        """Get actual database table columns for debugging"""
+        try:
+            with connection.cursor() as cursor:
+                table_name = User._meta.db_table
+                cursor.execute(f"PRAGMA table_info({table_name})")
+                columns = [row[1] for row in cursor.fetchall()]
+                return columns
+        except Exception:
+            return []
+
+    def get_user_role(self, user, role_field_name):
+        """Safely get user role using the detected field name"""
+        try:
+            return getattr(user, role_field_name, None)
+        except AttributeError:
+            return None
+
+    def set_user_role(self, user, role, role_field_name):
+        """Safely set user role using the detected field name"""
+        try:
+            setattr(user, role_field_name, role)
+            return True
+        except AttributeError:
+            return False
+
+    def check_and_create_superadmin(self, admin_email, admin_password, admin_username, role_field_name):
         """Check if super admin exists and create if needed"""
         self.stdout.write('\n🔍 CHECKING SUPER-ADMIN USER')
         self.stdout.write('-' * 40)
         
-        # Ensure Super Admin role exists
-        super_admin_role, created = OrgRole.objects.get_or_create(
-            name='Super Admin',
-            organization=None,
-            defaults={'description': 'System Super Administrator'}
-        )
-        if created:
+        # Ensure Super Admin role exists - handle duplicates
+        super_admin_roles = OrgRole.objects.filter(name='Super Admin', organization=None)
+        
+        if super_admin_roles.exists():
+            # Use the first one if multiple exist
+            super_admin_role = super_admin_roles.first()
+            if super_admin_roles.count() > 1:
+                self.stdout.write(self.style.WARNING(f'⚠️  Found {super_admin_roles.count()} duplicate Super Admin roles, using the first one (ID: {super_admin_role.id})'))
+                # Optionally clean up duplicates
+                duplicate_roles = super_admin_roles.exclude(id=super_admin_role.id)
+                self.stdout.write(f'🧹 Cleaning up {duplicate_roles.count()} duplicate roles...')
+                duplicate_roles.delete()
+                self.stdout.write(self.style.SUCCESS('✅ Duplicate roles cleaned up'))
+            else:
+                self.stdout.write('✅ Super Admin role found')
+        else:
+            # Create new Super Admin role
+            super_admin_role = OrgRole.objects.create(
+                name='Super Admin',
+                organization=None,
+                description='System Super Administrator'
+            )
             self.stdout.write(self.style.SUCCESS('✅ Super Admin role created'))
         
         # Check if user exists
@@ -86,7 +173,7 @@ class Command(BaseCommand):
             self.stdout.write(f"   🔰 Is Staff: {user.is_staff}")
             self.stdout.write(f"   🔱 Is Superuser: {user.is_superuser}")
             self.stdout.write(f"   ✅ Is Active: {user.is_active}")
-            self.stdout.write(f"   🏢 Role: {user.role}")
+            self.stdout.write(f"   🏢 Role: {self.get_user_role(user, role_field_name)}")
             
             # Check password
             if user.check_password(admin_password):
@@ -99,11 +186,11 @@ class Command(BaseCommand):
                 self.stdout.write("✅ Password updated")
             
             # Ensure user is super admin
-            if not user.is_superuser or not user.is_staff or user.role != super_admin_role:
+            if not user.is_superuser or not user.is_staff or self.get_user_role(user, role_field_name) != super_admin_role:
                 self.stdout.write("🔧 Making user superuser...")
                 user.is_superuser = True
                 user.is_staff = True
-                user.role = super_admin_role
+                self.set_user_role(user, super_admin_role, role_field_name)
                 user.save()
                 self.stdout.write("✅ User is now superuser")
             
@@ -116,7 +203,7 @@ class Command(BaseCommand):
                 email=admin_email,
                 password=admin_password,
             )
-            user.role = super_admin_role
+            self.set_user_role(user, super_admin_role, role_field_name)
             user.save()
             self.stdout.write(f"✅ Super-admin created: {user.email}")
         
@@ -127,7 +214,7 @@ class Command(BaseCommand):
         self.stdout.write(f"   🔰 Is Staff: {user.is_staff}")
         self.stdout.write(f"   🔱 Is Superuser: {user.is_superuser}")
         self.stdout.write(f"   ✅ Is Active: {user.is_active}")
-        self.stdout.write(f"   🏢 Role: {user.role}")
+        self.stdout.write(f"   🏢 Role: {self.get_user_role(user, role_field_name)}")
         
         return user
 
@@ -149,14 +236,34 @@ class Command(BaseCommand):
         self.stdout.write('👥 ALL USERS IN SYSTEM')
         self.stdout.write('=' * 30)
         
-        users = User.objects.all().select_related('role', 'role__organization')
-        
-        if users:
+        try:
+            # Detect role field name
+            role_field_name = self.detect_role_field_name()
+            self.stdout.write(f"🔍 Using role field: {role_field_name}")
+            
+            users = User.objects.all().select_related(f'{role_field_name}', f'{role_field_name}__organization')
+            
+            if users:
+                for user in users:
+                    user_role = self.get_user_role(user, role_field_name)
+                    if user_role and hasattr(user_role, 'organization') and user_role.organization:
+                        org_name = user_role.organization.name
+                        role_display = f"{user_role.name} ({org_name})"
+                    elif user_role:
+                        role_display = f"{user_role.name} (System Role)"
+                    else:
+                        role_display = "None"
+                    
+                    self.stdout.write(f"📧 {user.email} | 👤 {user.username} | 🏢 {role_display} | 🔱 Super: {user.is_superuser}")
+            else:
+                self.stdout.write("❌ No users found")
+            
+            self.stdout.write(f"\n📊 Total users: {users.count()}")
+            
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'❌ Error listing users: {e}'))
+            # Fallback: simple listing without role info
+            users = User.objects.all()
             for user in users:
-                org_name = user.role.organization.name if user.role and user.role.organization else "System"
-                role_display = f"{user.role.name} ({org_name})" if user.role else "None"
-                self.stdout.write(f"📧 {user.email} | 👤 {user.username} | 🏢 {role_display} | 🔱 Super: {user.is_superuser}")
-        else:
-            self.stdout.write("❌ No users found")
-        
-        self.stdout.write(f"\n📊 Total users: {users.count()}") 
+                self.stdout.write(f"📧 {user.email} | 👤 {user.username} | 🔱 Super: {user.is_superuser}")
+            self.stdout.write(f"\n📊 Total users: {users.count()}")
