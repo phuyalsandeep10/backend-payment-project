@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import environ
+import os
 
 env = environ.Env(
     # set casting, default value
@@ -22,7 +23,7 @@ env = environ.Env(
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Take environment variables from .env file
-environ.Env.read_env(BASE_DIR/ '.env')
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -187,26 +188,26 @@ WSGI_APPLICATION = "core_config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database configuration with fallback to SQLite for testing
-if env('DB_NAME', default=None):
+# Use environment variables for database connection, with a fallback to SQLite
+DB_NAME = env('DB_NAME', default=None)
+
+if DB_NAME:
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env('DB_NAME'),
-            "USER": env('DB_USER'),
-            "PASSWORD": env('DB_PASSWORD'),
-            "HOST": env('DB_HOST', default="localhost"),
-            "PORT": env('DB_PORT', default="5432"),
-            # Connection pooling for better performance
-            "CONN_MAX_AGE": 60,
+        'default': {
+            'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
+            'NAME': DB_NAME,
+            'USER': env('DB_USER'),
+            'PASSWORD': env('DB_PASSWORD'),
+            'HOST': env('DB_HOST'),
+            'PORT': env('DB_PORT', default='5432'),
         }
     }
 else:
-    # Fallback to SQLite for development/testing
+    # Fallback to SQLite if no database environment variables are set
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
@@ -436,26 +437,27 @@ LOGGING = {
     },
 }
 
-# If in development, add ngrok tunnel to allowed hosts
-if DEBUG:
-    try:
-        from pyngrok import ngrok
-        
-        # Get the ngrok tunnel
-        tunnels = ngrok.get_tunnels()
-        if tunnels:
-            # Get the public URL of the first tunnel
-            public_url = tunnels[0].public_url
+# If in development and not on a platform like Render, add ngrok tunnel to allowed hosts
+if 'RENDER' not in os.environ:
+    if DEBUG:
+        try:
+            from pyngrok import ngrok
             
-            # Extract the hostname
-            hostname = public_url.split('//')[1]
-            
-            # Add to allowed hosts
-            ALLOWED_HOSTS.append(hostname)
-            
-            print(f"[INFO] Added ngrok host {hostname} to ALLOWED_HOSTS")
-            
-    except Exception as e:
-        print(f"[WARNING] Could not get ngrok tunnel: {e}")
-        print("[WARNING] If you are using ngrok, you may need to add your tunnel hostname to ALLOWED_HOSTS manually.")
+            # Get the ngrok tunnel
+            tunnels = ngrok.get_tunnels()
+            if tunnels:
+                # Get the public URL of the first tunnel
+                public_url = tunnels[0].public_url
+                
+                # Extract the hostname
+                hostname = public_url.split('//')[1]
+                
+                # Add to allowed hosts
+                ALLOWED_HOSTS.append(hostname)
+                
+                print(f"[INFO] Added ngrok host {hostname} to ALLOWED_HOSTS")
+                
+        except Exception as e:
+            print(f"[WARNING] Could not get ngrok tunnel: {e}")
+            print("[WARNING] If you are using ngrok, you may need to add your tunnel hostname to ALLOWED_HOSTS manually.")
 

@@ -25,3 +25,6 @@ drf-yasg==1.21.7
 djangorestframework-simplejwt==5.3.1
 setuptools
 gunicorn
+psycopg2-binary
+dj-database-url
+pyngrok
