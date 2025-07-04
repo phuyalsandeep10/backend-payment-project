@@ -2,8 +2,5 @@
 # exit on error
 set -o errexit
 
-# Run the initialization command
-python backend/manage.py initialize_app
-
-# Start the Gunicorn server
-gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT 
+# Start the Django server (which will auto-run setup via the modified manage.py)
+python backend/manage.py runserver 0.0.0.0:$PORT
