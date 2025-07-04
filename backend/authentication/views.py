@@ -488,3 +488,53 @@ def user_sessions_view(request):
         'created_at': timezone.now(), 'last_activity': timezone.now()
     }
     return Response([current_session], status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Direct login without OTP (for development/initial setup)",
+    request_body=UserLoginSerializer,
+    responses={
+        200: AuthSuccessResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer
+    },
+    tags=['Authentication']
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def direct_login_view(request):
+    """
+    Direct login without OTP verification - for development and initial setup.
+    """
+    serializer = UserLoginSerializer(data=request.data, context={'request': request})
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = serializer.validated_data['user']
+    
+    try:
+        # Create or get token
+        token, created = Token.objects.get_or_create(user=user)
+        user.last_login = timezone.now()
+        
+        # Calculate streak
+        try:
+            calculate_streaks_for_user_login(user)
+            user.refresh_from_db()
+        except Exception as e:
+            security_logger.error(f"Streak calculation failed for user {user.username}: {e}")
+        
+        user.save(update_fields=['last_login'])
+        
+        user_details = UserDetailSerializer(user).data
+        response_data = {
+            'token': token.key,
+            'user': user_details
+        }
+        
+        security_logger.info(f"Direct login successful for user {user.email}")
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        security_logger.error(f"Direct login failed for user {user.email}: {e}")
+        return Response({'error': 'Login failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

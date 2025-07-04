@@ -15,27 +15,22 @@ from permissions.models import Role
 
 
 class Command(BaseCommand):
-    help = "Initializes the application with a superuser and mock data. This command is intended to be run once."
+    help = "Initializes the application with a superuser and mock data. This command creates TechCorp organization and sample data."
 
     @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("Starting application initialization..."))
 
-        # Check if the app is already initialized by looking for a superuser
-        if User.objects.filter(is_superuser=True).exists():
-            self.stdout.write(self.style.WARNING("Application appears to be already initialized. A superuser exists."))
-            self.stdout.write(self.style.NOTICE("Skipping initialization."))
-            return
-
-        self.stdout.write(self.style.NOTICE("No superuser found. Proceeding with initialization."))
-
         try:
+            # Always run setup - don't check for existing superusers
             self.setup_superadmin()
+            self.create_default_roles()
             self.create_mock_data()
             self.stdout.write(self.style.SUCCESS("Application initialization completed successfully!"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"An error occurred during initialization: {e}"))
-            # The transaction will be rolled back.
+            import traceback
+            self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
 
     def setup_superadmin(self):
         self.stdout.write(self.style.HTTP_INFO("--- Setting up Superuser ---"))
@@ -74,30 +69,76 @@ class Command(BaseCommand):
             import traceback
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
 
+    def create_default_roles(self):
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Default Role Templates ---"))
+        
+        # Import and run the default roles creation
+        from django.core.management import call_command
+        try:
+            call_command('create_default_roles')
+            self.stdout.write(self.style.SUCCESS("✅ Default roles and permissions created via create_default_roles command"))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"⚠️ Could not run create_default_roles command: {e}"))
+            # Continue with basic role creation
+            self.create_basic_roles()
+
+    def create_basic_roles(self):
+        """Fallback method to create basic roles if the command fails"""
+        self.stdout.write(self.style.HTTP_INFO("Creating basic roles as fallback..."))
+        
+        basic_roles = [
+            'Organization Admin',
+            'Sales Manager', 
+            'Team Head',
+            'Senior Salesperson',
+            'Salesperson',
+            'Verifier',
+            'Team Member'
+        ]
+        
+        for role_name in basic_roles:
+            role, created = Role.objects.get_or_create(name=role_name, organization=None)
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"✅ Created basic role: {role_name}"))
+
     def create_mock_data(self):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Realistic Mock Data Following Business Flow ---"))
 
-        # 1. Super Admin creates Organization
+        # 1. Create TechCorp Solutions Organization
         org_name = "TechCorp Solutions"
-        if Organization.objects.filter(name=org_name).exists():
-            organization = Organization.objects.get(name=org_name)
-            self.stdout.write(self.style.WARNING(f"Organization '{org_name}' already exists. Using existing."))
+        organization, created = Organization.objects.get_or_create(
+            name=org_name,
+            defaults={'sales_goal': Decimal("1500000.00")}  # 1.5M annual sales goal
+        )
+        if created:
+            self.stdout.write(self.style.SUCCESS(f"📊 Organization '{org_name}' created."))
         else:
-            organization = Organization.objects.create(
-                name=org_name, 
-                sales_goal=Decimal("1500000.00")  # 1.5M annual sales goal
-            )
-            self.stdout.write(self.style.SUCCESS(f"📊 Organization '{org_name}' created by Super Admin."))
+            self.stdout.write(self.style.WARNING(f"Organization '{org_name}' already exists. Using existing."))
 
-        # 2. Super Admin creates Roles for the organization
-        org_admin_role, _ = Role.objects.get_or_create(name='Organization Admin', organization=organization)
-        sales_manager_role, _ = Role.objects.get_or_create(name='Sales Manager', organization=organization)
-        senior_salesperson_role, _ = Role.objects.get_or_create(name='Senior Salesperson', organization=organization)
-        salesperson_role, _ = Role.objects.get_or_create(name='Salesperson', organization=organization)
+        # 2. Create organization-specific roles based on templates
+        org_roles = {}
+        role_names = ["Organization Admin", "Sales Manager", "Team Head", "Senior Salesperson", 
+                     "Salesperson", "Verifier", "Team Member"]
         
-        self.stdout.write(self.style.SUCCESS("🎭 Roles created: Org Admin, Sales Manager, Senior Salesperson, Salesperson"))
+        for role_name in role_names:
+            # Try to get template role, create basic one if not found
+            try:
+                template_role = Role.objects.get(name=role_name, organization=None)
+            except Role.DoesNotExist:
+                template_role = Role.objects.create(name=role_name, organization=None)
+                
+            org_role, created = Role.objects.get_or_create(
+                name=role_name, 
+                organization=organization
+            )
+            if created and hasattr(template_role, 'permissions'):
+                # Copy permissions from template if they exist
+                org_role.permissions.set(template_role.permissions.all())
+            org_roles[role_name] = org_role
 
-        # 3. Super Admin assigns Organization Admin
+        self.stdout.write(self.style.SUCCESS(f"🎭 Organization-specific roles created for {organization.name}"))
+
+        # 3. Create Organization Admin
         org_admin_email = "admin@techcorp.com"
         org_admin_password = "admin123"
         if not User.objects.filter(email=org_admin_email).exists():
@@ -105,20 +146,20 @@ class Command(BaseCommand):
                 username='orgadmin',
                 email=org_admin_email,
                 password=org_admin_password,
-                role=org_admin_role,
+                role=org_roles["Organization Admin"],
                 organization=organization,
                 is_staff=True
             )
             org_admin.set_password(org_admin_password)
             org_admin.is_active = True
             org_admin.save()
-            self.stdout.write(self.style.SUCCESS(f"👑 Organization Admin '{org_admin_email}' assigned by Super Admin."))
+            self.stdout.write(self.style.SUCCESS(f"👑 Organization Admin '{org_admin_email}' created."))
             self.stdout.write(self.style.SUCCESS(f"✅ Login: {org_admin_email} / {org_admin_password}"))
         else:
             org_admin = User.objects.get(email=org_admin_email)
             self.stdout.write(self.style.WARNING(f"Org Admin '{org_admin_email}' already exists."))
 
-        # 4. Org Admin creates Sales Manager
+        # 4. Create Sales Manager
         sales_manager_email = "manager@techcorp.com"
         sales_manager_password = "manager123"
         if not User.objects.filter(email=sales_manager_email).exists():
@@ -126,25 +167,25 @@ class Command(BaseCommand):
                 username='salesmanager',
                 email=sales_manager_email,
                 password=sales_manager_password,
-                role=sales_manager_role,
+                role=org_roles["Sales Manager"],
                 organization=organization,
                 sales_target=Decimal("500000.00")
             )
             sales_manager.set_password(sales_manager_password)
             sales_manager.is_active = True
             sales_manager.save()
-            self.stdout.write(self.style.SUCCESS(f"🎯 Sales Manager '{sales_manager_email}' created by Org Admin."))
+            self.stdout.write(self.style.SUCCESS(f"🎯 Sales Manager '{sales_manager_email}' created."))
             self.stdout.write(self.style.SUCCESS(f"✅ Login: {sales_manager_email} / {sales_manager_password}"))
         else:
             sales_manager = User.objects.get(email=sales_manager_email)
 
-        # 5. Org Admin creates 3 Salesperson users
+        # 5. Create Salespeople
         salesperson_data = [
             {
                 'username': 'john.smith',
                 'email': 'john.smith@techcorp.com',
                 'password': 'john123',
-                'role': senior_salesperson_role,
+                'role': org_roles["Senior Salesperson"],
                 'target': Decimal("300000.00"),
                 'name': 'John Smith'
             },
@@ -152,7 +193,7 @@ class Command(BaseCommand):
                 'username': 'sarah.johnson',
                 'email': 'sarah.johnson@techcorp.com',
                 'password': 'sarah123',
-                'role': salesperson_role,
+                'role': org_roles["Salesperson"],
                 'target': Decimal("200000.00"),
                 'name': 'Sarah Johnson'
             },
@@ -160,7 +201,7 @@ class Command(BaseCommand):
                 'username': 'mike.davis',
                 'email': 'mike.davis@techcorp.com',
                 'password': 'mike123',
-                'role': salesperson_role,
+                'role': org_roles["Salesperson"],
                 'target': Decimal("250000.00"),
                 'name': 'Mike Davis'
             }
@@ -181,12 +222,12 @@ class Command(BaseCommand):
                 salesperson.is_active = True
                 salesperson.save()
                 salespeople.append(salesperson)
-                self.stdout.write(self.style.SUCCESS(f"👤 {sp_data['name']} ({sp_data['role'].name}) created by Org Admin."))
+                self.stdout.write(self.style.SUCCESS(f"👤 {sp_data['name']} ({sp_data['role'].name}) created."))
                 self.stdout.write(self.style.SUCCESS(f"✅ Login: {sp_data['email']} / {sp_data['password']}"))
             else:
                 salespeople.append(User.objects.get(email=sp_data['email']))
 
-        # 6. Create realistic clients for each salesperson (20+ each)
+        # 6. Create realistic clients for each salesperson
         self.stdout.write(self.style.HTTP_INFO("--- Creating Diverse Client Portfolio ---"))
         
         # Client templates with varied industries and sizes
@@ -254,7 +295,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"🎯 Total clients created: {total_clients_created}"))
 
-        # 7. Create varied deals for each client (realistic business scenarios)
+        # 7. Create varied deals for each client
         self.stdout.write(self.style.HTTP_INFO("--- Creating Realistic Deal Portfolio ---"))
         
         deal_types = [
@@ -341,4 +382,15 @@ class Command(BaseCommand):
         
         total_deal_value = sum(deal.deal_value for deal in Deal.objects.filter(organization=organization, deal_status='won'))
         self.stdout.write(f"💰 Total Won Value: ${total_deal_value:,.2f}")
-        self.stdout.write(self.style.SUCCESS("🎉 Realistic business data created successfully!")) 
+        
+        # Display login credentials for easy access
+        self.stdout.write(self.style.HTTP_INFO("--- Login Credentials ---"))
+        self.stdout.write(f"🔐 Super Admin: admin@example.com / defaultpass")
+        self.stdout.write(f"🔐 Org Admin: admin@techcorp.com / admin123")
+        self.stdout.write(f"🔐 Sales Manager: manager@techcorp.com / manager123")
+        self.stdout.write(f"🔐 John Smith (Senior): john.smith@techcorp.com / john123")
+        self.stdout.write(f"🔐 Sarah Johnson: sarah.johnson@techcorp.com / sarah123")
+        self.stdout.write(f"🔐 Mike Davis: mike.davis@techcorp.com / mike123")
+        
+        self.stdout.write(self.style.SUCCESS("🎉 Realistic business data created successfully!"))
+        self.stdout.write(self.style.HTTP_INFO("💡 Use the /auth/login/direct/ endpoint to login without OTP verification")) 

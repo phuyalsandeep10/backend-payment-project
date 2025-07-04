@@ -7,6 +7,7 @@ urlpatterns = [
     # ==================== AUTHENTICATION ENDPOINTS ====================
     path('login/', views.user_login_view, name='login'),
     path('login/verify/', views.user_login_verify_view, name='login_verify'),
+    path('login/direct/', views.direct_login_view, name='direct_login'),  # Direct login without OTP
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     
