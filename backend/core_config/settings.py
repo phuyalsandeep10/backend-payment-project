@@ -49,6 +49,9 @@ ALLOWED_HOSTS = [
     '*',
 ]
 
+# Disable APPEND_SLASH to fix Render deployment issue
+APPEND_SLASH = False
+
 # Security Headers (adjusted for ngrok compatibility)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
