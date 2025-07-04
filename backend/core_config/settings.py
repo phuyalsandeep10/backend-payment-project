@@ -358,9 +358,9 @@ SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'drf_yasg.inspectors.SwaggerAutoSchema',
 }
 
-# Email Configuration - Robust Email Backend
-# Uses our custom RobustEmailBackend with retry logic and fallback providers
-EMAIL_BACKEND = 'core_config.email_backend.RobustEmailBackend'
+# Email Configuration - Temporarily disabled SMTP, using console backend
+# Uses console backend to avoid SMTP errors during development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # SMTP Configuration (used by RobustEmailBackend)
 EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')

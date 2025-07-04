@@ -45,3 +45,16 @@ All these URLs are designed to be accessed by a logged-in salesperson and are pr
     *   `total_sales`: The total sales value from that client.
     *   `status`: The client's current payment status (`Clear`, `Pending`, or `Bad Debt`).
     *   `remarks`: Any notes or remarks related to the client.
+
+
+
+    📊 Organization 'TechCorp Solutions' created by Super Admin
+🎭 Roles created: Org Admin, Sales Manager, Senior Salesperson, Salesperson
+👑 Organization Admin 'admin@techcorp.com' assigned by Super Admin
+✅ Login: admin@techcorp.com / admin123
+👤 John Smith (Senior Salesperson) created by Org Admin
+✅ Login: john.smith@techcorp.com / john123
+📋 22 clients created for john.smith
+💰 john.smith: 67 deals, 23 won ($1,234,567.89)
+🎯 Total deals created: 187
+🎉 Realistic business data created successfully!
