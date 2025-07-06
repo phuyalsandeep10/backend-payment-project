@@ -22,40 +22,39 @@ class CommissionViewSet(viewsets.ModelViewSet):
         Returns commissions for the user's organization.
         Superusers can see all commissions across all organizations.
         """
-        # Handle schema generation when user is anonymous
         if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
             return Commission.objects.none()
             
         user = self.request.user
+
+        queryset = Commission.objects.select_related(
+            'user', 'organization', 'created_by', 'updated_by'
+        )
+
         if user.is_superuser:
-            return Commission.objects.all()
+            return queryset.all()
         
         if not hasattr(user, 'organization') or not user.organization:
             return Commission.objects.none()
 
+        organization_queryset = queryset.filter(organization=user.organization)
+
         if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_commissions').exists():
-            return Commission.objects.filter(organization=user.organization)
+            return organization_queryset
             
         return Commission.objects.none()
 
     def perform_create(self, serializer):
         """
-        Associate the commission with the user's organization.
-        Super Admins can specify an organization.
+        Set the creator of the commission record.
         """
-        user = self.request.user
-        if user.is_superuser:
-            org_id = self.request.data.get('organization')
-            if org_id:
-                try:
-                    organization = Organization.objects.get(id=org_id)
-                    serializer.save(organization=organization)
-                except Organization.DoesNotExist:
-                    raise serializers.ValidationError({'organization': 'Organization not found.'})
-            else:
-                serializer.save()
-        else:
-            serializer.save(organization=user.organization)
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        """
+        Set the user who last updated the commission record.
+        """
+        serializer.save(updated_by=self.request.user)
 
     def get_serializer_context(self):
         """

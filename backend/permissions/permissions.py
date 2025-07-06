@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from rest_framework import permissions
 
 class IsOrgAdminOrSuperAdmin(BasePermission):
     """
@@ -11,4 +12,18 @@ class IsOrgAdminOrSuperAdmin(BasePermission):
         if request.user.is_superuser:
             return True
             
-        return request.user.role and request.user.role.name == 'Org Admin' 
+        return request.user.role and request.user.role.name == 'Org Admin'
+
+class CanManageRoles(permissions.BasePermission):
+    """
+    Custom permission to only allow users with the 'can_manage_roles'
+    permission to manage roles.
+    """
+    def has_permission(self, request, view):
+        # Check if the user is authenticated and has a role with the required permission.
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.role and
+            request.user.role.permissions.filter(codename='can_manage_roles').exists()
+        ) 

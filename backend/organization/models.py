@@ -1,12 +1,15 @@
 from django.db import models
+from django.conf import settings
 
 class Organization(models.Model):
     """
     Model to represent an organization.
     """
     name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     sales_goal = models.DecimalField(max_digits=15, decimal_places=2, default=100000.00)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_organizations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

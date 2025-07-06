@@ -1,11 +1,10 @@
-
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
 from django.db.models import Q
 from authentication.models import User
 from permissions.models import Role
-from .models import Notification, NotificationSettings, EmailNotificationLog, NotificationTemplate
+from .models import Notification, NotificationSettings, NotificationTemplate
 import logging
 import json
 
@@ -29,8 +28,7 @@ class NotificationService:
         related_object_type=None,
         related_object_id=None,
         action_url=None,
-        context_data=None,
-        send_email_to_superadmin=False
+        context_data=None
     ):
         """
         Create notifications for one or multiple recipients.
@@ -48,7 +46,6 @@ class NotificationService:
             related_object_id: ID of related object
             action_url: Frontend URL for action
             context_data: Dict of template variables
-            send_email_to_superadmin: Whether to send email to super-admin
         
         Returns:
             List of created Notification objects
@@ -89,17 +86,6 @@ class NotificationService:
             )
             created_notifications.append(notification)
         
-        # Send email to super-admin if requested
-        if send_email_to_superadmin and created_notifications:
-            NotificationService._queue_superadmin_email(
-                notification_type=notification_type,
-                title=title,
-                message=message,
-                organization=organization,
-                priority=priority,
-                notification_count=len(created_notifications)
-            )
-        
         return created_notifications
     
     @staticmethod
@@ -119,22 +105,29 @@ class NotificationService:
         Create notifications for users based on their roles within an organization.
         
         Args:
-            organization: Organization object
-            target_roles: List of role names to notify (e.g., ['admin', 'team_lead'])
+            organization: Organization object (can be None for system-wide roles like super_admin)
+            target_roles: List of role names to notify (e.g., ['admin', 'super_admin'])
             ... other args same as create_notification
         """
         recipients = []
         
-        if target_roles:
-            # Get users with specific roles
+        # Handle system-wide notification for super admins
+        if 'super_admin' in (target_roles or []):
+            super_admins = User.objects.filter(is_superuser=True, is_active=True)
+            recipients.extend(super_admins)
+            # Remove so we don't query for it in the organization
+            target_roles = [r for r in target_roles if r != 'super_admin']
+
+        if organization and target_roles:
+            # Get users with specific roles within the organization
             users = User.objects.filter(
                 organization=organization,
                 role__name__in=target_roles,
                 is_active=True
             )
             recipients.extend(users)
-        else:
-            # Notify all active users in organization
+        elif organization and not target_roles:
+            # Notify all active users in the organization if no roles are specified
             users = User.objects.filter(
                 organization=organization,
                 is_active=True
@@ -150,7 +143,6 @@ class NotificationService:
             priority=priority,
             category=category,
             context_data=context_data,
-            send_email_to_superadmin=send_email_to_superadmin,
             **kwargs
         )
     
@@ -162,7 +154,6 @@ class NotificationService:
         message,
         priority='medium',
         context_data=None,
-        send_email_to_superadmin=False,
         **kwargs
     ):
         """
@@ -197,7 +188,6 @@ class NotificationService:
             priority=priority,
             category='user_management',
             context_data=context_data,
-            send_email_to_superadmin=send_email_to_superadmin,
             **kwargs
         )
     
@@ -250,159 +240,61 @@ class NotificationService:
                 is_active=True
             )
         except NotificationTemplate.DoesNotExist:
+            logger.warning(f"No active template found for notification type: {notification_type}")
             return None
     
     @staticmethod
     def _render_template(template_string, context_data):
         """
-        Render Django template string with context data.
+        Render a Django template string with context data.
         """
-        if not template_string or not context_data:
-            return template_string
-        
         try:
             template = Template(template_string)
-            context = Context(context_data)
-            return template.render(context)
+            return template.render(Context(context_data))
         except Exception as e:
-            logger.error(f"Template rendering error: {e}")
+            logger.error(f"Error rendering notification template: {e}")
             return template_string
-    
-    @staticmethod
-    def _queue_superadmin_email(
-        notification_type,
-        title,
-        message,
-        organization=None,
-        priority='medium',
-        notification_count=1
-    ):
-        """
-        Queue email notification to super-admin.
-        """
-        # Get super-admin email
-        superadmin_email = getattr(settings, 'SUPER_ADMIN_OTP_EMAIL', None)
-        if not superadmin_email:
-            logger.warning("SUPER_ADMIN_OTP_EMAIL not configured")
-            return
-        
-        # Create email subject and content
-        subject = f"PRS Alert: {title}"
-        if organization:
-            subject += f" - {organization.name}"
-        
-        content = f"""
-        Notification Alert from Payment Receiving System (PRS)
-        
-        Type: {notification_type.replace('_', ' ').title()}
-        Priority: {priority.upper()}
-        Organization: {organization.name if organization else 'System-wide'}
-        
-        Details:
-        {message}
-        
-        Users Notified: {notification_count}
-        
-        Time: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
-        
-        ---
-        This is an automated notification from PRS System.
-        """
-        
-        # Create email log entry
-        email_log = EmailNotificationLog.objects.create(
-            email_type='instant_alert',
-            recipient_email=superadmin_email,
-            subject=subject,
-            content=content,
-            notification_count=notification_count,
-            priority=priority
-        )
-        
-        # Send email asynchronously (or immediately for now)
-        NotificationService._send_email_notification(email_log)
-    
-    @staticmethod
-    def _send_email_notification(email_log):
-        """
-        Send email notification using robust email backend.
-        """
-        try:
-            from core_config.email_backend import EmailService
-            
-            success = EmailService.send_email(
-                subject=email_log.subject,
-                message=email_log.content,
-                recipient_list=[email_log.recipient_email],
-                fail_silently=True  # Don't break system on email failures
-            )
-            
-            if success:
-                email_log.mark_sent()
-                logger.info(f"Email sent successfully to {email_log.recipient_email}")
-            else:
-                email_log.mark_failed("Email sending failed via robust backend")
-                logger.warning(f"Email sending failed to {email_log.recipient_email}")
-            
-        except Exception as e:
-            error_message = str(e)
-            email_log.mark_failed(error_message)
-            logger.error(f"Failed to send email to {email_log.recipient_email}: {error_message}")
     
     @staticmethod
     def mark_notifications_as_read(user, notification_ids=None):
         """
-        Mark notifications as read for a user.
-        
-        Args:
-            user: User object
-            notification_ids: List of notification IDs (if None, marks all unread)
+        Mark a list of notifications as read for a user.
+        If no IDs are provided, mark all unread notifications.
         """
-        notifications = Notification.objects.filter(
-            recipient=user,
-            is_read=False
-        )
-        
         if notification_ids:
-            notifications = notifications.filter(id__in=notification_ids)
-        
+            notifications = Notification.objects.filter(
+                recipient=user,
+                id__in=notification_ids,
+                is_read=False
+            )
+        else:
+            notifications = Notification.objects.filter(
+                recipient=user,
+                is_read=False
+            )
+            
         count = notifications.count()
-        notifications.update(
-            is_read=True,
-            read_at=timezone.now()
-        )
-        
+        if count > 0:
+            for notification in notifications:
+                notification.mark_as_read()
         return count
     
     @staticmethod
     def get_user_notifications(user, limit=50, unread_only=False):
         """
-        Get notifications for a user.
-        
-        Args:
-            user: User object
-            limit: Maximum number of notifications to return
-            unread_only: If True, only return unread notifications
-        
-        Returns:
-            QuerySet of Notification objects
+        Get a list of notifications for a user.
         """
-        notifications = Notification.objects.filter(recipient=user)
-        
+        queryset = Notification.objects.filter(recipient=user)
         if unread_only:
-            notifications = notifications.filter(is_read=False)
-        
-        return notifications[:limit]
+            queryset = queryset.filter(is_read=False)
+        return queryset[:limit]
     
     @staticmethod
     def get_unread_count(user):
         """
-        Get count of unread notifications for a user.
+        Get the count of unread notifications for a user.
         """
-        return Notification.objects.filter(
-            recipient=user,
-            is_read=False
-        ).count()
+        return Notification.objects.filter(recipient=user, is_read=False).count()
 
 
 class EmailNotificationService:

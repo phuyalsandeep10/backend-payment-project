@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Notification, NotificationSettings, EmailNotificationLog, NotificationTemplate
+from .models import Notification, NotificationSettings, NotificationTemplate
 
 class NotificationSerializer(serializers.ModelSerializer):
     """Serializer for Notification model."""
@@ -24,27 +24,13 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationSettings
         fields = [
-            'id', 'user_email', 'enable_client_notifications', 'enable_deal_notifications',
+            'id', 'user', 'user_email', 'enable_client_notifications', 'enable_deal_notifications',
             'enable_user_management_notifications', 'enable_team_notifications',
             'enable_project_notifications', 'enable_commission_notifications',
             'enable_system_notifications', 'min_priority', 'auto_mark_read_days',
-            'enable_email_digest', 'email_digest_frequency', 'created_at', 'updated_at'
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'user_email', 'created_at', 'updated_at']
-
-class EmailNotificationLogSerializer(serializers.ModelSerializer):
-    """Serializer for EmailNotificationLog model."""
-    
-    organization_name = serializers.CharField(source='organization.name', read_only=True)
-    
-    class Meta:
-        model = EmailNotificationLog
-        fields = [
-            'id', 'email_type', 'recipient_email', 'subject', 'content',
-            'organization_name', 'status', 'sent_at', 'error_message',
-            'retry_count', 'notification_count', 'priority', 'created_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'organization_name']
+        read_only_fields = ['id', 'user', 'user_email', 'created_at', 'updated_at']
 
 class NotificationTemplateSerializer(serializers.ModelSerializer):
     """Serializer for NotificationTemplate model."""
@@ -53,10 +39,12 @@ class NotificationTemplateSerializer(serializers.ModelSerializer):
         model = NotificationTemplate
         fields = [
             'id', 'notification_type', 'title_template', 'message_template',
-            'email_subject_template', 'email_body_template', 'available_variables',
-            'is_active', 'created_at', 'updated_at'
+            'available_variables', 'is_active', 'created_at', 'updated_at',
+            'created_by', 'updated_by'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'created_by', 'updated_by'
+        ]
 
 class MarkAsReadSerializer(serializers.Serializer):
     """Serializer for marking notifications as read."""

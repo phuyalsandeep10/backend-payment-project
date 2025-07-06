@@ -23,9 +23,9 @@ class HasPermission(BasePermission):
                 'list': ['view_all_deals', 'view_own_deals'],
                 'create': ['create_deal'],
                 'retrieve': ['view_all_deals', 'view_own_deals'],
-                'update': ['update_deal_status'],
-                'partial_update': ['update_deal_status'],
-                'destroy': [], # Define if needed
+                'update': ['edit_deal'],
+                'partial_update': ['edit_deal'],
+                'destroy': ['delete_deal'],
                 'log_activity': ['log_deal_activity'],
             }
         elif viewset_name == 'PaymentViewSet':

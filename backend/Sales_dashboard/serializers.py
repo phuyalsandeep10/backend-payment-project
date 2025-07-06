@@ -8,13 +8,20 @@ from decimal import Decimal
 
 User = get_user_model()
 
+# ==================== CONSTANTS ====================
+LEADERBOARD_PERIOD_CHOICES = ['current', 'monthly', 'quarterly', 'yearly']
+CLIENT_STATUS_CHOICES = ['all', 'clear', 'pending', 'bad_debt']
+DASHBOARD_PERIOD_CHOICES = ['daily', 'weekly', 'monthly', 'yearly']
+STANDINGS_TYPE_CHOICES = ['individual', 'team']
+COMMISSION_PERIOD_CHOICES = ['monthly', 'weekly', 'daily']
+
 # ==================== DASHBOARD SERIALIZERS ====================
 
 class DashboardResponseSerializer(serializers.Serializer):
     """Serializer for main dashboard response"""
     user_info = serializers.DictField(help_text="Current user information")
     sales_progress = serializers.DictField(help_text="Sales progress data")
-    streak_info = serializers.DictField(help_text="Current streak information")
+    streak_info = serializers.DictField(help_text="Current streak information, including rating")
     outstanding_deals = serializers.ListField(help_text="List of outstanding deals")
     recent_payments = serializers.ListField(help_text="Recent payment activities")
     verification_status = serializers.DictField(help_text="Payment verification status")
@@ -34,16 +41,15 @@ class DashboardResponseSerializer(serializers.Serializer):
                 "deals_closed": 8
             },
             "streak_info": {
-                "current_streak": 7,
-                "streak_emoji": "⭐⭐⭐",
-                "streak_level": "Rising Star"
+                "current_streak": 7.5,
+                "streak_rating": "Rising Star"
             }
         }
 
 class DashboardQuerySerializer(serializers.Serializer):
     """Serializer for dashboard query parameters"""
     period = serializers.ChoiceField(
-        choices=['daily', 'weekly', 'monthly', 'yearly'],
+        choices=DASHBOARD_PERIOD_CHOICES,
         default='monthly',
         help_text="Time period for data aggregation"
     )
@@ -56,9 +62,8 @@ class DashboardQuerySerializer(serializers.Serializer):
 
 class StreakInfoResponseSerializer(serializers.Serializer):
     """Serializer for streak information response"""
-    current_streak = serializers.IntegerField(help_text="Current streak count")
-    streak_emoji = serializers.CharField(help_text="Emoji representation of streak level")
-    streak_level = serializers.CharField(help_text="Text description of streak level")
+    current_streak = serializers.FloatField(help_text="Current streak value (can be a decimal for half-progress)")
+    streak_rating = serializers.CharField(help_text="Text description of streak level")
     days_until_next_level = serializers.IntegerField(help_text="Days needed to reach next level")
     recent_history = serializers.ListField(
         child=serializers.DictField(),
@@ -122,8 +127,8 @@ class LeaderboardEntrySerializer(serializers.Serializer):
     user_id = serializers.IntegerField(help_text="User ID")
     username = serializers.CharField(help_text="Username")
     email = serializers.EmailField(help_text="User email")
-    streak = serializers.IntegerField(help_text="Current streak")
-    streak_emoji = serializers.CharField(help_text="Streak emoji representation")
+    streak = serializers.FloatField(help_text="Current streak value")
+    streak_rating = serializers.CharField(help_text="Text-based streak rating")
     sales_total = serializers.DecimalField(max_digits=15, decimal_places=2, help_text="Total sales amount")
     deals_closed = serializers.IntegerField(help_text="Number of deals closed")
     is_current_user = serializers.BooleanField(help_text="Whether this is the requesting user")
@@ -145,8 +150,8 @@ class StreakLeaderboardResponseSerializer(serializers.Serializer):
                 {
                     "rank": 1,
                     "username": "top_seller",
-                    "streak": 15,
-                    "streak_emoji": "🌟🌟🌟🌟🌟",
+                    "streak": 15.0,
+                    "streak_rating": "Rising Star",
                     "sales_total": "45000.00",
                     "is_current_user": False
                 }
@@ -162,7 +167,7 @@ class LeaderboardQuerySerializer(serializers.Serializer):
         help_text="Number of entries to return"
     )
     period = serializers.ChoiceField(
-        choices=['current', 'monthly', 'quarterly', 'yearly'],
+        choices=LEADERBOARD_PERIOD_CHOICES,
         default='current',
         help_text="Time period for leaderboard"
     )
@@ -172,7 +177,7 @@ class LeaderboardQuerySerializer(serializers.Serializer):
 class StandingsQuerySerializer(serializers.Serializer):
     """Serializer for daily standings query parameters"""
     type = serializers.ChoiceField(
-        choices=['individual', 'team'],
+        choices=STANDINGS_TYPE_CHOICES,
         default='individual',
         help_text="Type of standings to retrieve"
     )
@@ -192,9 +197,10 @@ class IndividualStandingSerializer(serializers.Serializer):
     rank = serializers.IntegerField()
     user_id = serializers.IntegerField()
     username = serializers.CharField()
+    profile_picture = serializers.URLField(allow_null=True)
     sales_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
     deals_count = serializers.IntegerField()
-    streak = serializers.IntegerField()
+    streak = serializers.FloatField(help_text="Current streak value")
     performance_score = serializers.FloatField()
     is_current_user = serializers.BooleanField()
 
@@ -203,6 +209,7 @@ class TeamStandingSerializer(serializers.Serializer):
     rank = serializers.IntegerField()
     team_id = serializers.IntegerField()
     team_name = serializers.CharField()
+    team_lead_profile_picture = serializers.URLField(allow_null=True)
     total_sales = serializers.DecimalField(max_digits=15, decimal_places=2)
     team_deals = serializers.IntegerField()
     avg_streak = serializers.FloatField()
@@ -223,7 +230,7 @@ class StandingsResponseSerializer(serializers.Serializer):
 class CommissionQuerySerializer(serializers.Serializer):
     """Serializer for commission overview query parameters"""
     period = serializers.ChoiceField(
-        choices=['monthly', 'quarterly', 'yearly'],
+        choices=COMMISSION_PERIOD_CHOICES,
         default='monthly',
         help_text="Period for commission data"
     )
@@ -244,11 +251,12 @@ class TopClientSerializer(serializers.Serializer):
 class CommissionOverviewResponseSerializer(serializers.Serializer):
     """Serializer for commission overview response"""
     organization_goal = serializers.DecimalField(max_digits=15, decimal_places=2)
-    goal_progress = serializers.FloatField(help_text="Goal completion percentage")
+    goal_progress = serializers.FloatField(help_text="Overall organization goal completion percentage")
     user_commissions = serializers.DecimalField(max_digits=15, decimal_places=2)
-    total_commissions = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_commissions = serializers.DecimalField(max_digits=15, decimal_places=2, help_text="Total commissions for the organization")
+    company_goal_chart = serializers.DictField(help_text="Data for the company goal progress chart")
     top_clients_this_period = TopClientSerializer(many=True, help_text="Top clients for the selected period.")
-    regular_clients_all_time = TopClientSerializer(many=True, help_text="Top 5 all-time clients.")
+    regular_clients_all_time = TopClientSerializer(many=True, help_text="Top 5 all-time regular clients based on sales value.")
     commission_trends = serializers.ListField(
         child=serializers.DictField(),
         help_text="Commission trend data for charts."
@@ -260,7 +268,7 @@ class CommissionOverviewResponseSerializer(serializers.Serializer):
 class ClientStatusQuerySerializer(serializers.Serializer):
     """Serializer for client list query parameters"""
     status_filter = serializers.ChoiceField(
-        choices=['all', 'clear', 'pending', 'bad_debt'],
+        choices=CLIENT_STATUS_CHOICES,
         default='all',
         help_text="Filter clients by payment status"
     )

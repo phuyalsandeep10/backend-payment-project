@@ -1,6 +1,7 @@
 from django.db import models
 import uuid
 from organization.models import Organization
+from clients.models import Client
 from django.conf import settings
 from .validators import validate_file_security
 from PIL import Image
@@ -12,7 +13,7 @@ import os
 ##  Deals Section
 ##
 class Deal(models.Model):
-    PAY_STATUS_CHOICES = [        ('initial payment','Initial Payment'),
+    PAYMENT_STATUS_CHOICES = [        ('initial payment','Initial Payment'),
        ('partial_payment','Partial Payment'),
         ('full_payment','Full Payment'),
     ]
@@ -36,23 +37,32 @@ class Deal(models.Model):
         ('referral','Referral'),
         ('others','Others')
     ]
+    CLIENT_STATUS = [
+        ('pending', 'Pending'),
+        ('loyal', 'Loyal'),
+        ('bad_debt', 'Bad Debt'),
+    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True )
     deal_id = models.CharField(max_length=50)
     organization = models.ForeignKey(Organization,on_delete=models.CASCADE,related_name="deals")
-    client_name = models.CharField(max_length=255)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name="deals")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='created_deals')
-    pay_status = models.CharField(max_length=50, choices=PAY_STATUS_CHOICES)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='updated_deals')
+    payment_status = models.CharField(max_length=50, choices=PAYMENT_STATUS_CHOICES)
     source_type = models.CharField(max_length=50,choices=SOURCE_TYPES)
     deal_value = models.DecimalField(max_digits=15,decimal_places=2)
     deal_date = models.DateField()
     due_date = models.DateField()
     payment_method = models.CharField(max_length=100,choices=PAYMENT_METHOD_CHOICES)
     deal_remarks = models.TextField(blank=True,null=True)
-    deal_status = models.CharField(max_length=100,choices=DEAL_STATUS,default='pending')
+    verification_status = models.CharField(max_length=100,choices=DEAL_STATUS,default='pending')
+    client_status = models.CharField(max_length=100,choices=CLIENT_STATUS,default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     
     def __str__(self):
-        return f"{self.deal_id} - {self.client_name}"
+        return f"{self.deal_id} - {self.client.name if self.client else ''}"
     
     class Meta:
         unique_together = ('organization','deal_id')
@@ -93,8 +103,8 @@ class Payment(models.Model):
     payment_remarks = models.TextField(blank=True,null=True)
     
     received_amount = models.DecimalField(max_digits=15,decimal_places=2)
-    cheque_number = models.CharField(max_length=50)
-    payment_type = models.CharField(max_length=50)
+    cheque_number = models.CharField(max_length=50, blank=True, null=True)
+    payment_type = models.CharField(max_length=50, choices=Deal.PAYMENT_METHOD_CHOICES)
     
     
     
@@ -171,8 +181,4 @@ class ActivityLog(models.Model):
     
     def __str__(self):
         return f"{self.timestamp} -- {self.message}"
-
-##creates a activity log
-def logactivity(deal,message):
-    ActivityLog.objects.create(deal = deal , message = message)
     

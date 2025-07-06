@@ -1,9 +1,7 @@
 from django.shortcuts import render
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from .models import Project
 from .serializers import ProjectSerializer
-from .permissions import HasProjectPermission
-from organization.models import Organization
 from rest_framework import serializers
 
 # Create your views here.
@@ -11,51 +9,58 @@ from rest_framework import serializers
 class ProjectViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows projects to be viewed or edited.
-    Now uses role-based permissions.
+    Permissions are based on team membership.
     """
     serializer_class = ProjectSerializer
-    permission_classes = [HasProjectPermission]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """
-        This view should return a list of all the projects
-        for the currently authenticated user's organization.
+        Users should only see projects associated with teams they are a member of.
         Superusers can see all projects.
         """
-        # Handle schema generation when user is anonymous
-        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+        # Short-circuit for schema generation
+        if getattr(self, 'swagger_fake_view', False):
             return Project.objects.none()
             
         user = self.request.user
         if user.is_superuser:
-            return Project.objects.all()
+            return Project.objects.all().select_related('created_by').prefetch_related('teams')
         
-        if not hasattr(user, 'organization') or not user.organization:
-            return Project.objects.none()
+        # Filter projects by the teams the user is a member of.
+        return Project.objects.filter(teams__members=user).distinct().select_related('created_by').prefetch_related('teams')
 
-        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_projects').exists():
-            return Project.objects.filter(organization=user.organization)
-
-        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_projects').exists():
-            return Project.objects.filter(organization=user.organization, created_by=user)
-            
-        return Project.objects.none()
-    
     def perform_create(self, serializer):
         """
-        Associate the project with the user's organization.
-        Super Admins can specify an organization.
+        Associate the project with the creator.
         """
-        user = self.request.user
-        if user.is_superuser:
-            org_id = self.request.data.get('organization')
-            if org_id:
-                try:
-                    organization = Organization.objects.get(id=org_id)
-                    serializer.save(organization=organization, created_by=user)
-                except Organization.DoesNotExist:
-                    raise serializers.ValidationError({'organization': 'Organization not found.'})
-            else:
-                serializer.save(created_by=user)
-        else:
-            serializer.save(organization=user.organization, created_by=user)
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        """
+        Set the user who last updated the project.
+        """
+        serializer.save(updated_by=self.request.user)
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        - Only the project creator can delete.
+        - Team members can update/view.
+        """
+        if self.action == 'destroy':
+            self.permission_classes = [permissions.IsAuthenticated, IsProjectCreator]
+        elif self.action in ['update', 'partial_update', 'retrieve']:
+            self.permission_classes = [permissions.IsAuthenticated, IsProjectTeamMember]
+        
+        return super().get_permissions()
+
+
+# Custom Permissions
+class IsProjectCreator(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.created_by == request.user
+
+class IsProjectTeamMember(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return request.user in [member for team in obj.teams.all() for member in team.members.all()]

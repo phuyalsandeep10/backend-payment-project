@@ -105,92 +105,11 @@ class NotificationSettings(models.Model):
     # Auto-mark as read after (in days, 0 = never)
     auto_mark_read_days = models.PositiveIntegerField(default=7)
     
-    # Email notifications (for specific roles)
-    enable_email_digest = models.BooleanField(default=False)
-    email_digest_frequency = models.CharField(
-        max_length=20,
-        choices=[
-            ('daily', 'Daily'),
-            ('weekly', 'Weekly'),
-            ('monthly', 'Monthly'),
-        ],
-        default='weekly'
-    )
-    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"Notification Settings - {self.user.email}"
-
-
-class EmailNotificationLog(models.Model):
-    """
-    Log of email notifications sent to super-admin.
-    """
-    
-    # Email Types
-    EMAIL_TYPE_CHOICES = [
-        ('daily_summary', 'Daily Summary'),
-        ('weekly_summary', 'Weekly Summary'),
-        ('instant_alert', 'Instant Alert'),
-        ('new_organization', 'New Organization'),
-        ('critical_activity', 'Critical Activity'),
-    ]
-    
-    # Email Status
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('sent', 'Sent'),
-        ('failed', 'Failed'),
-        ('retry', 'Retry'),
-    ]
-    
-    email_type = models.CharField(max_length=50, choices=EMAIL_TYPE_CHOICES)
-    recipient_email = models.EmailField()
-    subject = models.CharField(max_length=255)
-    content = models.TextField()
-    
-    # Organization context (if applicable)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
-    
-    # Status tracking
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    sent_at = models.DateTimeField(null=True, blank=True)
-    error_message = models.TextField(null=True, blank=True)
-    retry_count = models.PositiveIntegerField(default=0)
-    
-    # Metadata
-    notification_count = models.PositiveIntegerField(default=1)  # How many notifications this email represents
-    priority = models.CharField(max_length=20, choices=Notification.PRIORITY_CHOICES, default='medium')
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['status', 'created_at']),
-            models.Index(fields=['email_type']),
-            models.Index(fields=['organization']),
-        ]
-    
-    def __str__(self):
-        return f"{self.email_type} - {self.recipient_email} ({self.status})"
-    
-    def mark_sent(self):
-        """Mark email as successfully sent"""
-        from django.utils import timezone
-        self.status = 'sent'
-        self.sent_at = timezone.now()
-        self.save()
-    
-    def mark_failed(self, error_message):
-        """Mark email as failed with error message"""
-        self.status = 'failed'
-        self.error_message = error_message
-        self.retry_count += 1
-        self.save()
 
 
 class NotificationTemplate(models.Model):
@@ -200,8 +119,6 @@ class NotificationTemplate(models.Model):
     notification_type = models.CharField(max_length=50, choices=Notification.TYPE_CHOICES, unique=True)
     title_template = models.CharField(max_length=255)
     message_template = models.TextField()
-    email_subject_template = models.CharField(max_length=255, null=True, blank=True)
-    email_body_template = models.TextField(null=True, blank=True)
     
     # Template variables help text
     available_variables = models.TextField(
@@ -210,6 +127,18 @@ class NotificationTemplate(models.Model):
     )
     
     is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_notification_templates'
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='updated_notification_templates'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

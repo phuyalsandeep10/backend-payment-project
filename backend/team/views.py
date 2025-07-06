@@ -24,25 +24,28 @@ class TeamViewSet(viewsets.ModelViewSet):
         for the currently authenticated user's organization.
         Superusers can see all teams.
         """
-        # Handle schema generation when user is anonymous
         if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
             return Team.objects.none()
             
         user = self.request.user
+
+        base_queryset = Team.objects.select_related(
+            'organization', 'team_lead', 'created_by', 'updated_by'
+        ).prefetch_related('members', 'projects')
+
         if user.is_superuser:
-            return Team.objects.all()
+            return base_queryset.all()
 
         if not hasattr(user, 'organization') or not user.organization:
             return Team.objects.none()
 
+        organization_queryset = base_queryset.filter(organization=user.organization)
+
         if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_teams').exists():
-            return Team.objects.filter(organization=user.organization)
+            return organization_queryset
 
         if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_teams').exists():
-            # Show teams where user is team lead or member
-            return Team.objects.filter(
-                organization=user.organization
-            ).filter(
+            return organization_queryset.filter(
                 models.Q(team_lead=user) | models.Q(members=user)
             ).distinct()
             
@@ -50,18 +53,19 @@ class TeamViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Associate the team with the user's organization.
-        Super Admins can specify an organization.
+        Associate the team with the user's organization and the creator.
         """
         user = self.request.user
         if user.is_superuser:
-            org_id = self.request.data.get('organization')
+            org_id = serializer.validated_data.get('organization')
             if not org_id:
                 raise serializers.ValidationError({'organization': 'This field is required for Super Admins.'})
-            try:
-                organization = Organization.objects.get(id=org_id)
-                serializer.save(organization=organization)
-            except Organization.DoesNotExist:
-                raise serializers.ValidationError({'organization': 'Organization not found.'})
+            serializer.save(created_by=user, organization=org_id)
         else:
-            serializer.save(organization=user.organization)
+            serializer.save(created_by=user, organization=user.organization)
+
+    def perform_update(self, serializer):
+        """
+        Set the user who last updated the team.
+        """
+        serializer.save(updated_by=self.request.user)

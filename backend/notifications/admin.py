@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Notification, NotificationSettings, EmailNotificationLog, NotificationTemplate
+from .models import Notification, NotificationSettings, NotificationTemplate
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
@@ -79,10 +79,6 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
         ('Preferences', {
             'fields': ('min_priority', 'auto_mark_read_days')
         }),
-        ('Email Notifications', {
-            'fields': ('enable_email_digest', 'email_digest_frequency'),
-            'classes': ('collapse',)
-        }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -94,43 +90,6 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
     user_email.short_description = 'User Email'
 
 
-@admin.register(EmailNotificationLog)
-class EmailNotificationLogAdmin(admin.ModelAdmin):
-    list_display = [
-        'email_type', 'recipient_email', 'subject', 'status', 
-        'organization_name', 'notification_count', 'sent_at', 'created_at'
-    ]
-    list_filter = [
-        'email_type', 'status', 'priority', 'organization', 'created_at'
-    ]
-    search_fields = ['recipient_email', 'subject', 'content']
-    readonly_fields = ['created_at', 'updated_at', 'sent_at']
-    raw_id_fields = ['organization']
-    
-    fieldsets = (
-        ('Email Details', {
-            'fields': ('email_type', 'recipient_email', 'subject', 'content')
-        }),
-        ('Context', {
-            'fields': ('organization', 'notification_count', 'priority')
-        }),
-        ('Status', {
-            'fields': ('status', 'sent_at', 'error_message', 'retry_count')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def organization_name(self, obj):
-        return obj.organization.name if obj.organization else 'System'
-    organization_name.short_description = 'Organization'
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('organization')
-
-
 @admin.register(NotificationTemplate)
 class NotificationTemplateAdmin(admin.ModelAdmin):
     list_display = [
@@ -138,7 +97,7 @@ class NotificationTemplateAdmin(admin.ModelAdmin):
     ]
     list_filter = ['notification_type', 'is_active', 'created_at']
     search_fields = ['title_template', 'message_template']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'created_by', 'updated_by']
     
     fieldsets = (
         ('Template Details', {
@@ -147,12 +106,12 @@ class NotificationTemplateAdmin(admin.ModelAdmin):
         ('In-System Notification Templates', {
             'fields': ('title_template', 'message_template')
         }),
-        ('Email Templates', {
-            'fields': ('email_subject_template', 'email_body_template'),
-            'classes': ('collapse',)
-        }),
         ('Help', {
             'fields': ('available_variables',),
+            'classes': ('collapse',)
+        }),
+        ('Audit', {
+            'fields': ('created_by', 'updated_by'),
             'classes': ('collapse',)
         }),
         ('Timestamps', {

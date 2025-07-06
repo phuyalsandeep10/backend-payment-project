@@ -1,10 +1,10 @@
-Django==5.2.2
-djangorestframework==3.15.2
+Django==5.0.6
+djangorestframework==3.15.1
 django-environ==0.11.2
-psycopg[binary]
-django-cors-headers==4.4.0
+psycopg2-binary==2.9.9
+django-cors-headers==4.3.1
 drf-yasg==1.21.7
-django-filter==24.3
+django-filter==24.2
 django-extensions==3.2.3
 drf-nested-routers==0.94.2
 
@@ -14,15 +14,19 @@ django-redis==5.4.0
 redis==5.0.8
 
 # Additional performance and monitoring
-gunicorn==23.0.0
-whitenoise==6.7.0
+gunicorn==22.0.0
+whitenoise==6.6.0
 
 # Testing
 factory-boy==3.3.1
 faker==28.4.1
 
+
 djangorestframework-simplejwt==5.3.1
-setuptools
-dj-database-url
-pyngrok
+dj-database-url==2.1.0
 django-user-agents
+
+# New additions
+cloudinary==1.40.0
+django-cloudinary-storage==0.3.0
+Faker==25.8.0

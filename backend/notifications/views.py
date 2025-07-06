@@ -8,10 +8,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Notification, NotificationSettings, EmailNotificationLog, NotificationTemplate
+from .models import Notification, NotificationSettings, NotificationTemplate
 from .serializers import (
     NotificationSerializer, NotificationSettingsSerializer, 
-    EmailNotificationLogSerializer, NotificationTemplateSerializer,
+    NotificationTemplateSerializer,
     MarkAsReadSerializer, NotificationStatsSerializer
 )
 from .services import NotificationService
@@ -49,14 +49,11 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         if priority:
             queryset = queryset.filter(priority=priority)
         
-        # Limit results
-        limit = request.query_params.get('limit', '50')
-        try:
-            limit = int(limit)
-            queryset = queryset[:limit]
-        except ValueError:
-            queryset = queryset[:50]
-        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
@@ -87,31 +84,59 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(stats_data)
 
 @swagger_auto_schema(tags=['Notifications'])
-class NotificationSettingsViewSet(viewsets.GenericViewSet):
+class NotificationSettingsViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing a user's notification settings.
     """
     serializer_class = NotificationSettingsSerializer
     permission_classes = [IsAuthenticated]
-    queryset = NotificationSettings.objects.none()  # Required for schema generation
+
+    def get_queryset(self):
+        # This queryset is used for permission checks and for the browsable API.
+        # The actual object is fetched based on the current user.
+        if getattr(self, 'swagger_fake_view', False):
+            return NotificationSettings.objects.none()
+        return NotificationSettings.objects.filter(user=self.request.user)
 
     def get_object(self):
+        # Overriding get_object to ensure users can only access their own settings.
+        # get_or_create ensures a settings object exists for every user.
         settings, _ = NotificationSettings.objects.get_or_create(user=self.request.user)
         return settings
 
-    def list(self, request):
-        """Get the current user's notification settings."""
-        settings = self.get_object()
-        serializer = self.serializer_class(settings)
+    def list(self, request, *args, **kwargs):
+        """
+        Get the current user's notification settings. 
+        There's only one settings object per user, so this returns a single object, not a list.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    def partial_update(self, request):
-        """Update the current user's notification settings."""
-        settings = self.get_object()
-        serializer = self.serializer_class(settings, data=request.data, partial=True)
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Update the current user's notification settings.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update the current user's notification settings (full update).
+        """
+        return self.partial_update(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Creating settings is handled automatically by get_object, so this is disabled.
+        """
+        return Response(
+            {'detail': 'Method "POST" not allowed.'}, 
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
 
 @swagger_auto_schema(tags=['Notifications'])
 class NotificationAdminViewSet(viewsets.GenericViewSet):
@@ -137,13 +162,6 @@ class NotificationAdminViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=['get'], serializer_class=EmailNotificationLogSerializer)
-    def list_logs(self, request):
-        """List all email notification logs."""
-        queryset = EmailNotificationLog.objects.all()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
     def send_test_notification(self, request):

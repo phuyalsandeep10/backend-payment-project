@@ -39,21 +39,6 @@ class HasProjectPermission(BasePermission):
 
         if not request.user.role.permissions.filter(codename='view_all_projects').exists() and \
            request.user.role.permissions.filter(codename='view_own_projects').exists():
-            return obj.created_by == request.user
+            return obj.salesperson == request.user
             
-        return True
-
-class IsAdminOrReadOnly(BasePermission):
-    """
-    Legacy permission class - deprecated, use HasProjectPermission instead.
-    Custom permission to only allow admin users to edit an object.
-    """
-    def has_permission(self, request, view):
-        from rest_framework import permissions
-        # Read permissions are allowed to any authenticated user,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        # Write permissions are only allowed to the admin users.
-        return request.user and request.user.is_staff 
+        return True 

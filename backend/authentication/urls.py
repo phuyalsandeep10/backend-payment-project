@@ -1,26 +1,28 @@
-from django.urls import path
+from django.urls import path, re_path, include
+from rest_framework.routers import DefaultRouter
 from . import views
+from .views import (
+    UserViewSet,
+    UserProfileViewSet
+)
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
+router.register(r'profile', UserProfileViewSet, basename='user-profile')
 
 app_name = 'authentication'
 
 urlpatterns = [
+    path('', include(router.urls)),
     # ==================== AUTHENTICATION ENDPOINTS ====================
-    path('login/', views.user_login_view, name='login'),
-    path('login/verify/', views.user_login_verify_view, name='login_verify'),
-    path('login/direct/', views.direct_login_view, name='direct_login'),  # Direct login without OTP
-    path('register/', views.register_view, name='register'),
-    path('logout/', views.logout_view, name='logout'),
+    re_path(r'^login/?$', views.direct_login_view, name='direct_login'),
+    re_path(r'^register/?$', views.register_view, name='register'),
+    re_path(r'^logout/?$', views.logout_view, name='logout'),
     
     # ==================== PASSWORD MANAGEMENT ====================
-    path('password/reset/', views.password_reset_request_view, name='password_reset'),
-    path('password/change/', views.password_change_view, name='password_change'),
+    re_path(r'^password/change/?$', views.password_change_view, name='password_change'),
     
     # ==================== USER PROFILE ====================
-    path('profile/', views.user_profile_view, name='profile'),
-    path('profile/update/', views.user_profile_update_view, name='profile_update'),
-    path('sessions/', views.user_sessions_view, name='sessions'),
-    
-    # ==================== SUPER ADMIN ====================
-    path('super-admin/login/', views.super_admin_login_view, name='super_admin_login'),
-    path('super-admin/verify/', views.super_admin_verify_view, name='super_admin_verify'),
+    re_path(r'^profile/?$', views.user_profile_view, name='profile'),
+    re_path(r'^profile/update/?$', views.user_profile_update_view, name='profile_update'),
 ]

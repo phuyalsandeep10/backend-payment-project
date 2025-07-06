@@ -1,33 +1,39 @@
-from rest_framework import serializers, exceptions
-from drf_yasg.utils import swagger_auto_schema
+from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User, UserSession
+from .models import User, UserSession, UserProfile
 from user_agents import parse
 from permissions.models import Role
 from permissions.serializers import RoleSerializer
-from django.core.validators import validate_email
 from organization.models import Organization
-from decimal import Decimal
-# from team.serializers import TeamSerializer # This is moved to prevent circular import
 
 class UserLiteSerializer(serializers.ModelSerializer):
-    """
-    A lightweight serializer for User model, showing only essential info.
-    """
+    """A lightweight serializer for User model, showing only essential info."""
     class Meta:
         model = User
         fields = ['id', 'username']
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for the UserProfile model."""
+    class Meta:
+        model = UserProfile
+        fields = ['profile_picture', 'bio']
+
 class UserSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the User model.
-    """
+    """A detailed serializer for the User model."""
     teams = serializers.SerializerMethodField()
     role = RoleSerializer(read_only=True)
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
+    profile = UserProfileSerializer(required=False)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'organization', 'role', 'teams', 'contact_number', 'is_active')
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'organization', 'organization_name', 'role', 'role_name',
+            'contact_number', 'is_active', 'profile', 'teams'
+        ]
+        read_only_fields = ['organization_name', 'role_name']
 
     def get_teams(self, obj):
         from team.serializers import TeamSerializer
@@ -35,12 +41,20 @@ class UserSerializer(serializers.ModelSerializer):
             return TeamSerializer(obj.teams.all(), many=True).data
         return []
 
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', None)
+        instance = super().update(instance, validated_data)
+        if profile_data:
+            profile, created = UserProfile.objects.get_or_create(user=instance)
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
+        return instance
+
 class UserCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for creating a new user.
-    """
-    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
-    
+    """Serializer for creating a new user (by an admin)."""
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
+
     class Meta:
         model = User
         fields = ('username', 'password', 'first_name', 'last_name', 'email', 'organization', 'role', 'contact_number', 'is_active')
@@ -51,15 +65,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 class UserSessionSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the UserSession model.
-    Parses the user agent string into a readable format.
-    """
+    """Serializer for the UserSession model."""
     device = serializers.SerializerMethodField()
+    is_current = serializers.SerializerMethodField()
 
     class Meta:
         model = UserSession
-        fields = ['id', 'ip_address', 'created_at', 'device']
+        fields = ['id', 'ip_address', 'created_at', 'device', 'is_current']
         read_only_fields = fields
 
     def get_device(self, obj):
@@ -67,221 +79,73 @@ class UserSessionSerializer(serializers.ModelSerializer):
             return "Unknown Device"
         ua = parse(obj.user_agent)
         return f"{ua.browser.family} on {ua.os.family}"
-    
-    def to_representation(self, instance):
-        """
-        Add a flag to indicate if the session is the current one.
-        """
-        representation = super().to_representation(instance)
-        current_session_key = self.context['request'].session.session_key
-        # Note: DRF Token Auth is stateless, so we check against the token key
+
+    def get_is_current(self, obj):
         auth_header = self.context['request'].headers.get('Authorization')
         if auth_header:
             try:
                 current_token_key = auth_header.split(' ')[1]
-                representation['is_current_session'] = (instance.session_key == current_token_key)
+                # This logic assumes the token IS the session key, which might not be true.
+                return obj.session_key == current_token_key
             except IndexError:
-                representation['is_current_session'] = False
-        else:
-            representation['is_current_session'] = False
-        return representation
+                pass
+        return False
+
 
 class UserLoginSerializer(serializers.Serializer):
-    """
-    Serializer for user login with automatic streak calculation
-    """
-    email = serializers.EmailField(
-        required=True,
-        help_text="User's email address"
-    )
-    password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'},
-        help_text="User's password"
-    )
+    """Serializer for user login."""
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
 
     def validate(self, attrs):
         email = attrs.get('email')
         password = attrs.get('password')
-
         if email and password:
-            user = authenticate(request=self.context.get('request'),
-                                email=email, password=password)
+            user = authenticate(request=self.context.get('request'), email=email, password=password)
             if not user:
-                raise serializers.ValidationError("Invalid email or password")
+                raise serializers.ValidationError("Invalid credentials.", code='authorization')
             if not user.is_active:
-                raise serializers.ValidationError("User account is disabled")
+                raise serializers.ValidationError("User account is disabled.", code='authorization')
         else:
-            raise serializers.ValidationError("Must include 'email' and 'password'")
-
+            raise serializers.ValidationError("Must include 'email' and 'password'.", code='authorization')
         attrs['user'] = user
         return attrs
 
-class UserLoginResponseSerializer(serializers.Serializer):
-    """
-    Serializer for auto-login response with streak calculation
-    """
-    token = serializers.CharField(help_text="Authentication token")
-    user_id = serializers.IntegerField(help_text="User ID")
-    username = serializers.CharField(help_text="Username")
-    email = serializers.EmailField(help_text="User email")
-    first_name = serializers.CharField(help_text="User first name")
-    last_name = serializers.CharField(help_text="User last name")
-    organization = serializers.CharField(help_text="Organization name")
-    role = serializers.CharField(help_text="User role")
-    sales_target = serializers.DecimalField(
-        max_digits=15, 
-        decimal_places=2, 
-        help_text="User's sales target"
-    )
-    streak = serializers.IntegerField(help_text="Current streak (automatically calculated)")
-    last_login = serializers.DateTimeField(help_text="Last login timestamp")
-    message = serializers.CharField(help_text="Success message")
-
-    class Meta:
-        examples = {
-            "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
-            "user_id": 42,
-            "username": "john_doe",
-            "email": "john@company.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "organization": "Tech Corp",
-            "role": "Salesperson",
-            "sales_target": "25000.00",
-            "streak": 7,
-            "message": "Login successful! Streak calculated and updated."
-        }
-
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user registration
-    """
-    password = serializers.CharField(
-        write_only=True, 
-        min_length=8,
-        help_text="Password (minimum 8 characters)"
-    )
-    confirm_password = serializers.CharField(
-        write_only=True,
-        help_text="Confirm password"
-    )
-    organization = serializers.PrimaryKeyRelatedField(
-        queryset=Organization.objects.all(),
-        help_text="Organization ID"
-    )
-    role = serializers.PrimaryKeyRelatedField(
-        queryset=Role.objects.all(),
-        required=False,
-        help_text="Role ID (optional)"
-    )
+    """Serializer for public user registration."""
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password_confirm = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
+    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all(), required=True)
 
     class Meta:
         model = User
-        fields = (
-            'username', 'email', 'password', 'confirm_password', 
-            'first_name', 'last_name', 'organization', 'role'
-        )
+        fields = ('username', 'email', 'password', 'password_confirm', 'first_name', 'last_name', 'organization', 'role')
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError("Passwords do not match")
-        return attrs
+        if attrs['password'] != attrs.pop('password_confirm'):
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return super().validate(attrs)
 
     def create(self, validated_data):
-        validated_data.pop('confirm_password')
-        password = validated_data.pop('password')
-        user = User.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
-
-class UserRegistrationResponseSerializer(serializers.Serializer):
-    """
-    Serializer for user registration response
-    """
-    user_id = serializers.IntegerField(help_text="Created user ID")
-    username = serializers.CharField(help_text="Username")
-    email = serializers.EmailField(help_text="User email")
-    organization = serializers.CharField(help_text="Organization name")
-    message = serializers.CharField(help_text="Success message")
-
-class PasswordResetSerializer(serializers.Serializer):
-    """
-    Serializer for password reset request
-    """
-    email = serializers.EmailField(
-        required=True,
-        help_text="Email address to send reset link"
-    )
-
-    def validate_email(self, value):
-        validate_email(value)
-        return value
-
-class PasswordResetResponseSerializer(serializers.Serializer):
-    """
-    Serializer for password reset response
-    """
-    message = serializers.CharField(help_text="Status message")
-    email = serializers.EmailField(help_text="Email where reset link was sent")
+        return User.objects.create_user(**validated_data)
 
 class PasswordChangeSerializer(serializers.Serializer):
-    """
-    Serializer for password change
-    """
-    old_password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'},
-        help_text="Current password"
-    )
-    new_password = serializers.CharField(
-        required=True,
-        write_only=True,
-        min_length=8,
-        style={'input_type': 'password'},
-        help_text="New password (minimum 8 characters)"
-    )
-    confirm_password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'},
-        help_text="Confirm new password"
-    )
+    """Serializer for changing a user's password."""
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['confirm_password']:
-            raise serializers.ValidationError("New passwords do not match")
+        user = self.context['request'].user
+        if not user.check_password(attrs['old_password']):
+            raise serializers.ValidationError({'old_password': 'Old password is not correct.'})
+        # Add password strength validation here if needed
         return attrs
 
-    def validate_old_password(self, value):
-        user = self.context['request'].user
-        if not user.check_password(value):
-            raise serializers.ValidationError("Current password is incorrect")
-        return value
-
-class PasswordChangeResponseSerializer(serializers.Serializer):
-    """
-    Serializer for password change response
-    """
-    message = serializers.CharField(help_text="Success message")
-
 class UserDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user detail information
-    """
-    organization_name = serializers.CharField(
-        source='organization.name', 
-        read_only=True,
-        help_text="Organization name"
-    )
-    role_name = serializers.CharField(
-        source='role.name', 
-        read_only=True,
-        help_text="Role name"
-    )
+    """A detailed serializer for user info, used in other serializers."""
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
 
     class Meta:
         model = User
@@ -293,118 +157,26 @@ class UserDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'date_joined', 'last_login', 'streak')
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating user information
-    """
+    """Serializer for updating user information."""
     class Meta:
         model = User
-        fields = (
-            'first_name', 'last_name', 'sales_target', 'is_active'
-        )
-
-class LogoutResponseSerializer(serializers.Serializer):
-    """
-    Serializer for logout response
-    """
-    message = serializers.CharField(help_text="Logout confirmation message")
-
-class SuperAdminLoginSerializer(serializers.Serializer):
-    """
-    Serializer for super admin login request
-    """
-    email = serializers.EmailField(
-        required=True,
-        help_text="Super admin email address"
-    )
-    password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'},
-        help_text="Super admin password"
-    )
-
-class SuperAdminLoginResponseSerializer(serializers.Serializer):
-    """
-    Serializer for super admin login response
-    """
-    message = serializers.CharField(help_text="Status message")
-    session_id = serializers.CharField(help_text="Temporary session ID")
-    otp_sent = serializers.BooleanField(help_text="Whether OTP was sent")
-
-class SuperAdminVerifySerializer(serializers.Serializer):
-    """
-    Serializer for super admin OTP verification
-    """
-    session_id = serializers.CharField(
-        required=True,
-        help_text="Session ID from login step"
-    )
-    otp = serializers.CharField(
-        required=True,
-        min_length=6,
-        max_length=6,
-        help_text="6-digit OTP code"
-    )
-
-class SuperAdminVerifyResponseSerializer(serializers.Serializer):
-    """
-    Serializer for super admin OTP verification response
-    """
-    token = serializers.CharField(help_text="Authentication token")
-    user_id = serializers.IntegerField(help_text="Super admin user ID")
-    username = serializers.CharField(help_text="Super admin username")
-    message = serializers.CharField(help_text="Success message")
-
-class UserSessionDetailSerializer(serializers.Serializer):
-    """
-    Serializer for user session information
-    """
-    id = serializers.IntegerField(help_text="Session ID")
-    session_key = serializers.CharField(help_text="Session key")
-    ip_address = serializers.IPAddressField(help_text="IP address")
-    user_agent = serializers.CharField(help_text="User agent string")
-    device = serializers.CharField(help_text="Device type")
-    location = serializers.CharField(help_text="Location (if available)")
-    created_at = serializers.DateTimeField(help_text="Session creation time")
-    last_activity = serializers.DateTimeField(help_text="Last activity time")
-    is_current = serializers.BooleanField(help_text="Whether this is the current session")
-
-class ErrorResponseSerializer(serializers.Serializer):
-    """
-    Serializer for error responses
-    """
-    error = serializers.CharField(help_text="Error message")
-    detail = serializers.CharField(help_text="Detailed error description", required=False)
-    code = serializers.CharField(help_text="Error code", required=False) 
-
+        fields = ('first_name', 'last_name', 'contact_number', 'sales_target')
 
 class AuthSuccessResponseSerializer(serializers.Serializer):
-    """
-    Standard serializer for successful authentication (login/registration).
-    Includes an authentication token and nested user details.
-    """
-    token = serializers.CharField(read_only=True, help_text="Authentication token for API access.")
-    user = UserDetailSerializer(read_only=True, help_text="Detailed information of the authenticated user.")
+    """Generic response for successful authentication."""
+    token = serializers.CharField(read_only=True)
+    user = UserDetailSerializer(read_only=True)
 
 class UserProfileResponseSerializer(serializers.Serializer):
-    """
-    Standard serializer for user profile responses.
-    Wraps the user details under a 'user' key.
-    """
-    user = UserDetailSerializer(read_only=True, help_text="Detailed information of the user.")
+    """Generic response for user profile requests."""
+    user = UserDetailSerializer(read_only=True)
 
+class MessageResponseSerializer(serializers.Serializer):
+    """Generic response for simple messages (e.g., logout)."""
+    message = serializers.CharField()
 
-class UserLoginInitiateResponseSerializer(serializers.Serializer):
-    """
-    Serializer for the response when initiating a user login, which starts the OTP flow.
-    """
-    message = serializers.CharField(help_text="Status message indicating that an OTP has been sent.")
-    session_id = serializers.CharField(help_text="A unique session ID to be used in the verification step.")
-    
-    
-class UserLoginVerifySerializer(serializers.Serializer):
-    """
-    Serializer for the second step of user login, verifying the OTP.
-    """
-    session_id = serializers.CharField(required=True, help_text="The session ID received from the login initiation step.")
-    otp = serializers.CharField(required=True, write_only=True, help_text="The One-Time Password sent to the user's email.") 
+class ErrorResponseSerializer(serializers.Serializer):
+    """Generic response for errors."""
+    error = serializers.CharField()
+    detail = serializers.CharField(required=False)
+    code = serializers.CharField(required=False)

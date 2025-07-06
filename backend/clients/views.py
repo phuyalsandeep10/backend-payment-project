@@ -1,4 +1,5 @@
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets, serializers, permissions
+from django.db.models import Count
 from .models import Client
 from .serializers import ClientSerializer
 from .permissions import HasClientPermission
@@ -9,7 +10,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     A viewset for viewing and editing Client instances, with granular permissions.
     """
     serializer_class = ClientSerializer
-    permission_classes = [HasClientPermission]
+    permission_classes = [permissions.IsAuthenticated, HasClientPermission]
 
     def get_queryset(self):
         """
@@ -22,17 +23,23 @@ class ClientViewSet(viewsets.ModelViewSet):
             return Client.objects.none()
             
         user = self.request.user
+        
+        # Base queryset
+        base_queryset = Client.objects.all()
+
         if user.is_superuser:
-            return Client.objects.all()
+            return base_queryset
         
         if not hasattr(user, 'organization') or not user.organization:
             return Client.objects.none()
 
+        organization_queryset = base_queryset.filter(organization=user.organization)
+
         if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_clients').exists():
-            return Client.objects.filter(organization=user.organization)
+            return organization_queryset
 
         if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_clients').exists():
-            return Client.objects.filter(organization=user.organization, created_by=user)
+            return organization_queryset.filter(created_by=user)
             
         return Client.objects.none()
 
@@ -70,3 +77,9 @@ class ClientViewSet(viewsets.ModelViewSet):
                 created_by=user,
                 organization=user.organization
             )
+
+    def perform_update(self, serializer):
+        """
+        Set the user who last updated the client.
+        """
+        serializer.save(updated_by=self.request.user)

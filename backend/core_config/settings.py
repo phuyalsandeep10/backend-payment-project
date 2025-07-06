@@ -33,21 +33,13 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = env.bool('DEBUG', default=False)
 
-# CRITICAL SECURITY FIX: ALLOWED_HOSTS
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    # Ngrok domains (enhanced for reliability)
-    '*.ngrok.io',
-    '*.ngrok-free.app',
-    '*.ngrok.app',
-    'f9a6-2400-1a00-3b4c-94f4-c95-5068-7c57-c62c.ngrok-free.app',
-    # Allow all for development (use with caution in production)
-    '*',
-]
+# Define allowed hosts based on environment
+if DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
+else:
+    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['.your-production-domain.com'])
 
 # Disable APPEND_SLASH to fix Render deployment issue
 APPEND_SLASH = False
@@ -64,22 +56,19 @@ SESSION_COOKIE_SAMESITE = 'Strict'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600  # 1 hour
 
-# CSRF Protection (relaxed for development/ngrok)
+# CSRF Protection
 CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'Lax'  # Changed from 'Strict' to 'Lax' for ngrok compatibility
-CSRF_TRUSTED_ORIGINS = [
+CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'Strict'
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     'http://localhost:3000',
-    'http://localhost:3001', 
+    'http://localhost:3001',
     'http://localhost:4200',
     'http://localhost:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
-    'http://127.0.0.1:4200', 
+    'http://127.0.0.1:4200',
     'http://127.0.0.1:8080',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://*',
-]
+])
 
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -102,6 +91,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'drf_yasg',
+    'cloudinary',
+    'cloudinary_storage',
 
     # my apps
     "authentication",
@@ -126,6 +117,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend'
     ],
@@ -153,8 +146,6 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    # Custom ngrok compatibility middleware (must be early in the chain)
-    "core_config.ngrok_middleware.NgrokCompatibilityMiddleware",
     # Token authentication middleware (must be before AuthenticationMiddleware)
     "core_config.token_middleware.TokenAuthMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -164,9 +155,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Custom security middleware
     "core_config.middleware.SecurityHeadersMiddleware",
-    # Temporarily disabled for testing
-    # "core_config.middleware.SecurityMonitoringMiddleware",
-    # "core_config.middleware.RequestLoggingMiddleware",
+    "core_config.middleware.SecurityMonitoringMiddleware",
+    "core_config.middleware.RequestLoggingMiddleware",
 ]
 
 ROOT_URLCONF = "core_config.urls"
@@ -253,12 +243,24 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Media files (user-uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # For production, use WhiteNoise to serve static files
 # http://whitenoise.evans.io/en/stable/django.html
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Cloudinary Storage Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME', default=None),
+    'API_KEY': env('CLOUDINARY_API_KEY', default=None),
+    'API_SECRET': env('CLOUDINARY_API_SECRET', default=None),
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -268,43 +270,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
 
-# CORS Configuration for Frontend Integration and Ngrok Compatibility
-CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)  # Enable for development
-
-# Comprehensive origin allowlist for local development and ngrok
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
-    "http://localhost:3000",    # React development server
-    "http://localhost:3001",    # Alternative frontend port  
-    "http://localhost:4200",    # Angular development server
-    "http://localhost:8080",    # Vue.js development server
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001", 
-    "http://127.0.0.1:4200",
-    "http://127.0.0.1:8080",
-    "http://*",
-])
-
-# Ngrok-specific regex patterns for dynamic subdomains
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.ngrok\.io$",
-    r"^https://.*\.ngrok-free\.app$", 
-    r"^https://.*\.ngrok\.app$",
-    r"^http://.*\.ngrok\.io$",
-    r"^http://.*\.ngrok-free\.app$",
-    r"^http://.*\.ngrok\.app$",
-]
-
-# Allow credentials for token-based authentication (required for auth headers)
+# CORS Configuration
 CORS_ALLOW_CREDENTIALS = True
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
-# Extended preflight cache for better performance
-CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
-
-# Allow all origins for development (this overrides the specific origins above)
-# Set to False in production and use specific origins
-CORS_ALLOW_ALL_ORIGINS = True
-
-# Allow comprehensive headers for API requests and ngrok compatibility
+# Allow comprehensive headers for API requests
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -316,10 +290,6 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
     'cache-control',
-    'x-forwarded-for',
-    'x-forwarded-proto',
-    'x-real-ip',
-    'ngrok-trace-id',  # Ngrok specific header
 ]
 
 # Allow common HTTP methods
@@ -361,35 +331,9 @@ SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'drf_yasg.inspectors.SwaggerAutoSchema',
 }
 
-# Email Configuration - Temporarily disabled SMTP, using console backend
-# Uses console backend to avoid SMTP errors during development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# SMTP Configuration (used by RobustEmailBackend)
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-
-# Fix DEFAULT_FROM_EMAIL to avoid circular reference issues
-if env('EMAIL_HOST_USER', default=''):
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=f"PRS System <{env('EMAIL_HOST_USER')}>")
-else:
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='PRS System <noreply@prs.com>')
-
-# Email Backend Features
-EMAIL_TIMEOUT = 30
-EMAIL_USE_LOCALTIME = False
-
-# Super Admin OTP Email - this should be set in .env file
-SUPER_ADMIN_OTP_EMAIL = env('SUPER_ADMIN_OTP_EMAIL', default=env('EMAIL_HOST_USER', default='admin@example.com'))
-
 # Custom settings for management commands
 ADMIN_USER = env('ADMIN_USER', default='admin')
-ADMIN_EMAIL = env('ADMIN_EMAIL', default='admin@example.com')
-ADMIN_PASS = env('ADMIN_PASS', default='password')
+ADMIN_PASS = env('ADMIN_PASS')
 
 # Caching for better performance - using locmem for development
 CACHES = {
@@ -438,35 +382,30 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
-        'prs.email': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
     },
 }
 
 # If in development and not on a platform like Render, add ngrok tunnel to allowed hosts
-if 'RENDER' not in os.environ:
-    if DEBUG:
-        try:
-            from pyngrok import ngrok
+# if 'RENDER' not in os.environ:
+#     if DEBUG:
+#         try:
+#             from pyngrok import ngrok
             
-            # Get the ngrok tunnel
-            tunnels = ngrok.get_tunnels()
-            if tunnels:
-                # Get the public URL of the first tunnel
-                public_url = tunnels[0].public_url
+#             # Get the ngrok tunnel
+#             tunnels = ngrok.get_tunnels()
+#             if tunnels:
+#                 # Get the public URL of the first tunnel
+#                 public_url = tunnels[0].public_url
                 
-                # Extract the hostname
-                hostname = public_url.split('//')[1]
+#                 # Extract the hostname
+#                 hostname = public_url.split('//')[1]
                 
-                # Add to allowed hosts
-                ALLOWED_HOSTS.append(hostname)
+#                 # Add to allowed hosts
+#                 ALLOWED_HOSTS.append(hostname)
                 
-                print(f"[INFO] Added ngrok host {hostname} to ALLOWED_HOSTS")
+#                 print(f"[INFO] Added ngrok host {hostname} to ALLOWED_HOSTS")
                 
-        except Exception as e:
-            print(f"[WARNING] Could not get ngrok tunnel: {e}")
-            print("[WARNING] If you are using ngrok, you may need to add your tunnel hostname to ALLOWED_HOSTS manually.")
+#         except Exception as e:
+#             print(f"[WARNING] Could not get ngrok tunnel: {e}")
+#             print("[WARNING] If you are using ngrok, you may need to add your tunnel hostname to ALLOWED_HOSTS manually.")
 

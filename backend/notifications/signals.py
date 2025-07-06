@@ -40,7 +40,7 @@ def notify_new_client(sender, instance, created, **kwargs):
 # DEAL NOTIFICATIONS  
 # =============================================================================
 
-def create_notification(recipients, title, message, notification_type, created_by):
+def create_notification(recipients, title, message, notification_type, organization, created_by=None):
     """Helper function to create notifications."""
     for recipient in recipients:
         Notification.objects.create(
@@ -48,7 +48,7 @@ def create_notification(recipients, title, message, notification_type, created_b
             title=title,
             message=message,
             notification_type=notification_type,
-            created_by=created_by
+            organization=organization,
         )
 
 @receiver(post_save, sender=Deal)
@@ -60,24 +60,26 @@ def notify_deal_changes(sender, instance, created, **kwargs):
         
         create_notification(
             recipients=recipients,
-            title=f'New Deal: {instance.client_name}',
+            title=f'New Deal: {instance.client.client_name}',
             message=log_message,
             notification_type='deal_created',
+            organization=instance.organization,
             created_by=instance.created_by
         )
     else:
         # Log activity for deal updates
         try:
             old_instance = Deal.objects.get(pk=instance.pk)
-            if old_instance.deal_status != instance.deal_status:
-                log_message = f"Deal '{instance.deal_id}' status changed to {instance.deal_status} by system/user."
+            if old_instance.verification_status != instance.verification_status:
+                log_message = f"Deal '{instance.deal_id}' status changed to {instance.verification_status} by system/user."
                 
                 # Notify the user who created the deal
                 create_notification(
                     recipients=[instance.created_by],
-                    title=f'Deal Status Updated: {instance.client_name}',
+                    title=f'Deal Status Updated: {instance.client.client_name}',
                     message=log_message,
                     notification_type='deal_status_change',
+                    organization=instance.organization,
                     created_by=None  # System-generated
                 )
         except Deal.DoesNotExist:
@@ -92,7 +94,7 @@ def notify_payment_received(sender, instance, created, **kwargs):
             organization=deal.organization,
             notification_type='payment_received',
             title=f'Payment Received: ${instance.received_amount}',
-            message=f'Payment of ${instance.received_amount} received for deal "{deal.title}" on {instance.payment_date}.',
+            message=f'Payment of ${instance.received_amount} received for deal "{deal.deal_id}" on {instance.payment_date}.',
             target_roles=['admin', 'manager', 'team_lead', 'verifier'],
             priority='high',
             category='business',
@@ -172,18 +174,20 @@ def notify_new_team(sender, instance, created, **kwargs):
 def notify_new_project(sender, instance, created, **kwargs):
     """Send notification when a new project is created."""
     if created:
-        NotificationService.notify_role_based_users(
-            organization=instance.organization,
-            notification_type='project_created',
-            title=f'New Project Created: {instance.name}',
-            message=f'A new project "{instance.name}" has been created in the organization.',
-            target_roles=['admin', 'manager', 'team_lead'],
-            priority='medium',
-            category='business',
-            related_object_type='project',
-            related_object_id=instance.id,
-            send_email_to_superadmin=True
-        )
+        # Since Project is not directly linked to an Organization, we find it via the created_by user
+        if instance.created_by and instance.created_by.organization:
+            NotificationService.notify_role_based_users(
+                organization=instance.created_by.organization,
+                notification_type='project_created',
+                title=f'New Project Created: {instance.name}',
+                message=f'A new project "{instance.name}" has been created in the organization by {instance.created_by.get_full_name()}.',
+                target_roles=['admin', 'manager'],
+                priority='medium',
+                category='business',
+                related_object_type='project',
+                related_object_id=instance.id,
+                send_email_to_superadmin=False # Superadmin will get a different notification
+            )
 
 # =============================================================================
 # COMMISSION NOTIFICATIONS
@@ -196,8 +200,8 @@ def notify_new_commission(sender, instance, created, **kwargs):
         NotificationService.notify_role_based_users(
             organization=instance.organization,
             notification_type='commission_created',
-            title=f'New Commission Created: ${instance.amount}',
-            message=f'A new commission of ${instance.amount} has been created for user {instance.user.get_full_name() or instance.user.email}.',
+            title=f'New Commission Created: ${instance.converted_amount}',
+            message=f'A new commission of ${instance.converted_amount} has been created for user {instance.user.get_full_name() or instance.user.email}.',
             target_roles=['admin', 'manager'],
             priority='medium',
             category='business',
@@ -215,11 +219,15 @@ def notify_new_organization(sender, instance, created, **kwargs):
     """Send notification when a new organization is created."""
     if created:
         # This goes directly to super-admin only
-        NotificationService._queue_superadmin_email(
+        NotificationService.notify_role_based_users(
+            organization=None,  # No specific org context for superadmins
             notification_type='new_organization',
             title=f'New Organization Registered: {instance.name}',
             message=f'A new organization "{instance.name}" has been registered in the PRS system.',
-            organization=instance,
+            target_roles=['super_admin'],  # Custom filter in the service for this role
             priority='high',
-            notification_count=1
+            category='system',
+            related_object_type='organization',
+            related_object_id=instance.id,
+            send_email_to_superadmin=True
         ) 

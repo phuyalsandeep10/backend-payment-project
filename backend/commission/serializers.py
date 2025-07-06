@@ -10,9 +10,13 @@ class CommissionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'organization', 'total_sales', 
             'commission_percentage', 'converted_amount',
-            'start_date', 'end_date', 'created_at', 'updated_at'
+            'start_date', 'end_date', 'created_at', 'updated_at',
+            'created_by', 'updated_by'
         ]
-        read_only_fields = ['converted_amount']
+        read_only_fields = [
+            'converted_amount', 'created_at', 'updated_at',
+            'created_by', 'updated_by'
+        ]
 
     def create(self, validated_data):
         user = self.context['request'].user

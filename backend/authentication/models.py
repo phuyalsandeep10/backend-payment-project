@@ -48,17 +48,17 @@ class User(AbstractUser):
     Custom user model with roles and organization linkage.
     """
     # Use email as the primary identifier
-    username = models.CharField(max_length=150, unique=True)
+    username = models.CharField(max_length=150, unique=False)
     email = models.EmailField('email address', unique=True)
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = []
 
-    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
-    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
+    role = models.ForeignKey(Role, on_delete=models.PROTECT, null=False, blank=False)
+    contact_number = models.CharField(max_length=30, blank=True, null=True)
     sales_target = models.DecimalField(max_digits=15, decimal_places=2, default=15000.00)
-    streak = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    streak = models.FloatField(default=0.0, validators=[MinValueValidator(0.0)])
 
     objects = CustomUserManager()
 
@@ -78,3 +78,15 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user.email}'s session from {self.ip_address}"
+
+
+class UserProfile(models.Model):
+    """
+    Stores user profile information, including profile picture.
+    """
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    bio = models.TextField(blank=True, null=True, max_length=500)
+
+    def __str__(self):
+        return f'{self.user.username} Profile'

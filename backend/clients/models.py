@@ -6,26 +6,26 @@ from organization.models import Organization
 # Create your models here.
 class Client(models.Model):
     SATISFACTION_CHOICES = [
-        ('excellent', 'Excellent'),
-        ('good', 'Good'),
-        ('average', 'Average'),
-        ('poor', 'Poor'),
+        ('neutral', 'Neutral'),
+        ('satisfied', 'Satisfied'),
+        ('unsatisfied', 'Un-Satisfied'),
     ]
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('inactive', 'Inactive'),
-        ('prospect', 'Prospect'),
+        ('pending', 'Pending'),
+        ('bad_debt', 'Bad Debt'),
+        ('clear', 'Clear'),
     ]
     client_name = models.CharField(max_length=255)
     email = models.EmailField()
-    phone_number = models.CharField(max_length=20, validators=[RegexValidator(r'^\+?\d{10,15}$', 'Enter a valid phone number.')],)
+    phone_number = models.CharField(max_length=30, validators=[RegexValidator(r'^\+?\d{10,15}$', 'Enter a valid phone number.')],)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     remarks = models.TextField(blank=True, null=True)
-    satisfaction = models.CharField(max_length=255,choices=SATISFACTION_CHOICES,blank=True, null=True)
-    status = models.CharField(max_length=255,choices=STATUS_CHOICES,blank=True, null=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='clients')
+    satisfaction = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='clients_created')
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='clients_updated')
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='clients')
     
     class Meta:

@@ -1,9 +1,13 @@
+import math
 from django.utils import timezone
 from django.db.models import Sum
 from datetime import timedelta, date
 from authentication.models import User
 from deals.models import Deal
 from .models import DailyStreakRecord
+import logging
+
+logger = logging.getLogger(__name__)
 
 def calculate_streaks_for_user_login(user):
     """
@@ -27,7 +31,7 @@ def calculate_streaks_for_user_login(user):
         # First time login - start from 30 days ago or first deal date
         first_deal = Deal.objects.filter(created_by=user).order_by('deal_date').first()
         if first_deal:
-            start_date = max(first_deal.deal_date, today - timedelta(days=30))
+            start_date = max(first_deal.deal_date.date(), today - timedelta(days=30))
         else:
             start_date = today
     
@@ -37,12 +41,11 @@ def calculate_streaks_for_user_login(user):
         calculate_user_streak_for_date(user, current_date)
         current_date += timedelta(days=1)
     
-    print(f"Updated streaks for {user.username} from {start_date} to {today}")
+    logger.info(f"Updated streaks for {user.username} from {start_date} to {today}")
 
 def calculate_user_streak_for_date(user, target_date):
     """Calculate and update streak for a specific user on a specific date."""
     
-    # Get or create daily record
     daily_record, created = DailyStreakRecord.objects.get_or_create(
         user=user,
         date=target_date,
@@ -53,61 +56,59 @@ def calculate_user_streak_for_date(user, target_date):
         }
     )
 
-    # If already processed, skip
     if daily_record.streak_updated and not created:
         return
 
-    # Calculate daily performance
-    deals_today = Deal.objects.filter(
+    # A streak is maintained if at least one deal worth >= $101 is closed
+    # with a 'verified' or 'partial' payment status.
+    successful_deals = Deal.objects.filter(
         created_by=user,
         deal_date=target_date,
-        deal_status='verified'  # Only count verified deals
+        payment_status__in=['full_payment', 'partial_payment'],
+        deal_value__gte=101
     )
 
-    deals_count = deals_today.count()
-    total_value = deals_today.aggregate(
+    deals_count = successful_deals.count()
+    total_value = successful_deals.aggregate(
         total=Sum('deal_value')
     )['total'] or 0
 
-    # Update daily record
     daily_record.deals_closed = deals_count
     daily_record.total_deal_value = total_value
 
-    # Calculate streak update
-    streak_performance = evaluate_performance(deals_count, total_value)
-    
-    if streak_performance == 'increase':
-        user.streak += 1
-    elif streak_performance == 'decrease':
-        user.streak = max(0, user.streak // 2)  # Decrease by half, minimum 0
-    # 'maintain' keeps streak unchanged
+    # Update streak with partial progress
+    if deals_count > 0:
+        user.streak += 0.5
+    else:
+        user.streak = max(0.0, user.streak - 0.5)
 
-    # Save updates
     daily_record.streak_updated = True
     daily_record.save()
-    user.save()
+    user.save(update_fields=['streak'])
 
-def evaluate_performance(deals_count, total_value):
-    """
-    Evaluate performance and return streak action.
-    
-    Rules:
-    - Increase streak: At least 1 deal with total value >= 101
-    - Decrease streak: No deals OR total value < 101
-    """
-    if deals_count == 0:
-        return 'decrease'  # No deals closed
-    
-    if total_value < 101:
-        return 'decrease'  # Total value too small
-    
-    return 'increase'  # Good performance
 
-def get_streak_emoji(streak):
-    """Convert streak number to star emoji representation."""
-    if streak == 0:
-        return "☆☆☆☆☆"  # Empty stars
-    elif streak <= 5:
-        return "★" * streak + "☆" * (5 - streak)
-    else:
-        return "★" * 5 + f" (+{streak - 5})"  # 5 stars plus extra count 
+STREAK_LEVELS = [
+    (50, "Sales Legend"),
+    (30, "Sales Master"),
+    (20, "Sales Pro"),
+    (10, "Rising Star"),
+    (5, "Getting Started"),
+    (1, "Beginner"),
+]
+
+def get_streak_level(streak):
+    """Get text description of streak level based on the whole number of the streak."""
+    streak_floor = math.floor(streak)
+    for level, name in STREAK_LEVELS:
+        if streak_floor >= level:
+            return name
+    return "New"
+
+def get_days_until_next_level(streak):
+    """Calculate days (0.5 streak increments) until next streak level"""
+    levels = [1, 5, 10, 20, 30, 50]
+    for level in levels:
+        if streak < level:
+            # Each day is a 0.5 increment
+            return int((level - streak) * 2)
+    return 0
