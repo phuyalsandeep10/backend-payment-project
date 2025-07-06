@@ -14,13 +14,12 @@ from faker import Faker
 from django.db.models import Sum
 from django.utils import timezone
 
-fake = Faker()
-
 class Command(BaseCommand):
     help = 'Generates a rich and varied dataset for all key user roles.'
 
     @transaction.atomic
     def handle(self, *args, **options):
+        self.faker = Faker()
         self.stdout.write(self.style.HTTP_INFO("--- Generating Rich & Varied Mock Data ---"))
 
         # Get key users to generate data for
@@ -61,10 +60,10 @@ class Command(BaseCommand):
         for _ in range(50):  # Create more clients
             clients.append(Client.objects.create(
                 organization=salespersons[0].organization,
-                client_name=fake.company(),
-                email=fake.unique.email(),
-                phone_number=fake.phone_number(),
-                nationality=fake.country(),
+                client_name=self.faker.company(),
+                email=self.faker.unique.email(),
+                phone_number=self.faker.phone_number(),
+                nationality=self.faker.country(),
                 created_by=random.choice(salespersons)
             ))
         self.stdout.write(self.style.SUCCESS(f"    - Created {len(clients)} clients."))
@@ -75,8 +74,8 @@ class Command(BaseCommand):
         projects = []
         for client in random.sample(clients, 20): # Projects for a subset of clients
             projects.append(Project.objects.create(
-                name=f"{client.client_name} - {fake.bs()}",
-                description=fake.text(max_nb_chars=250),
+                name=f"{client.client_name} - {self.faker.bs()}",
+                description=self.faker.text(max_nb_chars=250),
                 status=random.choice(['pending', 'in_progress', 'completed']),
                 created_by=random.choice(salespersons)
             ))
@@ -91,11 +90,11 @@ class Command(BaseCommand):
             deal_count = 100 if salesperson.username == 'salesperson1' else 40
             
             for _ in range(deal_count):
-                deal_date = fake.date_time_between(start_date='-2y', end_date='now', tzinfo=None).date()
-                created_at = fake.date_time_between(start_date=deal_date, end_date=timezone.now())
+                deal_date = self.faker.date_time_between(start_date='-2y', end_date='now', tzinfo=None).date()
+                created_at = self.faker.date_time_between(start_date=deal_date, end_date=timezone.now())
                 
                 deal = self.create_single_deal(salesperson, clients, projects, verifiers, deal_date)
-                deal.deal_name = fake.bs().title()
+                deal.deal_name = self.faker.bs().title()
                 deal.created_at = created_at
                 deal.save()
                 all_deals.append(deal)
@@ -104,20 +103,31 @@ class Command(BaseCommand):
         return all_deals
 
     def create_single_deal(self, user, clients, projects, verifiers, deal_date):
+        # Define realistic status flows
+        verification_status = random.choices(['pending', 'verified', 'rejected'], weights=[0.2, 0.7, 0.1], k=1)[0]
+        
+        if verification_status == 'verified':
+            payment_status = random.choices(['pending', 'partial_payment', 'full_payment'], weights=[0.2, 0.4, 0.4], k=1)[0]
+        elif verification_status == 'rejected':
+            payment_status = 'pending' # Rejected deals can't have payments
+        else: # pending verification
+            payment_status = 'pending'
+
         deal = Deal.objects.create(
             organization=user.organization,
             client=random.choice(clients),
-            deal_name=fake.bs().title(),
+            project=random.choice(projects) if projects and random.random() > 0.5 else None,
+            deal_name=self.faker.bs().title(),
             deal_value=Decimal(random.randint(5000, 150000)),
             currency=random.choice(['USD', 'EUR', 'GBP']),
             deal_date=deal_date,
             due_date=deal_date + timedelta(days=random.randint(15, 90)),
-            payment_status=random.choice(['initial payment', 'partial_payment', 'full_payment']),
-            verification_status=random.choice(['pending', 'verified', 'rejected']),
+            payment_status=payment_status,
+            verification_status=verification_status,
             source_type=random.choice(['linkedin', 'referral', 'google']),
             payment_method=random.choice(['wallet', 'bank', 'cash']),
             created_by=user,
-            deal_remarks=fake.sentence()
+            deal_remarks=self.faker.sentence()
         )
         
         # Log creation
@@ -136,16 +146,27 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("  - Creating Payments for deals..."))
         payment_count = 0
         for deal in deals:
+            # Skip payments for rejected deals or deals with no payment
+            if deal.verification_status == 'rejected' or deal.payment_status == 'pending':
+                continue
+
+            payment_date = deal.deal_date + timedelta(days=random.randint(1, 20))
             if deal.payment_status == 'full_payment':
                 Payment.objects.create(
-                    deal=deal, received_amount=deal.deal_value, payment_date=deal.deal_date + timedelta(days=1),
-                    payment_type=deal.payment_method, payment_remarks="Full payment received."
+                    deal=deal,
+                    received_amount=deal.deal_value,
+                    payment_date=payment_date,
+                    payment_type=deal.payment_method,
+                    payment_remarks="Full payment received."
                 )
                 payment_count += 1
             elif deal.payment_status == 'partial_payment':
                 Payment.objects.create(
-                    deal=deal, received_amount=deal.deal_value / 2, payment_date=deal.deal_date + timedelta(days=1),
-                    payment_type=deal.payment_method, payment_remarks="Partial payment received."
+                    deal=deal,
+                    received_amount=deal.deal_value * Decimal(random.uniform(0.2, 0.7)),
+                    payment_date=payment_date,
+                    payment_type=deal.payment_method,
+                    payment_remarks="Partial payment received."
                 )
                 payment_count += 1
         self.stdout.write(self.style.SUCCESS(f"    - Created {payment_count} payments."))

@@ -45,6 +45,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        self.faker = Faker()
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
 
         # Use flush to clear the database completely for a clean slate
@@ -183,38 +184,44 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("    🎭 Org roles created."))
         return org_roles
 
+    def create_user_for_role(self, organization, username, email, password, role, sales_target=None):
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': username,
+                'organization': organization,
+                'role': role,
+                'first_name': self.faker.first_name(),
+                'last_name': self.faker.last_name(),
+                'sales_target': sales_target
+            }
+        )
+        # Always set/reset the password and active status to ensure consistency
+        user.set_password(password)
+        user.is_active = True
+        user.save()
+
+        if created:
+            UserProfile.objects.get_or_create(user=user)
+            self.stdout.write(f"    - Created user: {username} ({email}) with role: {role.name}")
+        else:
+            self.stdout.write(f"    - Updated existing user: {username} ({email})")
+            
+        return user
+
     def create_users(self, organization, org_roles):
         self.stdout.write(self.style.HTTP_INFO("  - Creating specific users..."))
-        user_definitions = {
-            'org_admin': {'count': 2, 'role': 'Organization Admin', 'is_staff': True},
-            'salesperson': {'count': 3, 'role': 'Salesperson'},
-            'verifier': {'count': 2, 'role': 'Verifier'},
-        }
 
-        for key, definition in user_definitions.items():
-            for i in range(1, definition['count'] + 1):
-                username = f"{key}{i}"
-                email = f"{username}@techcorp.com"
-                
-                if User.objects.filter(username=username).exists():
-                    self.stdout.write(self.style.WARNING(f"    - User '{username}' already exists. Skipping."))
-                    continue
+        # Create users for each role
+        self.create_user_for_role(organization, 'org_admin1', 'org_admin1@techcorp.com', 'password123', org_roles['Organization Admin'])
+        self.create_user_for_role(organization, 'org_admin2', 'org_admin2@techcorp.com', 'password123', org_roles['Organization Admin'])
+        
+        self.create_user_for_role(organization, 'salesperson1', 'salesperson1@techcorp.com', 'password123', org_roles['Salesperson'], sales_target=Decimal('50000.00'))
+        self.create_user_for_role(organization, 'salesperson2', 'salesperson2@techcorp.com', 'password123', org_roles['Salesperson'], sales_target=Decimal('75000.00'))
+        self.create_user_for_role(organization, 'salesperson3', 'salesperson3@techcorp.com', 'password123', org_roles['Salesperson'], sales_target=Decimal('60000.00'))
 
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                    password='password123',
-                    first_name=fake.first_name(),
-                    last_name=fake.last_name(),
-                    contact_number=fake.phone_number(),
-                    organization=organization,
-                    role=org_roles[definition['role']],
-                    is_staff=definition.get('is_staff', False),
-                    sales_target=Decimal(random.randint(50000, 150000)) if key == 'salesperson' else None
-                )
-                UserProfile.objects.get_or_create(user=user, defaults={'bio': fake.text(max_nb_chars=150)})
-                NotificationSettings.objects.get_or_create(user=user)
-                self.stdout.write(self.style.SUCCESS(f"    - Created user: {username} ({email}) with role: {definition['role']}"))
+        self.create_user_for_role(organization, 'verifier1', 'verifier1@techcorp.com', 'password123', org_roles['Verifier'])
+        self.create_user_for_role(organization, 'verifier2', 'verifier2@techcorp.com', 'password123', org_roles['Verifier'])
 
         self.stdout.write(self.style.SUCCESS("    👥 All specific users created."))
 
