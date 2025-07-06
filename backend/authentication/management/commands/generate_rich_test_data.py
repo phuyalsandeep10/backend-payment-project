@@ -64,7 +64,9 @@ class Command(BaseCommand):
                 email=self.faker.unique.email(),
                 phone_number=self.faker.phone_number(),
                 nationality=self.faker.country(),
-                created_by=random.choice(salespersons)
+                created_by=random.choice(salespersons),
+                status=random.choice([c[0] for c in Client.STATUS_CHOICES]),
+                satisfaction=random.choice([c[0] for c in Client.SATISFACTION_CHOICES])
             ))
         self.stdout.write(self.style.SUCCESS(f"    - Created {len(clients)} clients."))
         return clients
@@ -85,29 +87,42 @@ class Command(BaseCommand):
     def create_all_deals(self, salespersons, clients, projects, verifiers):
         self.stdout.write(self.style.HTTP_INFO("  - Creating Deals across all time periods..."))
         all_deals = []
+
+        # --- Create guaranteed recent, verified deals for salesperson1 ---
+        salesperson1 = next((s for s in salespersons if s.username == 'salesperson1'), None)
+        if salesperson1:
+            self.stdout.write(self.style.HTTP_INFO("    - Creating guaranteed recent deals for salesperson1..."))
+            for _ in range(15): # Create 15 recent deals
+                # Deals within the last 30 days
+                deal_date = timezone.now().date() - timedelta(days=random.randint(0, 29))
+                deal = self.create_single_deal(salesperson1, clients, projects, verifiers, deal_date, force_verified=True)
+                deal.created_at = timezone.now() - timedelta(minutes=random.randint(1, 1440))
+                deal.save()
+                all_deals.append(deal)
+
+        # --- Create historical and varied deals for all salespersons ---
         for salesperson in salespersons:
-            # More deals for salesperson1 for predictable testing
-            deal_count = 100 if salesperson.username == 'salesperson1' else 40
-            
+            deal_count = 30 # Reduced from 40 to avoid excessive data
             for _ in range(deal_count):
-                deal_date = self.faker.date_time_between(start_date='-2y', end_date='now', tzinfo=None).date()
-                created_at = self.faker.date_time_between(start_date=deal_date, end_date=timezone.now())
-                
+                # Historical deals up to 2 years old
+                deal_date = self.faker.date_time_between(start_date='-2y', end_date='now', tzinfo=timezone.get_current_timezone()).date()
                 deal = self.create_single_deal(salesperson, clients, projects, verifiers, deal_date)
-                deal.deal_name = self.faker.bs().title()
-                deal.created_at = created_at
+                deal.created_at = self.faker.date_time_between(start_date=deal_date, end_date=timezone.now(), tzinfo=timezone.get_current_timezone())
                 deal.save()
                 all_deals.append(deal)
 
         self.stdout.write(self.style.SUCCESS(f"    - Created a total of {len(all_deals)} deals."))
         return all_deals
 
-    def create_single_deal(self, user, clients, projects, verifiers, deal_date):
+    def create_single_deal(self, user, clients, projects, verifiers, deal_date, force_verified=False):
         # Define realistic status flows
-        verification_status = random.choices(['pending', 'verified', 'rejected'], weights=[0.2, 0.7, 0.1], k=1)[0]
+        if force_verified:
+            verification_status = 'verified'
+        else:
+            verification_status = random.choices(['pending', 'verified', 'rejected'], weights=[0.2, 0.7, 0.1], k=1)[0]
         
         if verification_status == 'verified':
-            payment_status = random.choices(['pending', 'partial_payment', 'full_payment'], weights=[0.2, 0.4, 0.4], k=1)[0]
+            payment_status = random.choices(['pending', 'partial_payment', 'full_payment'], weights=[0.1, 0.4, 0.5], k=1)[0]
         elif verification_status == 'rejected':
             payment_status = 'pending' # Rejected deals can't have payments
         else: # pending verification

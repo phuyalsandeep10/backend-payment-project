@@ -108,7 +108,7 @@ def dashboard_view(request):
         
         # Calculate sales progress
         current_sales = user_deals.filter(
-            payment_status__in=['verified', 'partial']
+            verification_status='verified'
         ).aggregate(
             total=Sum('deal_value')
         )['total'] or Decimal('0')
@@ -119,7 +119,7 @@ def dashboard_view(request):
         # Get outstanding deals
         outstanding_deals_qs = Deal.objects.filter(
             created_by=user,
-            payment_status='pending'
+            verification_status='pending'
         ).select_related('client').order_by('-deal_date')[:10]
 
         outstanding_deals = []
@@ -154,7 +154,7 @@ def dashboard_view(request):
             })
         
         # Get verification status summary
-        verification_status = user_deals.values('payment_status').annotate(
+        verification_status = user_deals.values('verification_status').annotate(
             count=Count('id'),
             total_value=Sum('deal_value')
         )
@@ -166,7 +166,7 @@ def dashboard_view(request):
         }
         
         for status_data in verification_status:
-            status_key = status_data['payment_status']
+            status_key = status_data['verification_status']
             if status_key in status_summary:
                 status_summary[status_key] = {
                     'count': status_data['count'],
@@ -186,8 +186,8 @@ def dashboard_view(request):
                 'current_sales': str(current_sales),
                 'target': str(sales_target),
                 'percentage': round(progress_percentage, 2),
-                'deals_closed': user_deals.filter(payment_status__in=['verified', 'partial']).count(),
-                'deals_pending': user_deals.filter(payment_status='pending').count(),
+                'deals_closed': user_deals.filter(verification_status='verified').count(),
+                'deals_pending': user_deals.filter(verification_status='pending').count(),
                 'period': period
             },
             'streak_info': {
@@ -378,12 +378,12 @@ def streak_leaderboard_view(request):
                     user_deals = Deal.objects.filter(
             created_by=user,
             deal_date__gte=start_date,
-            payment_status__in=['verified', 'partial']
+            verification_status__in=['verified', 'partial']
         )
         else:
                     user_deals = Deal.objects.filter(
             created_by=user,
-            payment_status__in=['verified', 'partial']
+            verification_status__in=['verified', 'partial']
         )
         
         sales_total = user_deals.aggregate(total=Sum('deal_value'))['total'] or Decimal('0')
@@ -546,7 +546,7 @@ def commission_overview_view(request):
         org_sales = Deal.objects.filter(
             created_by__organization=organization,
             deal_date__gte=start_date,
-            payment_status__in=['verified', 'partial']
+            verification_status__in=['verified', 'partial']
         ).aggregate(Sum('deal_value'))['deal_value__sum'] or Decimal('0')
         
         goal_progress = (org_sales / organization_goal) * 100 if organization_goal > 0 else 0
@@ -562,7 +562,7 @@ def commission_overview_view(request):
         user_sales_current = Deal.objects.filter(
             created_by=user,
             deal_date__gte=start_date,
-            payment_status__in=['verified', 'partial']
+            verification_status__in=['verified', 'partial']
         ).aggregate(Sum('deal_value'))['deal_value__sum'] or Decimal('0')
 
         # Calculate previous period for comparison
@@ -581,7 +581,7 @@ def commission_overview_view(request):
             created_by=user,
             deal_date__gte=prev_start_date,
             deal_date__lt=prev_end_date,
-            payment_status__in=['verified', 'partial']
+            verification_status__in=['verified', 'partial']
         ).aggregate(Sum('deal_value'))['deal_value__sum'] or Decimal('0')
 
         # Calculate sales growth percentage
@@ -695,7 +695,7 @@ def client_list_view(request):
         )['total'] or Decimal('0')
         
         paid_amount = client_deals.filter(
-            payment_status__in=['verified', 'partial']
+            verification_status__in=['verified', 'partial']
         ).aggregate(
             total=Sum('deal_value')
         )['total'] or Decimal('0')
@@ -805,7 +805,7 @@ def get_chart_data(user, period, start_date, end_date):
         created_by=user,
         deal_date__gte=start_date,
         deal_date__lte=end_date,
-        payment_status='verified'
+        verification_status='verified'
     ).annotate(
         period_start=trunc_period('deal_date')
     ).values('period_start').annotate(
@@ -955,7 +955,7 @@ def get_top_clients_data(user, start_date, include_details):
     top_clients_qs = Deal.objects.filter(
         created_by=user,
         deal_date__gte=start_date,
-        payment_status__in=['verified', 'partial']
+        verification_status__in=['verified', 'partial']
     ).values('client_id', 'client__client_name').annotate(
         total_deals=Count('id'),
         total_value=Sum('deal_value')
@@ -976,7 +976,7 @@ def get_top_clients_data(user, start_date, include_details):
                     'id': deal.id,
                     'deal_value': deal.deal_value,
                     'deal_date': deal.deal_date,
-                    'status': deal.payment_status,
+                    'status': deal.verification_status,
                 })
 
         top_clients.append({
@@ -994,7 +994,7 @@ def get_all_time_top_clients_data(user):
     """
     client_deals = Deal.objects.filter(
         created_by=user,
-        payment_status__in=['verified', 'partial']
+        verification_status__in=['verified', 'partial']
     ).values('client__client_name').annotate(
         total_deals=Count('id'),
         total_value=Sum('deal_value')

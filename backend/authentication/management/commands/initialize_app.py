@@ -103,10 +103,13 @@ class Command(BaseCommand):
             ('view_own_dashboard', 'Can view their own personalized dashboard'),
             ('view_team_dashboard', 'Can view the dashboard for their team'),
             ('view_org_dashboard', 'Can view the full organization dashboard'),
-            ('view_clients', 'Can view clients'),
+            
+            ('view_own_clients', 'Can view their own clients'),
+            ('view_all_clients', 'Can view all clients in the organization'),
             ('add_client', 'Can add a new client'),
             ('edit_client', 'Can edit a client'),
             ('delete_client', 'Can delete a client'),
+
             ('view_deals', 'Can view deals'),
             ('view_all_deals', 'Can view all deals in the organization'),
             ('add_deal', 'Can add a new deal'),
@@ -129,16 +132,21 @@ class Command(BaseCommand):
         role_permissions = {
             "Super Admin": list(permissions.values()),
             "Organization Admin": [
-                permissions['view_org_dashboard'], permissions['view_clients'], permissions['add_client'],
-                permissions['edit_client'], permissions['delete_client'], permissions['view_deals'],
+                permissions['view_org_dashboard'], 
+                permissions['view_all_clients'], permissions['add_client'],
+                permissions['edit_client'], permissions['delete_client'], 
+                permissions['view_deals'],
                 permissions['view_all_deals'], permissions['add_deal'], permissions['edit_deal'], permissions['delete_deal'],
                 permissions['verify_deal'], permissions['view_all_commissions'], permissions['add_commission'],
                 permissions['edit_commission'], permissions['delete_commission']
             ],
             "Salesperson": [
-                permissions['view_own_dashboard'], permissions['view_clients'], permissions['add_client'],
-                permissions['edit_client'], permissions['view_deals'], permissions['add_deal'],
-                permissions['edit_deal'], permissions['view_commission']
+                permissions['view_own_dashboard'], 
+                permissions['view_own_clients'], permissions['add_client'],
+                permissions['edit_client'], permissions['delete_client'], 
+                permissions['view_deals'], permissions['add_deal'],
+                permissions['edit_deal'], permissions['delete_deal'], 
+                permissions['view_commission']
             ],
             "Verifier": [
                 permissions['view_org_dashboard'], permissions['view_deals'], permissions['view_all_deals'], permissions['verify_deal']
