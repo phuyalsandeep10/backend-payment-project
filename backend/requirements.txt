@@ -6,6 +6,7 @@ django-environ==0.11.2
 dj-database-url==3.0.1
 
 # PostgreSQL (✅ Compatible with Python 3.13)
+psycopg==3.2.9
 psycopg-binary==3.2.9
 
 # API Documentation
