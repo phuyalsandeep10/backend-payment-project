@@ -5,7 +5,7 @@ django-filter==24.3
 django-environ==0.11.2
 dj-database-url==3.0.1
 
-# PostgreSQL (Only one driver!)
+# PostgreSQL (✅ Safe for Django 5 & Python 3.11)
 psycopg2-binary==2.9.9
 
 # API Documentation
@@ -26,14 +26,11 @@ djangorestframework-simplejwt==5.3.1
 django-redis==5.4.0
 redis==5.0.8
 
-# Security & Media
+# Media & Static Files
 Pillow==10.4.0
-
-# Deployment & Performance
-gunicorn==23.0.0
 whitenoise==6.7.0
 
-# Cloudinary for Media Storage
+# Cloudinary Media Storage
 cloudinary==1.40.0
 django-cloudinary-storage==0.3.0
 
@@ -41,17 +38,15 @@ django-cloudinary-storage==0.3.0
 factory_boy==3.3.1
 Faker==28.4.1
 
-# Development Utilities
+# Dev & Utility Tools
 python-dotenv==1.1.1
 python-decouple==3.8
-
-# Optional Utilities
+python-magic==0.4.27
 pyngrok==7.2.11
 ngrok==1.4.0
-python-magic==0.4.27
 shortuuid==1.0.11
 
-# Other Dependencies
+# Supporting Libraries
 asgiref==3.8.1
 certifi==2025.6.15
 charset-normalizer==3.4.2
