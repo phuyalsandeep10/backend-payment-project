@@ -5,8 +5,8 @@ django-filter==24.2
 django-environ==0.11.2
 dj-database-url==2.1.0
 
-# PostgreSQL
-psycopg-binary==3.2.9
+# PostgreSQL (Django requires psycopg2 for now)
+psycopg2-binary==2.9.9
 
 # API Documentation
 drf-yasg==1.21.7
