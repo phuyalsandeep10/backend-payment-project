@@ -23,6 +23,7 @@ class HasPermission(BasePermission):
                 'list': ['view_all_deals', 'view_own_deals'],
                 'create': ['create_deal'],
                 'retrieve': ['view_all_deals', 'view_own_deals'],
+                'expand': ['view_all_deals', 'view_own_deals'],
                 'update': ['edit_deal'],
                 'partial_update': ['edit_deal'],
                 'destroy': ['delete_deal'],

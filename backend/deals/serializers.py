@@ -49,6 +49,52 @@ class DealSerializer(serializers.ModelSerializer):
             'organization', 'deal_id', 'created_by', 'updated_by'
         ]
 
+class DealPaymentHistorySerializer(serializers.ModelSerializer):
+    """
+    A serializer to represent a single payment record for the deal's expanded history view.
+    """
+    payment_serial = serializers.SerializerMethodField()
+    payment_value = serializers.DecimalField(source='received_amount', max_digits=15, decimal_places=2)
+    receipt_link = serializers.FileField(source='receipt_file', read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            'payment_serial', 'payment_date', 'created_at', 'payment_value',
+            'receipt_link'
+        ]
+
+    def get_payment_serial(self, obj):
+        # The serial number is passed via context from the parent serializer
+        return self.context.get('serial_number', 0)
+
+class DealExpandedViewSerializer(serializers.ModelSerializer):
+    """
+    A serializer for the expanded deal view, providing detailed verification and payment history.
+    """
+    payment_history = serializers.SerializerMethodField()
+    verified_by = serializers.CharField(source='updated_by.get_full_name', default=None, read_only=True)
+    verifier_remark_status = serializers.SerializerMethodField()
+    payment_version = serializers.CharField(source='version', read_only=True)
+
+    class Meta:
+        model = Deal
+        fields = [
+            'payment_history', 'verified_by', 'deal_remarks',
+            'verifier_remark_status', 'payment_version'
+        ]
+
+    def get_payment_history(self, obj):
+        payments = obj.payments.all().order_by('created_at')
+        # Pass the serial number to the child serializer via context
+        return [
+            DealPaymentHistorySerializer(p, context={'serial_number': i + 1}).data
+            for i, p in enumerate(payments)
+        ]
+
+    def get_verifier_remark_status(self, obj):
+        return "yes" if obj.verification_status == 'verified' else "no"
+
 class DealUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Deal

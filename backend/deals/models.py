@@ -122,6 +122,8 @@ class Payment(models.Model):
     cheque_number = models.CharField(max_length=50, blank=True, null=True)
     payment_type = models.CharField(max_length=50, choices=Deal.PAYMENT_METHOD_CHOICES)
     
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     
     def __str__(self):

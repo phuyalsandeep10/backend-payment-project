@@ -1,9 +1,12 @@
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
 from .models import Deal, Payment, ActivityLog
-from .serializers import DealSerializer, PaymentSerializer, ActivityLogSerializer
+from .serializers import (
+    DealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer
+)
 from .permissions import HasPermission
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 class DealViewSet(viewsets.ModelViewSet):
     """
@@ -45,6 +48,16 @@ class DealViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='expand', serializer_class=DealExpandedViewSerializer)
+    def expand(self, request, pk=None):
+        """
+        Provides an expanded view of a single deal, including detailed
+        verification information and a full payment history.
+        """
+        deal = self.get_object()
+        serializer = self.get_serializer(deal)
+        return Response(serializer.data)
 
 class PaymentViewSet(viewsets.ModelViewSet):
     """

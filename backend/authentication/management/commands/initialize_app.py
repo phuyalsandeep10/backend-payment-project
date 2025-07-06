@@ -110,7 +110,7 @@ class Command(BaseCommand):
             ('edit_client', 'Can edit a client'),
             ('delete_client', 'Can delete a client'),
 
-            ('view_deals', 'Can view deals'),
+            ('view_own_deals', 'Can view their own deals'),
             ('view_all_deals', 'Can view all deals in the organization'),
             ('add_deal', 'Can add a new deal'),
             ('edit_deal', 'Can edit a deal'),
@@ -135,7 +135,6 @@ class Command(BaseCommand):
                 permissions['view_org_dashboard'], 
                 permissions['view_all_clients'], permissions['add_client'],
                 permissions['edit_client'], permissions['delete_client'], 
-                permissions['view_deals'],
                 permissions['view_all_deals'], permissions['add_deal'], permissions['edit_deal'], permissions['delete_deal'],
                 permissions['verify_deal'], permissions['view_all_commissions'], permissions['add_commission'],
                 permissions['edit_commission'], permissions['delete_commission']
@@ -144,12 +143,12 @@ class Command(BaseCommand):
                 permissions['view_own_dashboard'], 
                 permissions['view_own_clients'], permissions['add_client'],
                 permissions['edit_client'], permissions['delete_client'], 
-                permissions['view_deals'], permissions['add_deal'],
+                permissions['view_own_deals'], permissions['add_deal'],
                 permissions['edit_deal'], permissions['delete_deal'], 
                 permissions['view_commission']
             ],
             "Verifier": [
-                permissions['view_org_dashboard'], permissions['view_deals'], permissions['view_all_deals'], permissions['verify_deal']
+                permissions['view_org_dashboard'], permissions['view_all_deals'], permissions['verify_deal']
             ],
         }
         

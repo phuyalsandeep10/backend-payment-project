@@ -24,7 +24,8 @@ from .serializers import (
     StreakRecalculationResponseSerializer, StreakLeaderboardResponseSerializer,
     LeaderboardQuerySerializer, StandingsQuerySerializer, StandingsResponseSerializer,
     CommissionQuerySerializer, CommissionOverviewResponseSerializer,
-    ClientStatusQuerySerializer, ClientListResponseSerializer
+    ClientStatusQuerySerializer, ClientListResponseSerializer,
+    TeamStandingSerializer, IndividualStandingSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -440,7 +441,10 @@ def standings_view(request):
     Get daily, weekly, or monthly standings for individuals or teams.
     """
     user = request.user
+    logger.info(f"Standings request for user: {user.username}")
+
     if not user.organization:
+        logger.error(f"User {user.username} does not belong to an organization.")
         return Response(
             {'error': 'User does not belong to an organization.'},
             status=status.HTTP_400_BAD_REQUEST
@@ -449,12 +453,14 @@ def standings_view(request):
     # Validate query parameters
     serializer = StandingsQuerySerializer(data=request.GET)
     if not serializer.is_valid():
+        logger.error(f"Invalid query parameters for standings: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     validated_data = serializer.validated_data
     standings_type = validated_data.get('type', 'individual')
     period = validated_data.get('period', 'daily')
     limit = validated_data.get('limit', 10)
+    logger.info(f"Standings parameters: type={standings_type}, period={period}, limit={limit}")
 
     # Determine date range based on period
     now = timezone.now()
@@ -467,26 +473,43 @@ def standings_view(request):
     else: # daily
         start_date = now.date()
         end_date = start_date
+    logger.info(f"Date range for standings: {start_date} to {end_date}")
 
     try:
         if standings_type == 'team':
+            logger.info("Fetching team standings.")
             standings_data, total_participants, current_user_rank = get_team_standings(user, start_date, end_date, limit, request)
+            serializer_class = TeamStandingSerializer
         else:
+            logger.info("Fetching individual standings.")
             standings_data, total_participants, current_user_rank = get_individual_standings(user, start_date, end_date, limit, request)
+            serializer_class = IndividualStandingSerializer
+
+        logger.info(f"Standings data retrieved: {len(standings_data)} entries.")
+
+        try:
+            standings_serializer = serializer_class(standings_data, many=True)
+            serialized_standings = standings_serializer.data
+        except Exception as e:
+            logger.exception(f"Error serializing standings data: {e}")
+            return Response({'error': 'Failed to serialize standings data.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         response_data = {
             'type': standings_type,
-            'period': period,
-            'limit': limit,
+            'date': end_date,
             'total_participants': total_participants,
             'current_user_rank': current_user_rank,
-            'standings': standings_data,
+            'standings': serialized_standings,
+            'summary': {
+                'top_performer_sales': standings_data[0]['sales_amount'] if standings_data else 0,
+            }
         }
         
+        logger.info("Successfully serialized standings data.")
         return Response(StandingsResponseSerializer(response_data).data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        logger.error(f"Error fetching standings: {e}")
+        logger.exception("Error fetching standings")  # Use logger.exception to include traceback
         return Response({'error': 'Failed to fetch standings.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
@@ -867,88 +890,95 @@ def get_profile_picture_url(user, request):
     return None
 
 def get_individual_standings(user, start_date, end_date, limit, request):
-    """Helper function to get individual standings for a given period."""
-    if not user.organization:
+    """
+    Calculate individual standings based on verified deals within a date range.
+    Returns standings data, total participants, and current user's rank.
+    """
+    organization = user.organization
+    if not organization:
         return [], 0, None
 
-    # Filter deals within the date range
-    deals_in_range = Deal.objects.filter(
-        organization=user.organization,
-        deal_date__range=[start_date, end_date],
-        verification_status='verified'
-    ).prefetch_related('created_by')
+    all_salespersons = User.objects.filter(
+        organization=organization,
+        role__name__icontains='salesperson'
+    ).annotate(
+        total_sales=Sum(
+            'created_deals__deal_value',
+            filter=Q(created_deals__deal_date__range=(start_date, end_date), created_deals__verification_status='verified')
+        )
+    ).order_by('-total_sales')
 
-    # Aggregate sales by user
-    sales_by_user = (
-        deals_in_range
-        .values('created_by_id', 'created_by__username', 'created_by__first_name', 'created_by__last_name')
-        .annotate(total_sales=Sum('deal_value'))
-        .order_by('-total_sales')
-    )
-    
-    total_participants = sales_by_user.count()
-
-    # Format standings data
-    ranked_standings = []
+    total_participants = all_salespersons.count()
     current_user_rank = None
-    
-    for rank, standing in enumerate(sales_by_user, 1):
-        full_name = f"{standing['created_by__first_name']} {standing['created_by__last_name']}".strip()
-        ranked_standings.append({
-            'rank': rank,
-            'user_id': standing['created_by_id'],
-            'full_name': full_name or standing['created_by__username'],
-            'total_sales': standing['total_sales']
-        })
-        if standing['created_by_id'] == user.id:
-            current_user_rank = rank
-            
-    return ranked_standings[:limit], total_participants, current_user_rank
 
+    standings = []
+    for rank, person in enumerate(all_salespersons, 1):
+        if person.id == user.id:
+            current_user_rank = rank
+        
+        if rank > limit:
+            continue
+
+        top_deal = Deal.objects.filter(
+            created_by=person,
+            deal_date__range=(start_date, end_date),
+            verification_status='verified'
+        ).order_by('-deal_value').first()
+
+        standings.append({
+            'rank': rank,
+            'user_id': person.id,
+            'username': f"{person.first_name} {person.last_name}".strip(),
+            'sales_amount': person.total_sales or Decimal('0.00'),
+            'profile_picture': get_profile_picture_url(person, request),
+            'deals_count': Deal.objects.filter(created_by=person, deal_date__range=(start_date, end_date), verification_status='verified').count(),
+            'streak': person.streak,
+            'performance_score': 0, # Placeholder
+            'is_current_user': person.id == user.id
+        })
+    return standings, total_participants, current_user_rank
 
 def get_team_standings(user, start_date, end_date, limit, request):
-    """Helper function to get team standings for a given period."""
-    if not user.organization:
+    """
+    Calculate team standings based on verified deals within a date range.
+    Returns standings data, total participants, and current user's team rank.
+    """
+    organization = user.organization
+    if not organization:
         return [], 0, None
-        
-    # Filter deals within the date range
-    deals_in_range = Deal.objects.filter(
-        organization=user.organization,
-        deal_date__range=[start_date, end_date],
-        verification_status='verified'
-    ).prefetch_related('created_by__teams')
+    
+    all_teams = Team.objects.filter(organization=organization).annotate(
+        total_sales=Sum(
+            'members__created_deals__deal_value',
+            filter=Q(members__created_deals__deal_date__range=(start_date, end_date), members__created_deals__verification_status='verified')
+        )
+    ).order_by('-total_sales')
+    
+    total_participants = all_teams.count()
+    current_user_team_rank = None
+    user_team = Team.objects.filter(members=user).first()
 
-    # Aggregate sales by team
-    team_sales = {}
-    for deal in deals_in_range:
-        for team in deal.created_by.teams.all():
-            if team.name not in team_sales:
-                team_sales[team.name] = {'total_sales': Decimal('0'), 'team_name': team.name}
-            team_sales[team.name]['total_sales'] += deal.deal_value
-    
-    # Sort teams by sales
-    sorted_teams = sorted(team_sales.values(), key=lambda x: x['total_sales'], reverse=True)
+    standings = []
+    for rank, team in enumerate(all_teams, 1):
+        if user_team and team.id == user_team.id:
+            current_user_team_rank = rank
 
-    total_participants = len(sorted_teams)
-    
-    # Format standings data
-    ranked_standings = []
-    current_user_rank = None
-    user_team_name = user.teams.first().name if hasattr(user, 'teams') and user.teams.exists() else None
-    
-    for rank, standing in enumerate(sorted_teams, 1):
-        team_name = standing['team_name']
-        ranked_standings.append({
+        if rank > limit:
+            continue
+
+        standings.append({
             'rank': rank,
-            'team_name': team_name,
-            'total_sales': standing['total_sales']
+            'team_id': team.id,
+            'team_name': team.name,
+            'member_count': team.members.count(),
+            'team_deals': Deal.objects.filter(created_by__in=team.members.all(), deal_date__range=(start_date, end_date), verification_status='verified').count(),
+            'avg_streak': team.members.aggregate(Avg('streak'))['streak__avg'] or 0,
+            'team_lead_profile_picture': get_profile_picture_url(team.team_lead, request) if team.team_lead else None,
+            'is_user_team': user_team and team.id == user_team.id
         })
-        if team_name == user_team_name:
-            current_user_rank = rank
-            
-    return ranked_standings[:limit], total_participants, current_user_rank
+    return standings, total_participants, current_user_team_rank
 
-def get_top_clients_data(user, start_date, include_details):
+def get_top_clients_data(user, start_date, include_details=False):
     """
     Get data for top clients based on deal value.
     """
