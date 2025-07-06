@@ -1,32 +1,45 @@
+# Core Django & REST Framework
 Django==5.0.6
 djangorestframework==3.15.1
-django-environ==0.11.2
-psycopg-binary==3.1.18
-django-cors-headers==4.3.1
-drf-yasg==1.21.7
 django-filter==24.2
-django-extensions==3.2.3
+django-environ==0.11.2
+dj-database-url==2.1.0
+
+# PostgreSQL
+psycopg-binary==3.2.9
+
+# API Documentation
+drf-yasg==1.21.7
 drf-nested-routers==0.94.2
 
-# Security dependencies (python-magic removed for Windows compatibility)
-Pillow==10.4.0
+# CORS
+django-cors-headers==4.3.1
+
+# Extensions & Tools
+django-extensions==3.2.3
+django-user-agents==0.4.0
+
+# Authentication
+djangorestframework-simplejwt==5.3.1
+
+# Redis & Caching
 django-redis==5.4.0
 redis==5.0.8
 
-# Additional performance and monitoring
+# Security & Media
+Pillow==10.4.0
+
+# Deployment & Performance
 gunicorn==22.0.0
 whitenoise==6.6.0
 
-# Testing
+# Cloudinary for Media Storage
+cloudinary==1.40.0
+django-cloudinary-storage==0.3.0
+
+# Testing & Mock Data
 factory-boy==3.3.1
 Faker==28.4.1
 
-
-djangorestframework-simplejwt==5.3.1
-dj-database-url==2.1.0
-django-user-agents
-
-# New additions
-cloudinary==1.40.0
-django-cloudinary-storage==0.3.0
+# Build Tools
 setuptools==69.5.1
