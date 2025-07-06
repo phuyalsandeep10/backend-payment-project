@@ -862,10 +862,11 @@ def get_individual_standings(user, target_date, limit, request):
     """
     organization = user.organization
     if not organization:
-        return [], None
+        return [], 0, None
     
     # Get all active users in the organization
     all_users = User.objects.filter(organization=organization, is_active=True)
+    total_participants = all_users.count()
     
     # Get deals for the given date
     deals_on_date = Deal.objects.filter(
@@ -921,16 +922,17 @@ def get_individual_standings(user, target_date, limit, request):
             'is_current_user': standing_user.id == user.id
         })
         
-    return standings, current_user_rank
+    return standings, total_participants, current_user_rank
 
 def get_team_standings(user, target_date, limit, request):
     """
     Get standings for teams in the organization for a given date.
     """
     if not user.organization:
-        return [], None
+        return [], 0, None
 
     teams = Team.objects.filter(organization=user.organization).prefetch_related('members', 'team_lead__profile')
+    total_participants = teams.count()
     
     deals_on_date = Deal.objects.filter(
         organization=user.organization,
@@ -969,7 +971,7 @@ def get_team_standings(user, target_date, limit, request):
         if is_user_team:
             current_user_team_rank = standing['rank']
 
-    return standings[:limit], current_user_team_rank
+    return standings[:limit], total_participants, current_user_team_rank
 
 def get_top_clients_data(user, start_date, include_details):
     """

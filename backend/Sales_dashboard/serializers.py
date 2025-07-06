@@ -17,12 +17,29 @@ COMMISSION_PERIOD_CHOICES = ['monthly', 'weekly', 'daily']
 
 # ==================== DASHBOARD SERIALIZERS ====================
 
+class OutstandingDealSerializer(serializers.Serializer):
+    """Serializer for outstanding deal information"""
+    id = serializers.IntegerField(help_text="Deal ID")
+    client_name = serializers.CharField(help_text="Client name")
+    deal_value = serializers.DecimalField(max_digits=15, decimal_places=2, help_text="Deal value")
+    deal_date = serializers.DateField(help_text="Deal date")
+    client_satisfaction = serializers.ChoiceField(
+        choices=[('neutral', 'Neutral'), ('satisfied', 'Satisfied'), ('unsatisfied', 'Un-Satisfied')],
+        allow_null=True,
+        help_text="Client satisfaction level"
+    )
+    client_status = serializers.ChoiceField(
+        choices=[('pending', 'Pending'), ('bad_debt', 'Bad Debt'), ('clear', 'Clear')],
+        allow_null=True,
+        help_text="Client payment status"
+    )
+
 class DashboardResponseSerializer(serializers.Serializer):
     """Serializer for main dashboard response"""
     user_info = serializers.DictField(help_text="Current user information")
     sales_progress = serializers.DictField(help_text="Sales progress data")
     streak_info = serializers.DictField(help_text="Current streak information, including rating")
-    outstanding_deals = serializers.ListField(help_text="List of outstanding deals")
+    outstanding_deals = OutstandingDealSerializer(many=True, help_text="List of outstanding deals with client satisfaction")
     recent_payments = serializers.ListField(help_text="Recent payment activities")
     verification_status = serializers.DictField(help_text="Payment verification status")
     
@@ -43,7 +60,17 @@ class DashboardResponseSerializer(serializers.Serializer):
             "streak_info": {
                 "current_streak": 7.5,
                 "streak_rating": "Rising Star"
-            }
+            },
+            "outstanding_deals": [
+                {
+                    "id": 123,
+                    "client_name": "ABC Corp",
+                    "deal_value": "5000.00",
+                    "deal_date": "2024-01-15",
+                    "client_satisfaction": "satisfied",
+                    "client_status": "pending"
+                }
+            ]
         }
 
 class DashboardQuerySerializer(serializers.Serializer):

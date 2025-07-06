@@ -14,6 +14,14 @@ python manage.py migrate
 # with real data, you may want to run this only once.
 python manage.py initialize_app
 
+# Create custom permissions and assign them to roles
+# This ensures all roles have the correct permissions
+python manage.py create_permissions
+
+# Create recent deals for dashboard (if needed)
+# This adds recent deals so the dashboard shows data
+python manage.py fix_permissions_and_data
+
 # Start the Gunicorn server.
 # We are already in the 'backend' directory, so we point to 'core_config.wsgi'.
 gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT 
