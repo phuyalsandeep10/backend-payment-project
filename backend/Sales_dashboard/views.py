@@ -64,9 +64,7 @@ logger = logging.getLogger(__name__)
             openapi.IN_HEADER,
             description="Token authentication header (format: 'Token <your_token>')",
             type=openapi.TYPE_STRING,
-            required=True,
-            default="Token 5df12943f200cc5d1962c461bf480ff763728d95",
-            example="Token 5df12943f200cc5d1962c461bf480ff763728d95"
+            required=True
         )
     ],
     tags=['Dashboard']
