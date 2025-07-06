@@ -9,6 +9,9 @@ dj-database-url==3.0.1
 psycopg==3.2.9
 psycopg-binary==3.2.9
 
+# Production Server
+gunicorn==23.0.0
+
 # API Documentation
 drf-yasg==1.21.7
 drf-nested-routers==0.94.2
