@@ -597,6 +597,7 @@ def commission_overview_view(request):
             'achieved_percentage': round(float(achieved_percentage), 1),
             'sales_growth_percentage': round(float(sales_growth_percentage), 1),
             'current_sales': user_sales_current,
+            'previous_period_sales': user_sales_previous,
             'summary_message': summary_message,
             'subtitle': "Little bit more now."
         }

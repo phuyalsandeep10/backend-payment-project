@@ -186,6 +186,7 @@ class Command(BaseCommand):
             {'key': 'admin', 'username': 'orgadmin', 'email': 'admin@techcorp.com', 'role': 'Organization Admin', 'is_staff': True},
             {'key': 'manager', 'username': 'salesmanager', 'email': 'manager@techcorp.com', 'role': 'Sales Manager'},
             {'key': 'verifier', 'username': 'verifier', 'email': 'verifier@techcorp.com', 'role': 'Verifier'},
+            {'key': 'salesperson', 'username': 'salesperson', 'email': 'sales@techcorp.com', 'role': 'Salesperson'},
         ]
         for i in range(5):
             user_data.append({'key': f'sales_{i}', 'username': fake.user_name(), 'email': fake.email(), 'role': 'Salesperson'})

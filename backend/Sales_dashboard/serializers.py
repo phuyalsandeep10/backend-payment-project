@@ -275,13 +275,23 @@ class TopClientSerializer(serializers.Serializer):
     commission_earned = serializers.DecimalField(max_digits=15, decimal_places=2)
     last_deal_date = serializers.DateField()
 
+class CompanyGoalChartSerializer(serializers.Serializer):
+    """Serializer for the company goal chart data"""
+    company_goal = serializers.DecimalField(max_digits=15, decimal_places=2)
+    achieved_percentage = serializers.FloatField()
+    sales_growth_percentage = serializers.FloatField()
+    current_sales = serializers.DecimalField(max_digits=15, decimal_places=2)
+    previous_period_sales = serializers.DecimalField(max_digits=15, decimal_places=2)
+    summary_message = serializers.CharField()
+    subtitle = serializers.CharField()
+
 class CommissionOverviewResponseSerializer(serializers.Serializer):
     """Serializer for commission overview response"""
     organization_goal = serializers.DecimalField(max_digits=15, decimal_places=2)
     goal_progress = serializers.FloatField(help_text="Overall organization goal completion percentage")
     user_commissions = serializers.DecimalField(max_digits=15, decimal_places=2)
     total_commissions = serializers.DecimalField(max_digits=15, decimal_places=2, help_text="Total commissions for the organization")
-    company_goal_chart = serializers.DictField(help_text="Data for the company goal progress chart")
+    company_goal_chart = CompanyGoalChartSerializer(help_text="Data for the company goal progress chart")
     top_clients_this_period = TopClientSerializer(many=True, help_text="Top clients for the selected period.")
     regular_clients_all_time = TopClientSerializer(many=True, help_text="Top 5 all-time regular clients based on sales value.")
     commission_trends = serializers.ListField(
