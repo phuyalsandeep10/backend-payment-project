@@ -208,13 +208,18 @@ class StandingsQuerySerializer(serializers.Serializer):
         default='individual',
         help_text="Type of standings to retrieve"
     )
+    period = serializers.ChoiceField(
+        choices=DASHBOARD_PERIOD_CHOICES,
+        default='daily',
+        help_text="Time period for standings (daily, weekly, monthly, or yearly)"
+    )
     date = serializers.DateField(
         required=False,
         help_text="Specific date for standings (YYYY-MM-DD)"
     )
     limit = serializers.IntegerField(
         default=10,
-        min_value=5,
+        min_value=1,
         max_value=50,
         help_text="Number of standings to return"
     )

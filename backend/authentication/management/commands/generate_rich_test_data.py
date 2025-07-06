@@ -6,263 +6,195 @@ from deals.models import Deal, Payment, ActivityLog
 from project.models import Project
 from commission.models import Commission
 from notifications.models import Notification, NotificationTemplate
+from team.models import Team
 from datetime import datetime, timedelta
 from decimal import Decimal
 import random
 from faker import Faker
+from django.db.models import Sum
+from django.utils import timezone
 
 fake = Faker()
 
 class Command(BaseCommand):
-    help = 'Generates a rich and varied dataset for all API endpoints for thorough testing.'
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--username',
-            type=str,
-            help='Username to focus data generation on. Creates a rich dataset for this specific user.',
-            default=None
-        )
+    help = 'Generates a rich and varied dataset for all key user roles.'
 
     @transaction.atomic
     def handle(self, *args, **options):
-        self.stdout.write(self.style.HTTP_INFO("--- Generating Rich & Varied Mock Data for All Endpoints ---"))
+        self.stdout.write(self.style.HTTP_INFO("--- Generating Rich & Varied Mock Data ---"))
+
+        # Get key users to generate data for
+        salespersons = list(User.objects.filter(role__name__icontains='Salesperson'))
+        verifiers = list(User.objects.filter(role__name__icontains='Verifier'))
+        org_admins = list(User.objects.filter(role__name__icontains='Organization Admin'))
+
+        if not all([salespersons, verifiers, org_admins]):
+            self.stdout.write(self.style.ERROR("Key user roles not found. Please run 'initialize_app' first."))
+            return
+
+        # 1. Create Clients owned by salespersons
+        clients = self.create_clients(salespersons)
+
+        # 2. Create Projects linked to clients and salespersons
+        projects = self.create_projects(clients, salespersons)
+
+        # 3. Create a rich set of deals across different time periods
+        deals = self.create_all_deals(salespersons, clients, projects, verifiers)
         
-        target_username = options['username']
-        target_user = None
-        users = []
+        # 4. Create Payments for those deals
+        self.create_payments_for_deals(deals)
 
-        if target_username:
-            # If a username is provided, focus on that user
-            target_user = User.objects.filter(username=target_username).first()
-            if not target_user:
-                self.stdout.write(self.style.ERROR(f"User '{target_username}' not found. Cannot generate targeted data."))
-                return
-            self.stdout.write(self.style.SUCCESS(f"🎯 Focusing data generation on user: {target_username}"))
-            users = [target_user]
-        else:
-            # If no username is provided, check for a "first run" for the default salesperson
-            salesperson_user = User.objects.filter(username='salesperson').first()
-            if salesperson_user:
-                has_data = Deal.objects.filter(
-                    created_by=salesperson_user,
-                    deal_remarks__icontains="Rich testing deal"
-                ).exists()
+        # 5. Create Commissions based on verified deals
+        self.create_commissions(salespersons, org_admins)
 
-                if not has_data:
-                    self.stdout.write(self.style.SUCCESS("🚀 First run detected for 'salesperson'. Generating a rich, targeted dataset for this user automatically."))
-                    target_user = salesperson_user
-                    users = [target_user]
+        # 6. Create Teams
+        self.create_teams(salespersons)
+        
+        # 7. Create Notifications
+        self.create_notifications(deals)
 
-            # If it's not a targeted run or a first run for salesperson, generate for all users
-            if not users:
-                self.stdout.write(self.style.WARNING("Standard run: Generating general data for all users. Use --username to target a specific user."))
-                manager = User.objects.filter(username='salesmanager').first()
-                if manager:
-                    users = list(User.objects.filter(organization=manager.organization))
+        self.stdout.write(self.style.SUCCESS("✅ Rich mock data generated successfully!"))
 
-        if not users:
-            self.stdout.write(self.style.ERROR("No users found to generate data for. Please run 'initialize_app' first."))
-            return
+    def create_clients(self, salespersons):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Clients..."))
+        clients = []
+        for _ in range(50):  # Create more clients
+            clients.append(Client.objects.create(
+                organization=salespersons[0].organization,
+                client_name=fake.company(),
+                email=fake.unique.email(),
+                phone_number=fake.phone_number(),
+                nationality=fake.country(),
+                created_by=random.choice(salespersons)
+            ))
+        self.stdout.write(self.style.SUCCESS(f"    - Created {len(clients)} clients."))
+        return clients
 
-        clients = list(Client.objects.all())
-        if len(clients) < 5:
-            self.stdout.write(self.style.ERROR("Not enough clients found. Please run 'initialize_app' first."))
-            return
-            
-        # Clean up old test data to prevent bloat
-        self.cleanup_old_data(target_user)
+    def create_projects(self, clients, salespersons):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Projects..."))
+        projects = []
+        for client in random.sample(clients, 20): # Projects for a subset of clients
+            projects.append(Project.objects.create(
+                name=f"{client.client_name} - {fake.bs()}",
+                description=fake.text(max_nb_chars=250),
+                status=random.choice(['pending', 'in_progress', 'completed']),
+                created_by=random.choice(salespersons)
+            ))
+        self.stdout.write(self.style.SUCCESS(f"    - Created {len(projects)} projects."))
+        return projects
 
-        # Ensure all necessary notification templates exist before creating data
-        self.setup_notification_templates()
-
-        # Create varied data
+    def create_all_deals(self, salespersons, clients, projects, verifiers):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Deals across all time periods..."))
         all_deals = []
-        all_deals.extend(self.create_deals_for_period(users, clients, 'daily'))
-        all_deals.extend(self.create_deals_for_period(users, clients, 'weekly'))
-        all_deals.extend(self.create_deals_for_period(users, clients, 'monthly'))
-        all_deals.extend(self.create_deals_for_period(users, clients, 'yearly'))
+        for salesperson in salespersons:
+            # More deals for salesperson1 for predictable testing
+            deal_count = 100 if salesperson.username == 'salesperson1' else 40
+            
+            for _ in range(deal_count):
+                deal_date = fake.date_time_between(start_date='-2y', end_date='now', tzinfo=None).date()
+                created_at = fake.date_time_between(start_date=deal_date, end_date=timezone.now())
+                
+                deal = self.create_single_deal(salesperson, clients, projects, verifiers, deal_date)
+                deal.deal_name = fake.bs().title()
+                deal.created_at = created_at
+                deal.save()
+                all_deals.append(deal)
 
-        # Create related data for the deals
-        self.create_related_data(all_deals, users)
+        self.stdout.write(self.style.SUCCESS(f"    - Created a total of {len(all_deals)} deals."))
+        return all_deals
 
-        self.stdout.write(self.style.SUCCESS("✅ Rich mock data generated successfully for all endpoints!"))
-
-    def setup_notification_templates(self):
-        self.stdout.write(self.style.HTTP_INFO("  - Setting up notification templates..."))
-        templates_to_create = [
-            {
-                'notification_type': 'deal_verified', 
-                'title_template': 'Deal Verified: {{deal.id}}',
-                'message_template': 'Your deal for {{deal.client.name}} has been verified.'
-            },
-            {
-                'notification_type': 'project_created', 
-                'title_template': 'Project Created: {{project.name}}',
-                'message_template': 'A new project has been created: {{project.name}}.'
-            },
-            {
-                'notification_type': 'commission_created', 
-                'title_template': 'New Commission Record',
-                'message_template': 'A new commission record has been created for your sales of {{commission.total_sales}}.'
-            }
-        ]
-        
-        for t_data in templates_to_create:
-            NotificationTemplate.objects.get_or_create(
-                notification_type=t_data['notification_type'],
-                defaults=t_data
-            )
-        self.stdout.write(self.style.SUCCESS("  - Notification templates are set up."))
-
-    def cleanup_old_data(self, target_user=None):
-        self.stdout.write(self.style.HTTP_INFO("  - Cleaning up old generated test data..."))
-        remark_filter = "Rich testing deal"
-        
-        deals_to_delete = Deal.objects.filter(deal_remarks__icontains=remark_filter)
-        projects_to_delete = Project.objects.filter(description__icontains=remark_filter)
-        notifications_to_delete = Notification.objects.filter(message__icontains=remark_filter)
-        commissions_to_delete = Commission.objects.all()
-
-        if target_user:
-            deals_to_delete = deals_to_delete.filter(created_by=target_user)
-            projects_to_delete = projects_to_delete.filter(created_by=target_user)
-            notifications_to_delete = notifications_to_delete.filter(recipient=target_user)
-            commissions_to_delete = commissions_to_delete.filter(user=target_user)
-
-
-        # Deleting payments and activity logs via CASCADE from deals
-        deleted_deals, _ = deals_to_delete.delete()
-        deleted_projects, _ = projects_to_delete.delete()
-        deleted_commissions, _ = commissions_to_delete.delete()
-        deleted_notifications, _ = notifications_to_delete.delete()
-        
-        self.stdout.write(self.style.SUCCESS(f"  - Deleted {deleted_deals} deals, {deleted_projects} projects, {deleted_commissions} commissions, {deleted_notifications} notifications for the targeted scope."))
-
-    def create_deals_for_period(self, users, clients, period):
-        self.stdout.write(f"  - Creating data for period: {period}")
-        today = datetime.now().date()
-        deals_created = []
-        is_targeted_run = len(users) == 1
-        target_user = users[0] if is_targeted_run else None
-
-        # Define number of deals to create
-        if period == 'daily':
-            count = 20 if is_targeted_run else random.randint(3, 5)
-            for _ in range(count):
-                deals_created.append(self.create_single_deal(target_user or random.choice(users), clients, today))
-        
-        elif period == 'weekly':
-            count_per_day = 5 if is_targeted_run else random.randint(2, 4)
-            for i in range(7):
-                date = today - timedelta(days=i)
-                for _ in range(count_per_day):
-                    deals_created.append(self.create_single_deal(target_user or random.choice(users), clients, date))
-
-        elif period == 'monthly':
-            count_per_day = 3 if is_targeted_run else random.randint(1, 3)
-            for i in range(0, 30, 2):
-                date = today - timedelta(days=i)
-                for _ in range(count_per_day):
-                    deals_created.append(self.create_single_deal(target_user or random.choice(users), clients, date))
-        
-        elif period == 'yearly':
-            count_per_month = 2 if is_targeted_run else random.randint(5, 10)
-            for i in range(12):
-                month_date = today - timedelta(days=i * 30)
-                date = month_date.replace(day=random.randint(1, 28))
-                for _ in range(count_per_month):
-                    deals_created.append(self.create_single_deal(target_user or random.choice(users), clients, date))
-        
-        self.stdout.write(self.style.SUCCESS(f"    - Created {len(deals_created)} deals for {period} view."))
-        return deals_created
-
-    def create_single_deal(self, user, clients, deal_date):
-        client = random.choice(clients)
-        deal_value = Decimal(random.randint(1000, 75000))
-        
+    def create_single_deal(self, user, clients, projects, verifiers, deal_date):
         deal = Deal.objects.create(
             organization=user.organization,
-            client=client,
-            deal_value=deal_value,
+            client=random.choice(clients),
+            deal_name=fake.bs().title(),
+            deal_value=Decimal(random.randint(5000, 150000)),
+            currency=random.choice(['USD', 'EUR', 'GBP']),
             deal_date=deal_date,
-            due_date=deal_date + timedelta(days=random.randint(30, 90)),
-            payment_status=random.choice([choice[0] for choice in Deal.PAYMENT_STATUS_CHOICES]),
-            verification_status=random.choice([choice[0] for choice in Deal.DEAL_STATUS]),
-            client_status=random.choice([choice[0] for choice in Deal.CLIENT_STATUS]),
-            source_type=random.choice([choice[0] for choice in Deal.SOURCE_TYPES]),
-            payment_method=random.choice([choice[0] for choice in Deal.PAYMENT_METHOD_CHOICES]),
-            deal_remarks=f"Rich testing deal created on {datetime.now()}",
+            due_date=deal_date + timedelta(days=random.randint(15, 90)),
+            payment_status=random.choice(['initial payment', 'partial_payment', 'full_payment']),
+            verification_status=random.choice(['pending', 'verified', 'rejected']),
+            source_type=random.choice(['linkedin', 'referral', 'google']),
+            payment_method=random.choice(['wallet', 'bank', 'cash']),
             created_by=user,
+            deal_remarks=fake.sentence()
         )
+        
+        # Log creation
+        ActivityLog.objects.create(deal=deal, message=f"Deal created by {user.username}.")
+        
+        # Simulate verification action
+        if deal.verification_status in ['verified', 'rejected']:
+            verifier = random.choice(verifiers)
+            deal.updated_by = verifier
+            deal.save()
+            ActivityLog.objects.create(deal=deal, message=f"Deal {deal.verification_status} by {verifier.username}.")
+
         return deal
 
-    def create_related_data(self, all_deals, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating related data (Payments, Projects, Commissions, etc.)..."))
-        
-        # Ensure templates exist before creating notifications
-        self.setup_notification_templates()
-
-        for deal in all_deals:
-            # Create Payments for deals that are not pending
-            if deal.payment_status != 'pending':
-                self.create_payments_for_deal(deal)
-
-            # Create an Activity Log for each deal
-            ActivityLog.objects.create(deal=deal, message=f"Deal created by {deal.created_by.username}.")
-
-            # Create a Project for each deal in a targeted run
-            if random.random() > 0.5 or len(users) == 1: # 50% chance, or 100% if targeted
-                Project.objects.create(
-                    name=f"Project for {deal.client.client_name}",
-                    description=f"Rich testing deal project for deal {deal.deal_id}",
-                    status=random.choice(['pending', 'in_progress', 'completed']),
-                    created_by=deal.created_by,
+    def create_payments_for_deals(self, deals):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Payments for deals..."))
+        payment_count = 0
+        for deal in deals:
+            if deal.payment_status == 'full_payment':
+                Payment.objects.create(
+                    deal=deal, received_amount=deal.deal_value, payment_date=deal.deal_date + timedelta(days=1),
+                    payment_type=deal.payment_method, payment_remarks="Full payment received."
                 )
+                payment_count += 1
+            elif deal.payment_status == 'partial_payment':
+                Payment.objects.create(
+                    deal=deal, received_amount=deal.deal_value / 2, payment_date=deal.deal_date + timedelta(days=1),
+                    payment_type=deal.payment_method, payment_remarks="Partial payment received."
+                )
+                payment_count += 1
+        self.stdout.write(self.style.SUCCESS(f"    - Created {payment_count} payments."))
 
-        # Create Commissions for users based on their deals
-        for user in users:
-            user_deals = [d for d in all_deals if d.created_by == user and d.payment_status in ['full_payment', 'partial_payment']]
-            if user_deals:
-                total_sales = sum(d.deal_value for d in user_deals)
+    def create_commissions(self, salespersons, org_admins):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Commissions..."))
+        commission_count = 0
+        for user in salespersons:
+            total_sales = Deal.objects.filter(
+                created_by=user, 
+                verification_status='verified'
+            ).aggregate(total_sales=Sum('deal_value'))['total_sales'] or Decimal('0.00')
+
+            if total_sales > 0:
                 Commission.objects.create(
-                    organization=user.organization,
                     user=user,
+                    organization=user.organization,
                     total_sales=total_sales,
+                    commission_rate=Decimal(random.uniform(3, 8)),
+                    bonus=total_sales * Decimal(random.uniform(0.01, 0.03)),
                     start_date=datetime.now().date().replace(day=1),
                     end_date=datetime.now().date(),
-                    created_by=user
+                    created_by=random.choice(org_admins)
                 )
+                commission_count += 1
+        self.stdout.write(self.style.SUCCESS(f"    - Created {commission_count} commission records."))
 
-        # Create Notifications for some verified deals
-        verified_deals = [d for d in all_deals if d.verification_status == 'verified']
-        notification_sample_size = 20 if len(users) == 1 else 5
+    def create_teams(self, salespersons):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Teams..."))
+        if not salespersons: return
         
-        verified_template = NotificationTemplate.objects.filter(notification_type='deal_verified').first()
-        if verified_template:
-            for deal in random.sample(verified_deals, min(len(verified_deals), notification_sample_size)):
-                Notification.objects.create(
-                    recipient=deal.created_by,
-                    title=f"Deal Verified: {deal.deal_id}",
-                    message=f"Rich testing deal {deal.deal_id} has been verified.",
-                    notification_type='deal_verified'
-                )
-        self.stdout.write(self.style.SUCCESS(f"    - Created related data for {len(all_deals)} deals."))
+        team_alpha = Team.objects.create(name="Alpha Team", organization=salespersons[0].organization)
+        team_alpha.members.set(salespersons[:len(salespersons)//2])
+        
+        team_beta = Team.objects.create(name="Beta Team", organization=salespersons[0].organization)
+        team_beta.members.set(salespersons[len(salespersons)//2:])
+        self.stdout.write(self.style.SUCCESS("    - Created Alpha and Beta teams."))
 
-
-    def create_payments_for_deal(self, deal):
-        if deal.payment_status == 'full_payment':
-            payment_count = 1
-        else: # partial
-            payment_count = random.randint(1, 3)
-
-        for i in range(payment_count):
-            amount_multiplier = 1 if deal.payment_status == 'full_payment' else (i + 1) * 0.25
-            
-            Payment.objects.create(
-                deal=deal,
-                payment_date=deal.deal_date + timedelta(days=random.randint(1, 10)),
-                received_amount=deal.deal_value * Decimal(amount_multiplier),
-                payment_type=deal.payment_method,
-                payment_remarks=f"Payment for rich testing deal."
-            ) 
+    def create_notifications(self, deals):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating Notifications..."))
+        # Simplified notification creation
+        verified_deals = [d for d in deals if d.verification_status == 'verified']
+        notification_count = 0
+        for deal in random.sample(verified_deals, min(len(verified_deals), 10)):
+            Notification.objects.create(
+                recipient=deal.created_by,
+                title=f"Deal Verified: {deal.deal_id}",
+                message=f"Congratulations! Your deal for {deal.client.client_name} has been verified.",
+                notification_type='deal_verified'
+            )
+            notification_count += 1
+        self.stdout.write(self.style.SUCCESS(f"    - Created {notification_count} notifications.")) 

@@ -57,7 +57,7 @@ class User(AbstractUser):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
     role = models.ForeignKey(Role, on_delete=models.PROTECT, null=False, blank=False)
     contact_number = models.CharField(max_length=30, blank=True, null=True)
-    sales_target = models.DecimalField(max_digits=15, decimal_places=2, default=15000.00)
+    sales_target = models.DecimalField(max_digits=15, decimal_places=2, null=True, default=None)
     streak = models.FloatField(default=0.0, validators=[MinValueValidator(0.0)])
 
     objects = CustomUserManager()

@@ -8,6 +8,8 @@ from PIL import Image
 from django.core.files.base import ContentFile
 import io
 import os
+from django.utils import timezone
+from project.models import Project
 
 ##
 ##  Deals Section
@@ -30,6 +32,11 @@ class Deal(models.Model):
         ('rejected', 'Rejected'),
     ]
     
+    VERSION_CHOICES = [
+        ('original', 'Original'),
+        ('edited', 'Edited'),
+    ]
+    
     SOURCE_TYPES = [
         ('linkedin', 'LinkedIn'),
         ('instagram', 'Instagram'),
@@ -44,19 +51,23 @@ class Deal(models.Model):
     ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True )
     deal_id = models.CharField(max_length=50)
-    organization = models.ForeignKey(Organization,on_delete=models.CASCADE,related_name="deals")
-    client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name="deals")
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='deals')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='deals')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='deals', null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='created_deals')
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='updated_deals')
     payment_status = models.CharField(max_length=50, choices=PAYMENT_STATUS_CHOICES)
     source_type = models.CharField(max_length=50,choices=SOURCE_TYPES)
-    deal_value = models.DecimalField(max_digits=15,decimal_places=2)
-    deal_date = models.DateField()
+    deal_name = models.CharField(max_length=255, default='')
+    deal_value = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='USD')
+    deal_date = models.DateField(default=timezone.now)
     due_date = models.DateField()
     payment_method = models.CharField(max_length=100,choices=PAYMENT_METHOD_CHOICES)
     deal_remarks = models.TextField(blank=True,null=True)
     verification_status = models.CharField(max_length=100,choices=DEAL_STATUS,default='pending')
     client_status = models.CharField(max_length=100,choices=CLIENT_STATUS,default='pending')
+    version = models.CharField(max_length=10, choices=VERSION_CHOICES, default='original')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -68,6 +79,7 @@ class Deal(models.Model):
         unique_together = ('organization','deal_id')
         
     def save(self,*args,**kwargs):
+        is_new = self._state.adding
         if not self.deal_id:
             last_deal = Deal.objects.filter(organization = self.organization,deal_id__startswith='DLID').order_by("-deal_id").first()
             
@@ -79,6 +91,10 @@ class Deal(models.Model):
                 new_number = 1
                 
             self.deal_id = f"DLID{new_number:04d}"    #zero padded to 4 digits... fro eg. DLID0001\
+        
+        if not is_new:
+            self.version = 'edited'
+
         super().save(*args,**kwargs)
     
     

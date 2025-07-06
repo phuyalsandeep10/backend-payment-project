@@ -12,9 +12,9 @@ class HasCommissionPermission(BasePermission):
             return False
 
         required_perms_map = {
-            'list': ['view_all_commissions'],
-            'create': ['create_commission'],
-            'retrieve': ['view_all_commissions'],
+            'list': ['view_all_commissions', 'view_commission'],
+            'create': ['add_commission'],
+            'retrieve': ['view_all_commissions', 'view_commission'],
             'update': ['edit_commission'],
             'partial_update': ['edit_commission'],
             'destroy': ['delete_commission'],

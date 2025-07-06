@@ -35,6 +35,7 @@ from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth import login
+from decimal import Decimal
 
 # Security logger
 security_logger = logging.getLogger('security')
@@ -153,47 +154,60 @@ def password_change_view(request):
         return Response({'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@swagger_auto_schema(
-    method='get',
-    operation_description="Get current user profile information",
-    responses={
-        200: UserProfileResponseSerializer,
-        401: "Unauthorized"
-    },
-    tags=['User Profile']
-)
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_profile_view(request):
+class UserProfileView(generics.RetrieveUpdateAPIView):
     """
-    Get authenticated user's profile information in a nested format.
+    Handles retrieving and updating the authenticated user's profile.
+    Supports GET and PUT/PATCH requests.
     """
-    user_details = UserDetailSerializer(request.user).data
-    return Response({'user': user_details}, status=status.HTTP_200_OK)
+    serializer_class = UserDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        """Returns the authenticated user."""
+        return self.request.user
+
+    def get_serializer_class(self):
+        """
+        Use UserUpdateSerializer for update actions (PUT/PATCH),
+        and UserDetailSerializer for retrieve actions (GET).
+        """
+        if self.request.method in ['PUT', 'PATCH']:
+            return UserUpdateSerializer
+        return super().get_serializer_class()
 
 @swagger_auto_schema(
-    method='put',
-    operation_description="Update user profile information",
-    request_body=UserUpdateSerializer,
-    responses={
-        200: UserProfileResponseSerializer,
-        400: ErrorResponseSerializer,
-        401: "Unauthorized"
-    },
+    method='post',
+    operation_description="Set the sales target for the authenticated user.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'sales_target': openapi.Schema(type=openapi.TYPE_NUMBER, description='The new sales target.')
+        },
+        required=['sales_target']
+    ),
+    responses={200: UserDetailSerializer, 400: "Bad Request", 401: "Unauthorized"},
     tags=['User Profile']
 )
-@api_view(['PUT'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def user_profile_update_view(request):
+def set_sales_target_view(request):
     """
-    Update authenticated user's profile information. Returns nested user data.
+    Sets the sales target for the authenticated user.
     """
-    serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
-    if serializer.is_valid():
-        user = serializer.save()
-        response_serializer = UserDetailSerializer(user)
-        return Response({'user': response_serializer.data}, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    sales_target = request.data.get('sales_target')
+    if sales_target is None:
+        return Response({'error': 'sales_target is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        sales_target = Decimal(sales_target)
+    except (ValueError, TypeError):
+        return Response({'error': 'Invalid sales_target format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = request.user
+    user.sales_target = sales_target
+    user.save(update_fields=['sales_target'])
+
+    serializer = UserDetailSerializer(user)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
     method='post',

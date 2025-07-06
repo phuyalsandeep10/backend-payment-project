@@ -43,8 +43,33 @@ class DealSerializer(serializers.ModelSerializer):
             'id', 'deal_id', 'organization', 'client', 'client_id', 'created_by', 
             'updated_by', 'payment_status', 'verification_status', 'client_status', 'source_type', 
             'deal_value', 'deal_date', 'due_date', 'payment_method', 'deal_remarks', 
-            'payments', 'activity_logs'
+            'payments', 'activity_logs', 'version', 'deal_name', 'currency', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'organization', 'deal_id', 'created_by', 'updated_by'
+        ]
+
+class DealUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Deal
+        fields = [
+            'id',
+            'deal_id',
+            'organization',
+            'client',
+            'project',
+            'deal_name',
+            'deal_value',
+            'currency',
+            'deal_date',
+            'due_date',
+            'payment_status',
+            'payment_method',
+            'source_type',
+            'verification_status',
+            'version',
+            'created_by',
+            'updated_by',
+            'created_at',
+            'updated_at',
         ]

@@ -33,7 +33,7 @@ from commission.models import Commission
 from deals.models import ActivityLog, Deal, Payment
 from notifications.models import NotificationSettings, NotificationTemplate
 from organization.models import Organization
-from permissions.models import Role
+from permissions.models import Role, Permission
 from project.models import Project
 from team.models import Team
 
@@ -47,55 +47,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
 
+        # Use flush to clear the database completely for a clean slate
+        self.stdout.write(self.style.WARNING("--- Flushing the database ---"))
+        call_command('flush', '--no-input')
+        self.stdout.write(self.style.SUCCESS("✅ Database flushed."))
+
         try:
-            self.clear_mock_data()
             self.setup_superadmin()
-            self.create_mock_data()
+            self.create_permissions_and_roles()
+            self.create_core_data()
             self.stdout.write(self.style.SUCCESS("✅ Application initialization completed successfully!"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"❌ An error occurred during initialization: {e}"))
             import traceback
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
-
-    def clear_mock_data(self):
-        self.stdout.write(self.style.WARNING("--- Clearing existing mock data for 'TechCorp Solutions' ---"))
-        org_to_delete = Organization.objects.filter(name="TechCorp Solutions").first()
-        if not org_to_delete:
-            self.stdout.write(self.style.HTTP_INFO("No existing 'TechCorp Solutions' mock data to clear."))
-            return
-
-        # Deletion order is critical to avoid foreign key constraint violations
-        models_to_delete = [
-            Payment, ActivityLog, Commission, Deal, Project, Team, Client,
-            NotificationSettings, UserProfile
-        ]
-        for model in models_to_delete:
-            # Assumes a link to organization, direct or indirect, for deletion filtering
-            # This is a simplification; direct relations are required for this to work perfectly.
-            # Example: Payment -> Deal -> Organization
-            app_label = model._meta.app_label
-            model_name = model._meta.model_name
-            qs = model.objects.all()
-            
-            if hasattr(model, 'deal') and hasattr(model.deal.field.related_model, 'organization'):
-                qs = model.objects.filter(deal__organization=org_to_delete)
-            elif hasattr(model, 'organization'):
-                qs = model.objects.filter(organization=org_to_delete)
-            elif hasattr(model, 'user') and hasattr(model.user.field.related_model, 'organization'):
-                qs = model.objects.filter(user__organization=org_to_delete)
-
-            count = qs.count()
-            if count > 0:
-                qs.delete()
-                self.stdout.write(self.style.SUCCESS(f"  - Deleted {count} {model_name} records from {app_label}"))
-
-        # Delete users and roles associated with the organization
-        User.objects.filter(organization=org_to_delete, is_superuser=False).delete()
-        self.stdout.write(self.style.SUCCESS("  - Deleted users for TechCorp Solutions"))
-        Role.objects.filter(organization=org_to_delete).delete()
-        self.stdout.write(self.style.SUCCESS("  - Deleted roles for TechCorp Solutions"))
-        org_to_delete.delete()
-        self.stdout.write(self.style.SUCCESS("✅ Cleared mock data for 'TechCorp Solutions'."))
 
     def setup_superadmin(self):
         self.stdout.write(self.style.HTTP_INFO("--- Setting up Superuser ---"))
@@ -128,39 +93,78 @@ class Command(BaseCommand):
         self.superuser.is_superuser = True
         self.superuser.save()
 
-    def create_mock_data(self):
-        self.stdout.write(self.style.HTTP_INFO("--- Creating Realistic Mock Data ---"))
+    def create_permissions_and_roles(self):
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Permissions and Role Templates ---"))
+        
+        # Create all permissions
+        permissions = {}
+        permission_list = [
+            ('view_own_dashboard', 'Can view their own personalized dashboard'),
+            ('view_team_dashboard', 'Can view the dashboard for their team'),
+            ('view_org_dashboard', 'Can view the full organization dashboard'),
+            ('view_clients', 'Can view clients'),
+            ('add_client', 'Can add a new client'),
+            ('edit_client', 'Can edit a client'),
+            ('delete_client', 'Can delete a client'),
+            ('view_deals', 'Can view deals'),
+            ('view_all_deals', 'Can view all deals in the organization'),
+            ('add_deal', 'Can add a new deal'),
+            ('edit_deal', 'Can edit a deal'),
+            ('delete_deal', 'Can delete a deal'),
+            ('verify_deal', 'Can verify or reject a deal'),
+            ('view_commission', 'Can view commission reports'),
+            ('view_all_commissions', 'Can view all commission reports in the organization'),
+            ('add_commission', 'Can add a commission record'),
+            ('edit_commission', 'Can edit a commission record'),
+            ('delete_commission', 'Can delete a commission record'),
+        ]
+        for codename, name in permission_list:
+            p, created = Permission.objects.get_or_create(codename=codename, defaults={'name': name})
+            permissions[codename] = p
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"  - Created permission: {name}"))
 
-        # 1. Create Notification Templates FIRST
-        self.create_notification_templates()
+        # Create role templates and assign permissions
+        role_permissions = {
+            "Super Admin": list(permissions.values()),
+            "Organization Admin": [
+                permissions['view_org_dashboard'], permissions['view_clients'], permissions['add_client'],
+                permissions['edit_client'], permissions['delete_client'], permissions['view_deals'],
+                permissions['view_all_deals'], permissions['add_deal'], permissions['edit_deal'], permissions['delete_deal'],
+                permissions['verify_deal'], permissions['view_all_commissions'], permissions['add_commission'],
+                permissions['edit_commission'], permissions['delete_commission']
+            ],
+            "Salesperson": [
+                permissions['view_own_dashboard'], permissions['view_clients'], permissions['add_client'],
+                permissions['edit_client'], permissions['view_deals'], permissions['add_deal'],
+                permissions['edit_deal'], permissions['view_commission']
+            ],
+            "Verifier": [
+                permissions['view_org_dashboard'], permissions['view_deals'], permissions['view_all_deals'], permissions['verify_deal']
+            ],
+        }
+        
+        for role_name, perms in role_permissions.items():
+            role, created = Role.objects.get_or_create(name=role_name, organization=None)
+            if created:
+                role.permissions.set(perms)
+                self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
 
-        # 2. Create Organization
+    def create_core_data(self):
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Core Mock Data ---"))
+
+        # 1. Create Organization
         organization, _ = Organization.objects.get_or_create(
             name="TechCorp Solutions",
             defaults={'sales_goal': Decimal("2000000.00"), 'description': fake.bs()}
         )
         self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created/retrieved."))
 
-        # 3. Create organization-specific roles
+        # 2. Create organization-specific roles from templates
         org_roles = self.create_org_roles(organization)
 
-        # 4. Create Users
-        users = self.create_users(organization, org_roles)
-
-        # 5. Create Teams
-        self.create_teams(organization, users)
-
-        # 6. Create Clients
-        clients = self.create_clients(organization, users)
-
-        # 7. Create Projects
-        self.create_projects(organization, clients, users)
-
-        # 8. Create Deals and associated data
-        self.create_deals_and_related_data(organization, clients, users)
-        self.create_commissions_for_users(organization, users)
-
-        self.stdout.write(self.style.SUCCESS("✅ Realistic mock data created successfully!"))
+        # 3. Create Users
+        self.create_users(organization, org_roles)
 
     def create_org_roles(self, organization):
         self.stdout.write(self.style.HTTP_INFO("  - Creating organization-specific roles..."))
@@ -180,35 +184,39 @@ class Command(BaseCommand):
         return org_roles
 
     def create_users(self, organization, org_roles):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating users..."))
-        users = {}
-        user_data = [
-            {'key': 'admin', 'username': 'orgadmin', 'email': 'admin@techcorp.com', 'role': 'Organization Admin', 'is_staff': True},
-            {'key': 'manager', 'username': 'salesmanager', 'email': 'manager@techcorp.com', 'role': 'Sales Manager'},
-            {'key': 'verifier', 'username': 'verifier', 'email': 'verifier@techcorp.com', 'role': 'Verifier'},
-            {'key': 'salesperson', 'username': 'salesperson', 'email': 'sales@techcorp.com', 'role': 'Salesperson'},
-        ]
-        for i in range(5):
-            user_data.append({'key': f'sales_{i}', 'username': fake.user_name(), 'email': fake.email(), 'role': 'Salesperson'})
+        self.stdout.write(self.style.HTTP_INFO("  - Creating specific users..."))
+        user_definitions = {
+            'org_admin': {'count': 2, 'role': 'Organization Admin', 'is_staff': True},
+            'salesperson': {'count': 3, 'role': 'Salesperson'},
+            'verifier': {'count': 2, 'role': 'Verifier'},
+        }
 
-        for data in user_data:
-            user = User.objects.filter(username=data['username']).first()
-            if not user:
+        for key, definition in user_definitions.items():
+            for i in range(1, definition['count'] + 1):
+                username = f"{key}{i}"
+                email = f"{username}@techcorp.com"
+                
+                if User.objects.filter(username=username).exists():
+                    self.stdout.write(self.style.WARNING(f"    - User '{username}' already exists. Skipping."))
+                    continue
+
                 user = User.objects.create_user(
-                    username=data['username'], email=data['email'], password='password123',
-                    first_name=fake.first_name(), last_name=fake.last_name(),
-                    contact_number=fake.phone_number(), organization=organization,
-                    role=org_roles[data['role']], is_staff=data.get('is_staff', False),
-                    sales_target=Decimal(random.randint(50000, 150000))
+                    username=username,
+                    email=email,
+                    password='password123',
+                    first_name=fake.first_name(),
+                    last_name=fake.last_name(),
+                    contact_number=fake.phone_number(),
+                    organization=organization,
+                    role=org_roles[definition['role']],
+                    is_staff=definition.get('is_staff', False),
+                    sales_target=Decimal(random.randint(50000, 150000)) if key == 'salesperson' else None
                 )
-            
-            # Ensure UserProfile and NotificationSettings are created only if they don't exist
-            UserProfile.objects.get_or_create(user=user, defaults={'bio': fake.text(max_nb_chars=150)})
-            NotificationSettings.objects.get_or_create(user=user)
-            
-            users[data['key']] = user
-        self.stdout.write(self.style.SUCCESS(f"    👥 Created/retrieved {len(users)} users."))
-        return list(users.values())
+                UserProfile.objects.get_or_create(user=user, defaults={'bio': fake.text(max_nb_chars=150)})
+                NotificationSettings.objects.get_or_create(user=user)
+                self.stdout.write(self.style.SUCCESS(f"    - Created user: {username} ({email}) with role: {definition['role']}"))
+
+        self.stdout.write(self.style.SUCCESS("    👥 All specific users created."))
 
     def create_teams(self, organization, users):
         self.stdout.write(self.style.HTTP_INFO("  - Creating teams..."))
@@ -317,26 +325,31 @@ class Command(BaseCommand):
             )
 
     def create_commissions_for_users(self, organization, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating commissions for users..."))
-        commission_count = 0
-        for user in users:
-            # Aggregate total sales for each user
+        self.stdout.write(self.style.HTTP_INFO("  - Creating commissions..."))
+        salespersons = [u for u in users if 'salesperson' in u.username]
+
+        for user in salespersons:
             total_sales = Deal.objects.filter(
                 created_by=user,
-                organization=organization
+                verification_status='verified'
             ).aggregate(total=Sum('deal_value'))['total'] or Decimal('0.00')
 
             if total_sales > 0:
+                commission_rate = Decimal(random.uniform(2.5, 7.5))
+                bonus = total_sales * Decimal(random.uniform(0.01, 0.05))
+                
                 Commission.objects.create(
-                    organization=organization,
                     user=user,
+                    organization=organization,
                     total_sales=total_sales,
-                    start_date=date(2024, 1, 1),
-                    end_date=date(2024, 12, 31),
+                    commission_rate=commission_rate,
+                    bonus=bonus,
+                    penalty=Decimal('0.00'),
+                    start_date=date.today().replace(day=1),
+                    end_date=date.today(),
                     created_by=self.superuser
                 )
-                commission_count += 1
-        self.stdout.write(self.style.SUCCESS(f"    💸 Created {commission_count} commission records."))
+        self.stdout.write(self.style.SUCCESS(f"    - Created commissions for {len(salespersons)} salespersons."))
 
     def create_notification_templates(self):
         self.stdout.write(self.style.HTTP_INFO("  - Creating notification templates..."))
@@ -352,3 +365,24 @@ class Command(BaseCommand):
                 'is_active': True
             })
         self.stdout.write(self.style.SUCCESS("    🔔 Created default notification templates."))
+
+    def create_initial_deals(self, organization, users):
+        self.stdout.write(self.style.HTTP_INFO("  - Creating initial deals for users..."))
+        for user in users:
+            # Create a few deals for each salesperson
+            for i in range(5):
+                client = random.choice(Client.objects.filter(organization=organization))
+                deal_date = timezone.now() - timedelta(days=random.randint(0, 365))
+                Deal.objects.create(
+                    organization=organization,
+                    client=client,
+                    deal_name=f"Initial Deal {i+1} for {user.username}",
+                    created_by=user,
+                    deal_value=Decimal(random.randrange(5000, 50000)),
+                    deal_date=deal_date,
+                    due_date=deal_date + timedelta(days=random.randint(30, 90)),
+                    payment_status='pending',
+                    verification_status='pending'
+                )
+
+        self.stdout.write(self.style.SUCCESS("Initialized baseline data with predictable users and roles."))

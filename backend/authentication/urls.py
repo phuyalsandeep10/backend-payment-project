@@ -20,9 +20,9 @@ urlpatterns = [
     re_path(r'^logout/?$', views.logout_view, name='logout'),
     
     # ==================== PASSWORD MANAGEMENT ====================
-    re_path(r'^password/change/?$', views.password_change_view, name='password_change'),
+    path('password/change/', views.password_change_view, name='password_change'),
     
     # ==================== USER PROFILE ====================
-    re_path(r'^profile/?$', views.user_profile_view, name='profile'),
-    re_path(r'^profile/update/?$', views.user_profile_update_view, name='profile_update'),
+    path('profile/', views.UserProfileView.as_view(), name='profile'),
+    path('user/set-sales-target/', views.set_sales_target_view, name='set_sales_target'),
 ]

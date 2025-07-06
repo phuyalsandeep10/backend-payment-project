@@ -200,8 +200,8 @@ def notify_new_commission(sender, instance, created, **kwargs):
         NotificationService.notify_role_based_users(
             organization=instance.organization,
             notification_type='commission_created',
-            title=f'New Commission Created: ${instance.converted_amount}',
-            message=f'A new commission of ${instance.converted_amount} has been created for user {instance.user.get_full_name() or instance.user.email}.',
+            title=f'New Commission: {instance.user.get_full_name() or instance.user.email}',
+            message=f'A commission of ${instance.total_receivable:,.2f} has been calculated for {instance.user.get_full_name()}.',
             target_roles=['admin', 'manager'],
             priority='medium',
             category='business',
