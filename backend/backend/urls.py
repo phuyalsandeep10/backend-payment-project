@@ -19,6 +19,8 @@ from django.urls import path, include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from commission.views import UserCommissionView
+from deals.views import PaymentVerificationView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -32,19 +34,46 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
-# Centralized API URL patterns
+# API URL patterns matching frontend expectations
 api_urlpatterns = [
+    # Authentication endpoints (includes /users)
     path('auth/', include('authentication.urls')),
+    # Direct endpoints as expected by frontend
+    path('users/', include('authentication.user_urls')),  # Original with trailing slash
+    path('clients/', include('clients.urls')),
+    path('clients', include('clients.urls')),  # No-slash variant for forms without trailing /
+    path('deals/', include('deals.urls')),
+    path('teams/', include('team.urls')),
+    path('commission/', include('commission.urls')),  # Singular to match frontend
+    # Admin-only endpoints
     path('organizations/', include('organization.urls')),
     path('permissions/', include('permissions.urls')),
-    path('commissions/', include('commission.urls')),
     path('projects/', include('project.urls')),
-    path('teams/', include('team.urls')),
-    path('clients/', include('clients.urls')),
+    # Dashboard endpoints
+    path('dashboard/', include('authentication.dashboard_urls')),  # Original dashboard routes
+    path('notifications/', include('authentication.notification_urls')),  # Original notification routes
+    # No-slash variants for frontend routes without trailing slash
+    path('users', include('authentication.user_urls')),  # No-slash variant for list/detail endpoints
+    path('deals', include('deals.urls')),  # No-slash variant
+    path('teams', include('team.urls')),  # No-slash variant
+    path('commission', include('commission.urls')),  # No-slash variant
+    path('organizations', include('organization.urls')),  # No-slash variant
+    path('permissions', include('permissions.urls')),  # No-slash variant
+    path('projects', include('project.urls')),  # No-slash variant
+    path('dashboard', include('authentication.dashboard_urls')),  # No-slash variant
+    path('notifications', include('authentication.notification_urls')),  # No-slash variant
+    path('users/<int:user_id>/commission/', UserCommissionView.as_view(), name='user-commission'),
+    path('users/<int:user_id>/commission', UserCommissionView.as_view(), name='user-commission-noslash'),
+    # Payment verification (top-level) routes
+    path('payments/<str:payment_id>/verify/', PaymentVerificationView.as_view(), name='payment-verify'),
+    path('payments/<str:payment_id>/verify', PaymentVerificationView.as_view(), name='payment-verify-noslash'),
 ]
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Direct /api/ routes to match frontend expectations
+    path('api/', include(api_urlpatterns)),
+    # Keep v1 for backward compatibility if needed
     path('api/v1/', include(api_urlpatterns)),
 
     # API documentation
