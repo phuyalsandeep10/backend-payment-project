@@ -81,7 +81,12 @@ class HasPermission(BasePermission):
         if not required_perms:
             return False
 
-        # Check if the user's role has any of the required permissions
+        # If 'view_own_deals' is one of the required permissions, and the user has it,
+        # defer the final decision to `has_object_permission`.
+        if 'view_own_deals' in required_perms and request.user.role.permissions.filter(codename='view_own_deals').exists():
+            return True
+
+        # Check if the user's role has any of the required permissions for other cases
         return request.user.role.permissions.filter(codename__in=required_perms).exists()
 
     def has_object_permission(self, request, view, obj):
