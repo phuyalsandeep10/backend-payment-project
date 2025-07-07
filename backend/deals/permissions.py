@@ -6,12 +6,16 @@ class HasPermission(BasePermission):
     Permissions are mapped to view actions.
     """
     def has_permission(self, request, view):
+        # Deny if user is not authenticated
+        if not request.user or not request.user.is_authenticated:
+            return False
+
         # Always allow for superusers
-        if request.user and request.user.is_superuser:
+        if request.user.is_superuser:
             return True
 
-        # Deny if user or role is not set
-        if not request.user or not request.user.role:
+        # Deny if user role is not set
+        if not request.user.role:
             return False
 
         # Map view actions to permission codenames based on viewset type

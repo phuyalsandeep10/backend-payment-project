@@ -53,7 +53,59 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
 
     def create_permissions_and_roles(self):
-        self.stdout.write(self.style.HTTP_INFO("--- Creating Permissions and Role Templates ---"))
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Custom Permissions ---"))
+        
+        permissions_data = [
+            # Client permissions
+            {'name': 'View Client', 'codename': 'view_client', 'category': 'clients'},
+            {'name': 'Add Client', 'codename': 'add_client', 'category': 'clients'},
+            {'name': 'Edit Client', 'codename': 'edit_client', 'category': 'clients'},
+            {'name': 'Delete Client', 'codename': 'delete_client', 'category': 'clients'},
+            
+            # Deal permissions
+            {'name': 'View Deal', 'codename': 'view_deal', 'category': 'deals'},
+            {'name': 'Add Deal', 'codename': 'add_deal', 'category': 'deals'},
+            {'name': 'Edit Deal', 'codename': 'edit_deal', 'category': 'deals'},
+            {'name': 'Delete Deal', 'codename': 'delete_deal', 'category': 'deals'},
+            {'name': 'Verify Deal Payment', 'codename': 'verify_deal_payment', 'category': 'deals'},
+            {'name': 'Log Deal Activity', 'codename': 'log_deal_activity', 'category': 'deals'},
+            
+            # Payment Invoice permissions
+            {'name': 'View Payment Invoice', 'codename': 'view_paymentinvoice', 'category': 'deals'},
+            {'name': 'Create Payment Invoice', 'codename': 'create_paymentinvoice', 'category': 'deals'},
+            {'name': 'Edit Payment Invoice', 'codename': 'edit_paymentinvoice', 'category': 'deals'},
+            {'name': 'Delete Payment Invoice', 'codename': 'delete_paymentinvoice', 'category': 'deals'},
+
+            # Payment Approval permissions
+            {'name': 'View Payment Approval', 'codename': 'view_paymentapproval', 'category': 'deals'},
+            {'name': 'Create Payment Approval', 'codename': 'create_paymentapproval', 'category': 'deals'},
+            {'name': 'Edit Payment Approval', 'codename': 'edit_paymentapproval', 'category': 'deals'},
+            {'name': 'Delete Payment Approval', 'codename': 'delete_paymentapproval', 'category': 'deals'},
+
+            # Project permissions
+            {'name': 'View Project', 'codename': 'view_project', 'category': 'projects'},
+            {'name': 'Add Project', 'codename': 'add_project', 'category': 'projects'},
+            
+            # Verifier Dashboard Permissions
+            {'name': 'View Verifier Dashboard', 'codename': 'view_payment_verification_dashboard', 'category': 'verifier_dashboard'},
+            {'name': 'Can Verify Payment', 'codename': 'can_verify_payment', 'category': 'verifier_dashboard'},
+            {'name': 'View Payment Analytics', 'codename': 'view_payment_analytics', 'category': 'verifier_dashboard'},
+            {'name': 'Manage Invoices', 'codename': 'manage_invoices', 'category': 'verifier_dashboard'},
+            {'name': 'Access Verification Queue', 'codename': 'access_verification_queue', 'category': 'verifier_dashboard'},
+            {'name': 'Verify Payments', 'codename': 'verify_payments', 'category': 'verifier_dashboard'},
+            {'name': 'Reject Payments', 'codename': 'reject_payments', 'category': 'verifier_dashboard'},
+            {'name': 'Manage Refunds', 'codename': 'manage_refunds', 'category': 'verifier_dashboard'},
+            {'name': 'View Audit Logs', 'codename': 'view_audit_logs', 'category': 'verifier_dashboard'},
+        ]
+        
+        for perm_data in permissions_data:
+            Permission.objects.get_or_create(
+                codename=perm_data['codename'],
+                defaults={'name': perm_data['name'], 'category': perm_data['category']}
+            )
+        self.stdout.write(self.style.SUCCESS(f"✅ Created/verified {len(permissions_data)} permissions."))
+
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Role Templates and Assigning Permissions ---"))
         role_permissions = self.get_role_permissions()
         for role_name, perms in role_permissions.items():
             role, _ = Role.objects.get_or_create(name=role_name, organization=None)
@@ -274,17 +326,32 @@ class Command(BaseCommand):
             "Super Admin": [
                 'view_deal', 'add_deal', 'edit_deal', 'delete_deal', 
                 'view_client', 'add_client', 'edit_client', 'delete_client', 
-                'view_verifierdashboard', 'can_verify_payment', 'view_paymentinvoice'
+                'view_payment_verification_dashboard', 'can_verify_payment', 'view_paymentinvoice'
             ],
             "Organization Admin": [
-                'view_deal', 'add_deal', 'edit_deal', 
-                'view_client', 'add_client', 'edit_client'
+                'view_deal', 'add_deal', 'edit_deal', 'delete_deal',
+                'view_client', 'add_client', 'edit_client', 'delete_client'
             ],
             "Salesperson": [
-                'add_deal', 'view_deal', 'add_client', 'view_client'
+                'view_deal', 'add_deal', 'edit_deal',
+                'view_client', 'add_client', 'edit_client',
+                'view_project', 'add_project',
+                'view_dashboard',
+                'view_own_performance',
+                'view_own_commission'
             ],
             "Verifier": [
-                'view_verifierdashboard', 'can_verify_payment', 
-                'view_deal', 'view_paymentinvoice'
+                'view_payment_verification_dashboard',
+                'view_payment_analytics',
+                'manage_invoices',
+                'access_verification_queue',
+                'verify_payments',
+                'reject_payments',
+                'manage_refunds',
+                'view_audit_logs',
+                'view_deal',
+                'view_paymentinvoice',
+                'view_client',
+                'view_project'
             ]
         } 
