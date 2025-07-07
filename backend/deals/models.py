@@ -130,8 +130,20 @@ class Payment(models.Model):
         return f"payment for {self.deal.deal_id} on {self.payment_date}"
     
     def save(self, *args, **kwargs):
+        # Validate cheque number for uniqueness before saving
+        if self.cheque_number:
+            # Check for other payments with the same cheque number within the same organization
+            # This check is now more robust by scoping to the organization
+            organization = self.deal.organization
+            if Payment.objects.filter(
+                deal__organization=organization,
+                cheque_number=self.cheque_number
+            ).exclude(pk=self.pk).exists():
+                from django.core.exceptions import ValidationError
+                raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
+
         # Enhanced image compression with security checks
-        if self.receipt_file and self.receipt_file.size > 1024 * 1024: # 1MB
+        if self.receipt_file and hasattr(self.receipt_file, 'size') and self.receipt_file.size > 1024 * 1024: # 1MB
             try:
                 # Security: Verify file is actually an image before processing
                 img = Image.open(self.receipt_file)
@@ -199,4 +211,78 @@ class ActivityLog(models.Model):
     
     def __str__(self):
         return f"{self.timestamp} -- {self.message}"
-    
+
+##Payment Invoice Section (a payment invoice is created when a payment model is created.. signals.py handles this creation)
+##
+class PaymentInvoice(models.Model):
+    INVOICE_STATUS = [
+        ('verified', 'Verified'),
+        ('pending', 'Pending Verification'),
+        ('rejected', 'Rejected'),
+        ('refunded','Refunded'),
+        ('bad_debt','Bad Debt'),
+    ]
+    invoice_id = models.CharField(max_length=50)
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='invoices')
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='invoices')
+    invoice_date = models.DateField(auto_now_add=True)
+    invoice_status = models.CharField(max_length=50, choices=INVOICE_STATUS, default='pending')
+    def _str_(self):
+        return f"Invoice for {self.deal.deal_id} - {self.invoice_date}"
+    def save(self, *args, **kwargs):
+        if not self.invoice_id:
+            last_invoice = PaymentInvoice.objects.filter(deal__organization = self.deal.organization,invoice_id__startswith='INV-').order_by("-invoice_id").first()
+            if last_invoice:
+                last_number = int(last_invoice.invoice_id[4:])
+                new_number = last_number + 1
+            else:
+                new_number = 1
+            self.invoice_id = f"INV-{new_number:04d}"
+        super().save(*args, **kwargs)
+class PaymentApproval(models.Model):
+    FAILURE_REMARKS = [
+        ('insufficient_funds', 'Insufficient Funds'),
+        ('bank_decline', 'Bank Decline'),
+        ('technical_error', 'Technical Error'),
+        ('cheque_bounce', 'Cheque Bounce'),
+        ('payment_received_not_reflected', 'Payment Received but not Reflected'),
+    ]
+    inovice_file = models.FileField(
+        upload_to='invoices/',
+        blank=True,
+        null=True,
+        validators=[validate_file_security]
+    )
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='approvals',blank=True,null=True)
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='approvals')
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='payment_approvals')
+    approval_date = models.DateField(auto_now_add=True)
+    approved_remarks = models.TextField(blank=True, null=True)
+    failure_remarks = models.CharField(max_length=50, choices=FAILURE_REMARKS, blank=True, null=True)
+    amount_in_invoice = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    def __str__(self):
+        return f"Approval for {self.payment.deal.deal_id} - {self.approval_date}"
+    def save(self, *args, **kwargs):
+        if not self.deal and self.payment:
+            self.deal = self.payment.deal
+        super().save(*args, **kwargs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

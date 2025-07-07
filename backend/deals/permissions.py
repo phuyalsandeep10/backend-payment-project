@@ -24,6 +24,7 @@ class HasPermission(BasePermission):
                 'create': ['create_deal'],
                 'retrieve': ['view_all_deals', 'view_own_deals'],
                 'expand': ['view_all_deals', 'view_own_deals'],
+                'list_invoices': ['view_all_deals', 'view_own_deals'],
                 'update': ['edit_deal'],
                 'partial_update': ['edit_deal'],
                 'destroy': ['delete_deal'],
@@ -49,6 +50,24 @@ class HasPermission(BasePermission):
                 'partial_update': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],  # Allow through for proper 405
                 'destroy': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],  # Allow through for proper 405
             }
+        elif viewset_name == 'PaymentInvoiceViewSet':
+            required_perms_map = {
+                'list': ['view_paymentinvoice', 'view_all_deals'],
+                'create': ['create_paymentinvoice'],
+                'retrieve': ['view_paymentinvoice', 'view_all_deals'],
+                'update': ['edit_paymentinvoice'],
+                'partial_update': ['edit_paymentinvoice'],
+                'destroy': ['delete_paymentinvoice'],
+            }
+        elif viewset_name == 'PaymentApprovalViewSet':
+            required_perms_map = {
+                'list': ['view_paymentapproval', 'view_all_deals'],
+                'create': ['create_paymentapproval'],
+                'retrieve': ['view_paymentapproval', 'view_all_deals'],
+                'update': ['edit_paymentapproval'],
+                'partial_update': ['edit_paymentapproval'],
+                'destroy': ['delete_paymentapproval'],
+            }
         else:
             required_perms_map = {}
         
@@ -57,7 +76,7 @@ class HasPermission(BasePermission):
         # If no specific permission is required for an action, deny by default
         if not required_perms:
             return False
-            
+
         # Check if the user's role has any of the required permissions
         return request.user.role.permissions.filter(codename__in=required_perms).exists()
 
@@ -70,13 +89,31 @@ class HasPermission(BasePermission):
         if not request.user or not request.user.role:
             return False
 
-        # Object-level check: ensure user belongs to the same organization as the deal
-        if obj.organization != request.user.organization:
+        # Get organization from the object based on its type
+        if hasattr(obj, 'organization'):
+            # Deal objects have direct organization attribute
+            obj_organization = obj.organization
+        elif hasattr(obj, 'deal') and hasattr(obj.deal, 'organization'):
+            # PaymentInvoice and PaymentApproval objects have organization through deal
+            obj_organization = obj.deal.organization
+        else:
+            # For other objects, deny access
+            return False
+
+        # Object-level check: ensure user belongs to the same organization as the object
+        if obj_organization != request.user.organization:
             return False
 
         # If user only has 'view_own_deals', check if they created the deal
         if not request.user.role.permissions.filter(codename='view_all_deals').exists() and \
            request.user.role.permissions.filter(codename='view_own_deals').exists():
-            return obj.created_by == request.user
+            # For Deal objects, check created_by
+            if hasattr(obj, 'created_by'):
+                return obj.created_by == request.user
+            # For PaymentInvoice and PaymentApproval, check the deal's created_by
+            elif hasattr(obj, 'deal') and hasattr(obj.deal, 'created_by'):
+                return obj.deal.created_by == request.user
+            else:
+                return False
             
         return True 

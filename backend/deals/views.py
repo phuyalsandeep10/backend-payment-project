@@ -1,8 +1,9 @@
 from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
-from .models import Deal, Payment, ActivityLog
+from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
 from .serializers import (
-    DealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer
+    DealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer,
+    PaymentInvoiceSerializer, PaymentApprovalSerializer
 )
 from .permissions import HasPermission
 from rest_framework.response import Response
@@ -59,6 +60,13 @@ class DealViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(deal)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'], url_path='invoices')
+    def list_invoices(self, request, pk=None):
+        deal = self.get_object()
+        invoices = PaymentInvoice.objects.filter(deal=deal)
+        serializer = PaymentInvoiceSerializer(invoices, many=True)
+        return Response(serializer.data)
+
 class PaymentViewSet(viewsets.ModelViewSet):
     """
     A viewset for managing Payments for a specific Deal.
@@ -92,3 +100,35 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         
         # The permission class already ensures the user can view the deal.
         return ActivityLog.objects.filter(deal=deal).order_by('-timestamp')
+
+class PaymentInvoiceViewSet(viewsets.ModelViewSet):
+    queryset = PaymentInvoice.objects.all()
+    serializer_class = PaymentInvoiceSerializer
+    permission_classes = [HasPermission]
+
+    def get_queryset(self):
+        # Prevent crash during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return PaymentInvoice.objects.none()
+        
+        # Filter by the organization of the logged-in user
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'organization'):
+            return PaymentInvoice.objects.filter(deal__organization=self.request.user.organization)
+        
+        return PaymentInvoice.objects.none()
+
+class PaymentApprovalViewSet(viewsets.ModelViewSet):
+    queryset = PaymentApproval.objects.all()
+    serializer_class = PaymentApprovalSerializer
+    permission_classes = [HasPermission]
+
+    def get_queryset(self):
+        # Prevent crash during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return PaymentApproval.objects.none()
+        
+        # Filter by the organization of the logged-in user
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'organization'):
+            return PaymentApproval.objects.filter(deal__organization=self.request.user.organization)
+        
+        return PaymentApproval.objects.none()

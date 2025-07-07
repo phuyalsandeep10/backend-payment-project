@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Deal, Payment, ActivityLog
+from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
 from authentication.serializers import UserLiteSerializer
 from clients.serializers import ClientLiteSerializer
 from clients.models import Client
@@ -10,7 +10,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = ActivityLog
-        fields = ['id', 'message', 'timestamp']
+        fields = '__all__'
 
 class PaymentSerializer(serializers.ModelSerializer):
     """
@@ -119,3 +119,13 @@ class DealUpdateSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+class PaymentInvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentInvoice
+        fields = '__all__'
+
+class PaymentApprovalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentApproval
+        fields = '__all__'

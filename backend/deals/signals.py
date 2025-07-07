@@ -1,6 +1,6 @@
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from .models import Deal, Payment, ActivityLog
+from .models import Deal, Payment, ActivityLog, PaymentInvoice
 
 # A simple cache to store the state of a deal before it's saved.
 _pre_save_deal_cache = {}
@@ -53,4 +53,32 @@ def log_payment_activity(sender, instance, created, **kwargs):
         # This part is less common, but we can log updates if needed.
         # For now, focusing on creation is sufficient for a clean log.
         pass
+
+@receiver(post_save, sender=Payment)
+def create_invoice_on_payment(sender,instance,created,**kwargs):
+    if created:
+        PaymentInvoice.objects.create(
+            payment=instance,
+            # if you have a deal FK in PaymentInvoice
+            deal=instance.deal,  # Only if deal field exists in PaymentInvoice
+            # invoice_date and invoice_file will be auto-handled
+        )
+
+@receiver(post_save, sender='deals.PaymentApproval')
+def update_invoice_status_on_approval(sender, instance, created, **kwargs):
+    """
+    Update the related PaymentInvoice status when a PaymentApproval is created or updated.
+    """
+    try:
+        invoice = PaymentInvoice.objects.get(payment=instance.payment)
         
+        # Logic to determine the new invoice status based on approval
+        if instance.failure_remarks:
+            invoice.invoice_status = 'rejected'
+        else:
+            invoice.invoice_status = 'verified'
+        
+        invoice.save()
+    except PaymentInvoice.DoesNotExist:
+        # Handle case where invoice might not exist, though it should with current signals
+        pass
