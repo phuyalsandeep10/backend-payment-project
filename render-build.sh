@@ -7,4 +7,5 @@ pip install -r backend/requirements.txt
 
 # Change to backend directory and run migrations
 cd backend
+python manage.py migrate --fake Sales_dashboard 0002_add_user_to_dailystreakrecord
 python manage.py migrate
