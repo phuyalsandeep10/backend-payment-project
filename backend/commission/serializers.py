@@ -3,16 +3,27 @@ from .models import Commission
 
 class CommissionSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Commission model. Handles creation and updates.
+    Serializer for the Commission model to match frontend expectations.
     """
+    fullName = serializers.ReadOnlyField(source='full_name')
+    totalSales = serializers.DecimalField(source='total_sales', max_digits=12, decimal_places=2)
+    convertedAmt = serializers.ReadOnlyField(source='converted_amt')
+    totalReceivable = serializers.ReadOnlyField(source='total_receivable')
+
     class Meta:
         model = Commission
         fields = [
-            'id', 'user', 'organization', 'total_sales', 
-            'commission_percentage', 'converted_amount',
-            'start_date', 'end_date', 'created_at', 'updated_at'
+            'id', 'fullName', 'totalSales', 'currency', 'rate', 'percentage', 
+            'bonus', 'penalty', 'convertedAmt', 'total', 'totalReceivable',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['converted_amount']
+        read_only_fields = ['organization']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['createdAt'] = instance.created_at.isoformat()
+        representation['updatedAt'] = instance.updated_at.isoformat()
+        return representation
 
     def create(self, validated_data):
         user = self.context['request'].user
