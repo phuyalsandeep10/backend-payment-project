@@ -35,19 +35,6 @@ import logging
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-# Create your views here.
-
-# Removed redundant StreakView class - using function-based view with Swagger documentation
-
-# Removed redundant StreakLeaderboardView class - using function-based view with Swagger documentation
-
-# Removed redundant DashboardView class - using function-based view with Swagger documentation
-
-# Removed redundant DailyStandingsView class - using function-based view with Swagger documentation
-
-# Removed redundant CommissionOverviewView class - using function-based view with Swagger documentation
-
-# Removed redundant SalespersonClientListView class - using function-based view with Swagger documentation
 
 @swagger_auto_schema(
     method='get',
@@ -968,6 +955,7 @@ def get_team_standings(user, start_date, end_date, limit, request):
             'rank': rank,
             'team_id': team.id,
             'team_name': team.name,
+            'sales_amount': team.total_sales or Decimal('0.00'),
             'member_count': team.members.count(),
             'team_deals': Deal.objects.filter(created_by__in=team.members.all(), deal_date__range=(start_date, end_date), verification_status='verified').count(),
             'avg_streak': team.members.aggregate(Avg('streak'))['streak__avg'] or 0,

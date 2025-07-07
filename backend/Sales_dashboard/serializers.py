@@ -242,7 +242,7 @@ class TeamStandingSerializer(serializers.Serializer):
     team_id = serializers.IntegerField()
     team_name = serializers.CharField()
     team_lead_profile_picture = serializers.URLField(allow_null=True)
-    total_sales = serializers.DecimalField(max_digits=15, decimal_places=2)
+    sales_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
     team_deals = serializers.IntegerField()
     avg_streak = serializers.FloatField()
     member_count = serializers.IntegerField()
