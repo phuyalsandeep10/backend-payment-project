@@ -125,7 +125,9 @@ def payment_stats(request):
         total_refunds = payment_invoice.filter(invoice_status='refunded').count()
         total_refunded_amount = payment_invoice.filter(invoice_status='refunded').aggregate(Sum('payment__received_amount'))['payment__received_amount__sum'] or 0
        
-        avg_transactional_value = payment_invoice.filter(invoice_status='verified').aggregate(avg=Avg('payment__received_amount'))['avg'] or 0
+        avg_transactional_value_raw = payment_invoice.filter(invoice_status='verified').aggregate(avg=Avg('payment__received_amount'))['avg'] or 0
+        avg_transactional_value = round(avg_transactional_value_raw, 2)
+        
         # Get chart data
         chart_data = get_verifier_chart_data(user.organization, period)
 

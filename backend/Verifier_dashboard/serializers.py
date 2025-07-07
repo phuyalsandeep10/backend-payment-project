@@ -11,9 +11,10 @@ class PaymentStatusSerializer(serializers.Serializer):
     total_successful_payments = serializers.IntegerField()
     total_unsuccess_payments = serializers.IntegerField()
     total_verification_pending_payments = serializers.IntegerField()
-    total_revenue = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_revenue = serializers.DecimalField(max_digits=20, decimal_places=2)
     total_refunds = serializers.IntegerField()
-    total_refunded_amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_refunded_amount = serializers.DecimalField(max_digits=20, decimal_places=2, default=0)
+    avg_transactional_value = serializers.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     chart_data = serializers.DictField(child=serializers.ListField(child=serializers.DictField()))
     
     
@@ -73,11 +74,11 @@ class InvoiceStatusSerializer(serializers.Serializer):
     """
     Serializer for invoice status.
     """
-    pending_invoices = serializers.IntegerField()
-    paid_invoices = serializers.IntegerField()
-    rejected_invoices = serializers.IntegerField()
-    refunded_invoices = serializers.IntegerField()
-    bad_debt_invoices = serializers.IntegerField()
+    pending_invoices = serializers.FloatField()
+    paid_invoices = serializers.FloatField()
+    rejected_invoices = serializers.FloatField()
+    refunded_invoices = serializers.FloatField()
+    bad_debt_invoices = serializers.FloatField()
 
     
 class AuditLogSerializer(serializers.ModelSerializer):
