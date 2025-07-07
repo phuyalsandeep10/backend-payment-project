@@ -46,6 +46,14 @@ class User(AbstractUser):
     """
     Custom user model with roles and organization linkage.
     """
+    # Status choices to match frontend expectations
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('invited', 'Invited'),
+        ('suspended', 'Suspended'),
+    ]
+    
     # Use email as the primary identifier
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField('email address', unique=True)
@@ -57,11 +65,27 @@ class User(AbstractUser):
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     contact_number = models.CharField(max_length=20, blank=True, null=True)
     team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
+    
+    # Additional fields to match frontend expectations
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    avatar = models.URLField(blank=True, null=True, help_text="URL to user's avatar image")
+    must_change_password = models.BooleanField(default=False, help_text="Require user to change password at next login")
+    address = models.TextField(blank=True, null=True, help_text="User's address")
 
     objects = CustomUserManager()
 
     def __str__(self):
         return self.email
+
+    @property
+    def name(self):
+        """Combined name property to match frontend expectations"""
+        return f"{self.first_name} {self.last_name}".strip() or self.username
+
+    @property
+    def phone_number(self):
+        """Alias for contact_number to match frontend expectations"""
+        return self.contact_number
 
 
 class UserSession(models.Model):
@@ -76,3 +100,90 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user.email}'s session from {self.ip_address}"
+
+
+class Notification(models.Model):
+    """
+    Model for user notifications
+    """
+    TYPE_CHOICES = [
+        ('info', 'Info'),
+        ('success', 'Success'),
+        ('warning', 'Warning'),
+        ('error', 'Error'),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField(blank=True, null=True)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='info')
+    is_read = models.BooleanField(default=False)
+    action_url = models.URLField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} - {self.user.email}"
+
+
+class Activity(models.Model):
+    """
+    Model for tracking activities/events
+    """
+    TYPE_CHOICES = [
+        ('meeting', 'Meeting'),
+        ('call', 'Call'),
+        ('email', 'Email'),
+        ('note', 'Note'),
+        ('system', 'System'),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='activities')
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='note')
+    description = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # Optional reference to related objects
+    related_client = models.ForeignKey('clients.Client', on_delete=models.CASCADE, null=True, blank=True)
+    related_team = models.ForeignKey('team.Team', on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.type} - {self.description[:50]}"
+
+
+class UserNotificationPreferences(models.Model):
+    """
+    Model for user notification preferences
+    """
+    TIMEOUT_CHOICES = [
+        ('select', 'Select the Option'),
+        ('15', '15 Minutes'),
+        ('30', '30 Minutes'),
+        ('60', '1 Hour'),
+        ('1days', '1 Day'),
+        ('7days', '7 Days'),
+        ('never', 'Never'),
+    ]
+    
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notification_preferences')
+    desktop_notifications = models.BooleanField(default=True, help_text="Enable desktop notifications")
+    unread_badge = models.BooleanField(default=False, help_text="Show unread notification badge")
+    push_timeout = models.CharField(max_length=20, choices=TIMEOUT_CHOICES, default='select', help_text="Push notification timeout")
+    communication_emails = models.BooleanField(default=True, help_text="Receive communication emails")
+    announcements_updates = models.BooleanField(default=False, help_text="Receive announcements and updates")
+    notification_sounds = models.BooleanField(default=True, help_text="Enable notification sounds")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Notification Preferences"
+        verbose_name_plural = "User Notification Preferences"
+
+    def __str__(self):
+        return f"{self.user.email}'s notification preferences"
