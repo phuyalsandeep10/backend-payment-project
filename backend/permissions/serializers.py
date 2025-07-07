@@ -1,11 +1,14 @@
 from rest_framework import serializers
-from .models import Permission, Role
+from django.contrib.auth.models import Permission
+from .models import Role
 from organization.models import Organization
 
 class PermissionSerializer(serializers.ModelSerializer):
+    content_type = serializers.StringRelatedField(read_only=True)
+    
     class Meta:
         model = Permission
-        fields = ['id', 'name', 'codename', 'category']
+        fields = ['id', 'name', 'codename', 'content_type']
 
 class RoleSerializer(serializers.ModelSerializer):
     permissions = serializers.PrimaryKeyRelatedField(

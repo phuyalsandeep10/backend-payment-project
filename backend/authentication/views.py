@@ -159,7 +159,6 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     Handles retrieving and updating the authenticated user's profile.
     Supports GET and PUT/PATCH requests.
     """
-    serializer_class = UserDetailSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
@@ -173,7 +172,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         """
         if self.request.method in ['PUT', 'PATCH']:
             return UserUpdateSerializer
-        return super().get_serializer_class()
+        return UserDetailSerializer
 
 @swagger_auto_schema(
     method='post',

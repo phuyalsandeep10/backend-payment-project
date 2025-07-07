@@ -29,7 +29,7 @@ class Command(BaseCommand):
         if not all([salespersons, verifiers, clients, projects]):
             self.stdout.write(self.style.ERROR("Key data (Users, Clients, Projects) not found. Please run 'initialize_app' first."))
             return
-            
+
         self.create_additional_deals(salespersons, clients, projects, verifiers, 50)
         self.create_guaranteed_recent_data(salespersons[0], clients, projects, verifiers)
 
@@ -40,13 +40,13 @@ class Command(BaseCommand):
         for _ in range(count):
             salesperson = random.choice(salespersons)
             deal_date = self.faker.date_between(start_date='-4M', end_date='-1M')
-            deal = Deal.objects.create(
+        deal = Deal.objects.create(
                 organization=salesperson.organization,
-                client=random.choice(clients),
-                project=random.choice(projects) if projects and random.random() > 0.5 else None,
-                deal_name=self.faker.bs().title(),
+            client=random.choice(clients),
+            project=random.choice(projects) if projects and random.random() > 0.5 else None,
+            deal_name=self.faker.bs().title(),
                 deal_value=Decimal(random.randint(1000, 25000)),
-                deal_date=deal_date,
+            deal_date=deal_date,
                 payment_method=random.choice([c[0] for c in Deal.PAYMENT_METHOD_CHOICES]),
                 source_type=random.choice([c[0] for c in Deal.SOURCE_TYPES]),
                 created_by=salesperson,

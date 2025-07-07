@@ -199,6 +199,7 @@ def verifier_invoice(request):
         data = []
         for invoice in invoices:
             data.append({
+                'payment_id': invoice.payment.id,
                 'invoice_id': invoice.invoice_id,
                 'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
                 'deal_name': invoice.deal.deal_id,
@@ -262,6 +263,7 @@ def verifier_pending(request):
         data = []
         for invoice in invoices:
             data.append({
+                'payment_id': invoice.payment.id,
                 'invoice_id': invoice.invoice_id,
                 'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
                 'deal_name': invoice.deal.deal_id,
@@ -294,6 +296,7 @@ def verifier_verified(request):
         data = []
         for invoice in invoices:
             data.append({
+                'payment_id': invoice.payment.id,
                 'invoice_id': invoice.invoice_id,
                 'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
                 'deal_name': invoice.deal.deal_id,
@@ -325,6 +328,7 @@ def verifier_rejected(request):
         data = []
         for invoice in invoices:
             data.append({
+                'payment_id': invoice.payment.id,
                 'invoice_id': invoice.invoice_id,
                 'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
                 'deal_name': invoice.deal.deal_id,
@@ -748,58 +752,76 @@ def audit_logs(request):
 @permission_classes([HasVerifierPermission])
 def payment_verifier_form(request, payment_id):
     try:
-        # Retrieve the payment and its associated invoice
-        payment = Payment.objects.get(id=payment_id)
+        # Retrieve the payment and its associated invoice, ensuring it belongs to the user's organization
+        payment = Payment.objects.select_related('deal').get(id=payment_id, deal__organization=request.user.organization)
         invoice = PaymentInvoice.objects.get(payment=payment)
-
-        # Check if the user has permission to verify this payment
-        # (You might want to add more specific object-level permission checks)
-        if not request.user.has_perm('deals.verify_payments'):
-            return Response({'status': 'error', 'message': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-
-        # Update the invoice status based on the approval_status
-        approval_status = request.data.get('approval_status')
-        if approval_status == 'approved':
-            invoice.invoice_status = 'verified'
-        elif approval_status == 'rejected':
-            invoice.invoice_status = 'rejected'
-        elif approval_status == 'bad_debt':
-            invoice.invoice_status = 'bad_debt'
-        
-        # Save the invoice
-        invoice.save()
-
-        # Log the audit trail directly
-        AuditLogs.objects.create(
-            user=request.user,
-            action=f"Invoice status changed to {invoice.invoice_status}",
-            details=f"Invoice {invoice.invoice_id} status was changed to {invoice.invoice_status} by {request.user.username}",
-            organization=request.user.organization
-        )
-
-        # Create the PaymentApproval entry
-        remarks = request.data.get('remarks')
-        approval_data = {
-            'payment': invoice.payment,
-            'approved_by': request.user,
-            'amount_in_invoice': invoice.payment.received_amount,
-            'approved_remarks': remarks
-        }
-
-        approval = PaymentApproval(**approval_data)
-        approval.save()
-
-        # Return a success response
-        return Response({
-            'status': 'success',
-            'message': 'Invoice status successfully updated.',
-            'level': 'success',
-        }, status=status.HTTP_200_OK)
-
     except Payment.DoesNotExist:
+        logger.warning(f"User {request.user.id} attempted to access non-existent payment {payment_id}")
         return Response({'status': 'error', 'message': 'Payment not found.'}, status=status.HTTP_404_NOT_FOUND)
     except PaymentInvoice.DoesNotExist:
+        logger.error(f"Data integrity issue: Invoice not found for payment {payment_id}")
         return Response({'status': 'error', 'message': 'Invoice not found for the given payment.'}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        # Log the exception for debugging
-        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    if request.method == 'GET':
+        try:
+            deal_serializer = DealSerializer(payment.deal)
+            payment_serializer = PaymentSerializer(payment)
+            return Response({
+                'deal': deal_serializer.data,
+                'payment': payment_serializer.data
+            })
+        except Exception as e:
+            logger.exception(f"Error serializing data for payment_verifier_form (GET) for payment {payment_id}: {e}")
+            return Response({'status': 'error', 'message': 'An error occurred while retrieving form data.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'POST':
+        try:
+            approval_status = request.data.get('approval_status')
+            remarks = request.data.get('remarks', '')
+
+            # Validate approval_status
+            valid_statuses = ['approved', 'rejected', 'bad_debt']
+            if approval_status not in valid_statuses:
+                return Response({'status': 'error', 'message': f'Invalid approval status. Must be one of {valid_statuses}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update the invoice status based on the approval_status
+            status_map = {
+                'approved': 'verified',
+                'rejected': 'rejected',
+                'bad_debt': 'bad_debt'
+            }
+            invoice.invoice_status = status_map[approval_status]
+            invoice.save()
+
+            # Log the audit trail
+            AuditLogs.objects.create(
+                user=request.user,
+                action=f"Invoice status changed to {invoice.invoice_status}",
+                details=f"Invoice {invoice.invoice_id} for Deal {invoice.deal.deal_id} status was changed to {invoice.invoice_status} by {request.user.username}. Remarks: {remarks}",
+                organization=request.user.organization
+            )
+            
+            # Create the PaymentApproval entry using the serializer for validation
+            approval_data = {
+                'payment': payment.id,
+                'approved_by': request.user.id,
+                'approval_status': approval_status,
+                'remarks': remarks,
+                'deal': payment.deal.id
+            }
+            
+            approval_serializer = PaymentApprovalSerializer(data=approval_data)
+            if approval_serializer.is_valid():
+                approval_serializer.save()
+                logger.info(f"User {request.user.id} successfully processed payment {payment_id} with status '{approval_status}'")
+                return Response({
+                    'status': 'success',
+                    'message': 'Invoice status successfully updated.',
+                }, status=status.HTTP_200_OK)
+            else:
+                logger.error(f"Validation failed for PaymentApproval on payment {payment_id} by user {request.user.id}: {approval_serializer.errors}")
+                return Response({'status': 'error', 'message': 'Invalid data submitted.', 'errors': approval_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.exception(f"Error processing payment verification (POST) for payment {payment_id} by user {request.user.id}: {e}")
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

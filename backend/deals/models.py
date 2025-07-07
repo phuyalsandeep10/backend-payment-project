@@ -78,6 +78,13 @@ class Deal(models.Model):
     
     class Meta:
         unique_together = ('organization','deal_id')
+        permissions = [
+            ("manage_invoices", "Can manage invoices"),
+            ("access_verification_queue", "Can access verification queue"),
+            ("verify_deal_payment", "Can verify deal payments"),
+            ("manage_refunds", "Can manage refunds"),
+            ("verify_payments", "Can verify payments"),
+        ]
         
     def save(self,*args,**kwargs):
         is_new = self._state.adding

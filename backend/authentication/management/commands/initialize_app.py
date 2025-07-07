@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from faker import Faker
+from django.contrib.auth.models import Permission
 
 from Verifier_dashboard.models import AuditLogs
 from authentication.models import User
@@ -15,7 +16,7 @@ from commission.models import Commission
 from deals.models import Deal, Payment, PaymentApproval, PaymentInvoice, ActivityLog
 from notifications.models import Notification, NotificationSettings
 from organization.models import Organization
-from permissions.models import Permission, Role
+from permissions.models import Role
 from project.models import Project
 from team.models import Team
 
@@ -30,11 +31,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING("--- Flushing the database ---"))
         os.system('python manage.py flush --no-input')
         self.stdout.write(self.style.SUCCESS("✅ Database flushed."))
+        
+        # Ensure all permissions are recreated after flush
+        self.stdout.write(self.style.WARNING("--- Recreating permissions ---"))
+        os.system('python manage.py migrate')
+        self.stdout.write(self.style.SUCCESS("✅ Permissions recreated."))
 
         try:
-            permissions_data = self.create_permissions_and_roles()
             organization = self.create_organization()
-            users = self.create_users(organization, permissions_data)
+            users = self.create_users(organization)
             self.create_teams(organization, users)
             clients = self.create_clients(organization, users)
             projects = self.create_projects(users)
@@ -51,59 +56,21 @@ class Command(BaseCommand):
             import traceback
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
 
-    def create_permissions_and_roles(self):
-        self.stdout.write(self.style.HTTP_INFO("--- Creating Custom Permissions ---"))
-        permissions_data = [
-            {'name': 'View Client', 'codename': 'view_client', 'category': 'clients'},
-            {'name': 'Add Client', 'codename': 'add_client', 'category': 'clients'},
-            {'name': 'Edit Client', 'codename': 'edit_client', 'category': 'clients'},
-            {'name': 'Delete Client', 'codename': 'delete_client', 'category': 'clients'},
-            {'name': 'View Deal', 'codename': 'view_deal', 'category': 'deals'},
-            {'name': 'Add Deal', 'codename': 'add_deal', 'category': 'deals'},
-            {'name': 'Edit Deal', 'codename': 'edit_deal', 'category': 'deals'},
-            {'name': 'Delete Deal', 'codename': 'delete_deal', 'category': 'deals'},
-            {'name': 'Verify Deal Payment', 'codename': 'verify_deal_payment', 'category': 'deals'},
-            {'name': 'Log Deal Activity', 'codename': 'log_deal_activity', 'category': 'deals'},
-            {'name': 'View Payment Invoice', 'codename': 'view_paymentinvoice', 'category': 'deals'},
-            {'name': 'Create Payment Invoice', 'codename': 'create_paymentinvoice', 'category': 'deals'},
-            {'name': 'Edit Payment Invoice', 'codename': 'edit_paymentinvoice', 'category': 'deals'},
-            {'name': 'Delete Payment Invoice', 'codename': 'delete_paymentinvoice', 'category': 'deals'},
-            {'name': 'View Payment Approval', 'codename': 'view_paymentapproval', 'category': 'deals'},
-            {'name': 'Create Payment Approval', 'codename': 'create_paymentapproval', 'category': 'deals'},
-            {'name': 'Edit Payment Approval', 'codename': 'edit_paymentapproval', 'category': 'deals'},
-            {'name': 'Delete Payment Approval', 'codename': 'delete_paymentapproval', 'category': 'deals'},
-            {'name': 'View Project', 'codename': 'view_project', 'category': 'projects'},
-            {'name': 'Add Project', 'codename': 'add_project', 'category': 'projects'},
-            {'name': 'View Verifier Dashboard', 'codename': 'view_payment_verification_dashboard', 'category': 'verifier_dashboard'},
-            {'name': 'Can Verify Payment', 'codename': 'can_verify_payment', 'category': 'verifier_dashboard'},
-            {'name': 'View Payment Analytics', 'codename': 'view_payment_analytics', 'category': 'verifier_dashboard'},
-            {'name': 'Manage Invoices', 'codename': 'manage_invoices', 'category': 'verifier_dashboard'},
-            {'name': 'Access Verification Queue', 'codename': 'access_verification_queue', 'category': 'verifier_dashboard'},
-            {'name': 'Verify Payments', 'codename': 'verify_payments', 'category': 'verifier_dashboard'},
-            {'name': 'Reject Payments', 'codename': 'reject_payments', 'category': 'verifier_dashboard'},
-            {'name': 'Manage Refunds', 'codename': 'manage_refunds', 'category': 'verifier_dashboard'},
-            {'name': 'View Audit Logs', 'codename': 'view_audit_logs', 'category': 'verifier_dashboard'},
-        ]
-        for perm_data in permissions_data:
-            Permission.objects.get_or_create(codename=perm_data['codename'], defaults={'name': perm_data['name'], 'category': perm_data['category']})
-        self.stdout.write(self.style.SUCCESS(f"✅ Created/verified {len(permissions_data)} permissions."))
-        return permissions_data
-
     def create_organization(self):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Organization ---"))
         organization, _ = Organization.objects.get_or_create(name="Innovate Inc.", defaults={'sales_goal': Decimal("500000.00"), 'description': fake.bs()})
         self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created."))
         return organization
 
-    def create_users(self, organization, permissions_data):
+    def create_users(self, organization):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
-        role_permissions = self.get_role_permissions(permissions_data)
+        role_permissions = self.get_role_permissions()
         for role_name, perms in role_permissions.items():
             role, _ = Role.objects.get_or_create(name=role_name, organization=None)
             permissions = Permission.objects.filter(codename__in=perms)
-            role.permissions.set(permissions)
+            role.permissions.set([p.pk for p in permissions])
             self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
-        
+
         users = {}
         user_data = {
             "Super Admin": [("superadmin", "super@innovate.com")],
@@ -233,33 +200,69 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO(f"--- Creating 5-day Deal Streak for {salesperson.username} ---"))
         today = timezone.now().date()
         for i in range(5):
+            # Create deals for the last 5 consecutive days
             deal_date = today - timedelta(days=i)
-            deal = Deal.objects.create(organization=salesperson.organization, client=random.choice(clients), project=random.choice(projects) if projects and random.random() > 0.5 else None, deal_name=f"Streak Deal Day {i+1}", deal_value=Decimal(random.randint(500, 2000)), deal_date=deal_date, payment_method='bank', source_type='referral', created_by=salesperson, payment_status='initial payment')
-            self.create_payment_flow(deal, deal.deal_value, deal_date, random.choice(verifiers), 'verified_full')
+            deal = Deal.objects.create(
+                organization=salesperson.organization,
+                client=random.choice(clients),
+                project=random.choice(projects) if projects and random.random() > 0.5 else None,
+                deal_name=f"Streak Deal Day {i+1}",
+                deal_value=Decimal(random.randint(200, 1000)), # Ensure value is > 101
+                deal_date=deal_date,
+                payment_method='bank',
+                source_type='referral',
+                created_by=salesperson,
+                # Set payment_status directly to meet streak criteria
+                payment_status='initial payment',
+                verification_status='verified' # Ensure it's verified
+            )
+            # Create the corresponding payment and invoice flow
+            self.create_payment_flow(deal, deal.deal_value / 2, deal_date, random.choice(verifiers), 'verified')
 
-    def get_role_permissions(self, permissions_data):
-        sales_perms = ['view_client', 'add_client', 'edit_client', 'view_deal', 'add_deal', 'edit_deal', 'delete_deal', 'log_deal_activity', 'view_project', 'add_project']
-        verifier_perms = [
-            'view_payment_verification_dashboard',
-            'can_verify_payment',
-            'view_payment_analytics',
-            'manage_invoices',
-            'access_verification_queue',
-            'verify_payments',
-            'reject_payments',
-            'manage_refunds',
-            'view_audit_logs',
-            'view_deal',
-            'view_client',
-            'view_project',
-            'verify_deal_payment',
+    def get_role_permissions(self):
+        # Dynamically fetch all permissions for relevant apps from Django's auth model
+        all_perms = Permission.objects.select_related('content_type').all()
+        
+        # Give Salesperson ALL permissions for deals, clients, sales_dashboard, projects, team, commission
+        salesperson_apps = ['deals', 'clients', 'Sales_dashboard', 'project', 'team', 'commission']
+        salesperson_perms_codenames = [
+            p.codename for p in all_perms if p.content_type.app_label in salesperson_apps
+        ]
+        
+        # Give Verifier ALL permissions for deals, clients, Verifier_dashboard, invoices, payments
+        verifier_apps = ['deals', 'clients', 'Verifier_dashboard']
+        verifier_perms_codenames = [
+            p.codename for p in all_perms if p.content_type.app_label in verifier_apps
+        ]
+        
+        # Also add specific permissions that are checked in the permission classes
+        salesperson_additional_perms = [
+            'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',
+            'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
+            'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
+            'view_all_commissions', 'create_commission', 'edit_commission',
+            'view_all_projects', 'view_own_projects', 'create_project', 'edit_project'
+        ]
+        
+        verifier_additional_perms = [
+            'view_all_deals', 'view_own_deals', 'verify_deal_payment', 'verify_payments',
+            'view_all_clients', 'view_own_clients',
             'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
             'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval',
+            'view_payment_verification_dashboard', 'view_payment_analytics', 'manage_invoices',
+            'access_verification_queue', 'manage_refunds', 'view_audit_logs'
         ]
-        admin_perms = sales_perms + verifier_perms + ['delete_client']
+        
+        # Combine dynamic permissions with specific ones
+        final_salesperson_perms = list(set(salesperson_perms_codenames + salesperson_additional_perms))
+        final_verifier_perms = list(set(verifier_perms_codenames + verifier_additional_perms))
+        
+        # Admin gets everything
+        admin_perms_codenames = list(set(final_salesperson_perms + final_verifier_perms))
+        
         return {
-            "Super Admin": [p['codename'] for p in permissions_data],
-            "Organization Admin": admin_perms,
-            "Salesperson": sales_perms,
-            "Verifier": verifier_perms,
+            "Super Admin": [p.codename for p in all_perms],
+            "Organization Admin": admin_perms_codenames,
+            "Salesperson": final_salesperson_perms,
+            "Verifier": final_verifier_perms,
         }

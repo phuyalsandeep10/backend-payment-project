@@ -16,3 +16,10 @@ class AuditLogs(models.Model):
 
     def __str__(self):
         return f"{self.action} by {self.user} on {self.timestamp}"
+
+    class Meta:
+        permissions = [
+            ("view_payment_verification_dashboard", "Can view payment verification dashboard"),
+            ("view_payment_analytics", "Can view payment analytics"),
+            ("view_audit_logs", "Can view audit logs"),
+        ]

@@ -19,6 +19,7 @@ class PaymentStatusSerializer(serializers.Serializer):
     
     
 class VerifierInvoiceSerializer(serializers.Serializer):
+    payment_id = serializers.IntegerField()
     invoice_id = serializers.CharField(max_length=50)
     client_name = serializers.CharField(max_length=255)
     deal_name =  serializers.CharField(max_length=255)

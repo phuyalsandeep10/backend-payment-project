@@ -16,7 +16,7 @@ from commission.models import Commission
 from organization.models import Organization
 from team.models import Team
 from .models import DailyStreakRecord
-from .utils import calculate_streaks_for_user_login
+from .utils import calculate_streaks_for_user_login, calculate_streaks_from_date
 from authentication.models import UserProfile
 from .serializers import (
     DashboardResponseSerializer, DashboardQuerySerializer,
@@ -31,6 +31,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db import models
 import logging
+from .permissions import IsSalesperson
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ logger = logging.getLogger(__name__)
     tags=['Dashboard']
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsSalesperson])
 def dashboard_view(request):
     """
     Main dashboard endpoint that provides comprehensive sales and performance data.
@@ -70,7 +71,9 @@ def dashboard_view(request):
         
         # Trigger streak calculation
         try:
-            calculate_streaks_for_user_login(user)
+            # Force recalculation from 7 days ago to ensure streak data is always fresh for testing
+            seven_days_ago = timezone.now().date() - timedelta(days=7)
+            calculate_streaks_from_date(user, from_date=seven_days_ago, force_recalculate=True)
             user.refresh_from_db()  # Refresh user object to get the updated streak
         except Exception as e:
             logger.warning(f"Warning: Streak calculation failed: {e}")

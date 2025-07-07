@@ -28,7 +28,7 @@ class HasVerifierPermission(BasePermission):
         
         # Verification views
         'verification_queue': ['access_verification_queue'],
-        'payment_verifier_form': ['verify_payments', 'reject_payments'],
+        'payment_verifier_form': ['verify_deal_payment'],
         
         # Refund and bad debt views
         'refunded_invoice': ['manage_refunds'],
@@ -59,9 +59,9 @@ class HasVerifierPermission(BasePermission):
             logger.debug("User is anonymous. Access denied.")
             return False
             
-        # Check if user has a role
-        if not hasattr(request.user, 'role') or not request.user.role:
-            logger.debug(f"User {request.user.email} has no role. Access denied.")
+        # Check if user has a role and if that role is 'Verifier'
+        if not hasattr(request.user, 'role') or not request.user.role or request.user.role.name != 'Verifier':
+            logger.debug(f"User {request.user.email} is not a Verifier. Access denied.")
             return False
         
         logger.debug(f"User: {request.user.email}, Role: {request.user.role.name}")
@@ -144,10 +144,7 @@ class IsVerifier(BasePermission):
         # Check if user has any verifier permission
         verifier_permissions = [
             'view_payment_verification_dashboard',
-            'verify_payments',
-            'reject_payments',
-            'manage_invoices',
-            'access_verification_queue',
+            'verify_deal_payment',
         ]
         
         user_permissions = request.user.role.permissions.values_list('codename', flat=True)

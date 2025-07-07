@@ -80,7 +80,7 @@ class HasPermission(BasePermission):
         # If no specific permission is required for an action, deny by default
         if not required_perms:
             return False
-
+            
         # If 'view_own_deals' is one of the required permissions, and the user has it,
         # defer the final decision to `has_object_permission`.
         if 'view_own_deals' in required_perms and request.user.role.permissions.filter(codename='view_own_deals').exists():

@@ -42,13 +42,19 @@ def calculate_streaks_for_user_login(user):
 
 def calculate_user_streak_for_date(user, target_date):
     """Calculate and update streak for a specific user on a specific date."""
-    
+
+    # Get the streak from the previous day
+    previous_date = target_date - timedelta(days=1)
+    previous_record = DailyStreakRecord.objects.filter(user=user, date=previous_date).first()
+    current_streak = previous_record.streak_value if previous_record else user.streak  # Fallback to user's streak
+
     daily_record, created = DailyStreakRecord.objects.get_or_create(
         user=user,
         date=target_date,
         defaults={
             'deals_closed': 0,
             'total_deal_value': 0,
+            'streak_value': current_streak,
             'streak_updated': False
         }
     )
@@ -75,14 +81,34 @@ def calculate_user_streak_for_date(user, target_date):
 
     # Update streak with partial progress, capping at 5.0
     if deals_count > 0:
-        user.streak = min(5.0, user.streak + 0.5)
+        daily_record.streak_value = min(5.0, current_streak + 0.5)
     else:
-        user.streak = max(0.0, user.streak - 0.5)
+        daily_record.streak_value = max(0.0, current_streak - 0.5)
 
     daily_record.streak_updated = True
     daily_record.save()
+    
+    # Also update the main user model for quick access
+    user.streak = daily_record.streak_value
     user.save(update_fields=['streak'])
 
+def calculate_streaks_from_date(user, from_date, force_recalculate=False):
+    """
+    Calculate user streaks from a specific date up to today.
+    Can be forced to recalculate existing records.
+    """
+    today = timezone.now().date()
+    
+    if force_recalculate:
+        # Delete records from the start date to ensure a clean recalculation
+        DailyStreakRecord.objects.filter(user=user, date__gte=from_date).delete()
+        
+    current_date = from_date
+    while current_date <= today:
+        calculate_user_streak_for_date(user, current_date)
+        current_date += timedelta(days=1)
+    
+    logger.info(f"Calculated streaks for {user.username} from {from_date} to {today} (forced: {force_recalculate})")
 
 STREAK_LEVELS = [
     (50, "Sales Legend"),

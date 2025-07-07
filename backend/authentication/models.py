@@ -18,6 +18,9 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError('The Email must be set')
         email = self.normalize_email(email)
+        # Set username to email if not provided
+        if 'username' not in extra_fields:
+            extra_fields['username'] = email
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -48,7 +51,7 @@ class User(AbstractUser):
     Custom user model with roles and organization linkage.
     """
     # Use email as the primary identifier
-    username = models.CharField(max_length=150, unique=False)
+    username = models.CharField(max_length=150, unique=False, blank=True)
     email = models.EmailField('email address', unique=True)
     
     USERNAME_FIELD = 'email'

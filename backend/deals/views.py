@@ -14,7 +14,7 @@ class DealViewSet(viewsets.ModelViewSet):
     A viewset for managing Deals, with granular permission checks and optimized queries.
     """
     serializer_class = DealSerializer
-    # permission_classes = [HasPermission] # Temporarily disabled for testing
+    permission_classes = [HasPermission]
     lookup_field = 'deal_id'
 
     def get_queryset(self):
@@ -59,6 +59,16 @@ class DealViewSet(viewsets.ModelViewSet):
         """
         deal = self.get_object()
         serializer = self.get_serializer(deal)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='log-activity', serializer_class=ActivityLogSerializer)
+    def log_activity(self, request, deal_id=None):
+        """
+        Returns the activity log for a specific deal.
+        """
+        deal = self.get_object()
+        activities = deal.activity_logs.all().order_by('-timestamp')
+        serializer = self.get_serializer(activities, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path='invoices')
