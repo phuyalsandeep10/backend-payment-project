@@ -105,6 +105,7 @@ INSTALLED_APPS = [
     "deals",
     "notifications",
     'Sales_dashboard',
+    'Verifier_dashboard',
     'django_filters',
     'django_extensions',
 ]

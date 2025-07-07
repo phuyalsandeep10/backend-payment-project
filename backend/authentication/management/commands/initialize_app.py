@@ -1,43 +1,22 @@
-"""
-This management command initializes the application with a comprehensive and realistic dataset.
-It is designed to be idempotent, meaning it can be run multiple times without creating duplicate data.
-
-Key Features:
-- Clears previously generated mock data for a clean slate.
-- Creates a default superuser from environment variables.
-- Calls the `create_default_roles` command to establish role templates.
-- Populates the database with a "TechCorp Solutions" organization.
-- Generates a diverse set of users with different roles (Admin, Manager, Salespersons, Verifier).
-- Creates teams and assigns members.
-- Generates numerous clients and projects.
-- Creates a rich set of deals with varied statuses, sources, and values.
-- Populates related models like Payments, Commissions, and Activity Logs for realism.
-- Uses the Faker library to generate believable, randomized data.
-"""
 import os
 import random
-from datetime import timedelta, date
+from datetime import timedelta
 from decimal import Decimal
-from django.db.models import Sum
 
-from django.conf import settings
-from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from faker import Faker
 
-from authentication.models import User, UserProfile
+from Verifier_dashboard.models import AuditLogs
+from authentication.models import User
 from clients.models import Client
 from commission.models import Commission
-from deals.models import ActivityLog, Deal, Payment
-from notifications.models import NotificationSettings, NotificationTemplate
+from deals.models import Deal, Payment, PaymentApproval, PaymentInvoice
 from organization.models import Organization
-from permissions.models import Role, Permission
+from permissions.models import Permission, Role
 from project.models import Project
-from team.models import Team
 
-# Initialize Faker for data generation
 fake = Faker()
 
 class Command(BaseCommand):
@@ -45,358 +24,267 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        self.faker = Faker()
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
 
-        # Use flush to clear the database completely for a clean slate
+        # Using 'flush' is destructive but ensures a clean slate for development.
         self.stdout.write(self.style.WARNING("--- Flushing the database ---"))
-        call_command('flush', '--no-input')
+        os.system('python manage.py flush --no-input')
         self.stdout.write(self.style.SUCCESS("✅ Database flushed."))
 
         try:
-            self.setup_superadmin()
             self.create_permissions_and_roles()
-            self.create_core_data()
+            organization = self.create_organization()
+            users = self.create_users(organization)
+            clients = self.create_clients(organization, users)
+            projects = self.create_projects(users)
+            
+            # Create a mix of historical and recent data
+            self.create_deals_for_period(users, clients, projects, "historical", 60)
+            self.create_deals_for_period(users, clients, projects, "recent", 15)
+            
+            # Create guaranteed consecutive deals for a specific user to build a streak
+            if 'salestest' in users and [u for u in users.values() if u.role.name == 'Verifier']:
+                self.create_streak_building_deals(users['salestest'], clients, projects, [u for u in users.values() if u.role.name == 'Verifier'])
+
             self.stdout.write(self.style.SUCCESS("✅ Application initialization completed successfully!"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"❌ An error occurred during initialization: {e}"))
             import traceback
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
 
-    def setup_superadmin(self):
-        self.stdout.write(self.style.HTTP_INFO("--- Setting up Superuser ---"))
-        email = getattr(settings, 'ADMIN_EMAIL', 'admin@example.com')
-        password = getattr(settings, 'ADMIN_PASS', 'defaultpass')
-        username = getattr(settings, 'ADMIN_USER', 'admin')
-
-        if User.objects.filter(username=username).exists():
-            self.stdout.write(self.style.WARNING(f"Superuser '{username}' already exists. Skipping creation."))
-            self.superuser = User.objects.filter(username=username).first()
-            self.superuser.is_staff = True
-            self.superuser.is_superuser = True
-            self.superuser.save()
-            return
-
-        super_admin_role, created = Role.objects.get_or_create(name='Super Admin', organization=None)
-        if created:
-            self.stdout.write(self.style.SUCCESS("   Created 'Super Admin' role template."))
-        
-        self.superuser = User.objects.create_superuser(
-            username=username, email=email, password=password,
-            first_name="Super", last_name="Admin", contact_number=fake.phone_number(),
-            role=super_admin_role
-        )
-        NotificationSettings.objects.get_or_create(user=self.superuser)
-        self.stdout.write(self.style.SUCCESS(f"👑 Superuser '{username}' created."))
-        self.stdout.write(self.style.SUCCESS(f"   Login: {email} / {password}"))
-
-        self.superuser.is_staff = True
-        self.superuser.is_superuser = True
-        self.superuser.save()
-
     def create_permissions_and_roles(self):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Permissions and Role Templates ---"))
-        
-        # Create all permissions
-        permissions = {}
-        permission_list = [
-            ('view_own_dashboard', 'Can view their own personalized dashboard'),
-            ('view_team_dashboard', 'Can view the dashboard for their team'),
-            ('view_org_dashboard', 'Can view the full organization dashboard'),
-            
-            ('view_own_clients', 'Can view their own clients'),
-            ('view_all_clients', 'Can view all clients in the organization'),
-            ('add_client', 'Can add a new client'),
-            ('edit_client', 'Can edit a client'),
-            ('delete_client', 'Can delete a client'),
-
-            ('view_own_deals', 'Can view their own deals'),
-            ('view_all_deals', 'Can view all deals in the organization'),
-            ('add_deal', 'Can add a new deal'),
-            ('edit_deal', 'Can edit a deal'),
-            ('delete_deal', 'Can delete a deal'),
-            ('verify_deal', 'Can verify or reject a deal'),
-            ('view_commission', 'Can view commission reports'),
-            ('view_all_commissions', 'Can view all commission reports in the organization'),
-            ('add_commission', 'Can add a commission record'),
-            ('edit_commission', 'Can edit a commission record'),
-            ('delete_commission', 'Can delete a commission record'),
-        ]
-        for codename, name in permission_list:
-            p, created = Permission.objects.get_or_create(codename=codename, defaults={'name': name})
-            permissions[codename] = p
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"  - Created permission: {name}"))
-
-        # Create role templates and assign permissions
-        role_permissions = {
-            "Super Admin": list(permissions.values()),
-            "Organization Admin": [
-                permissions['view_org_dashboard'], 
-                permissions['view_all_clients'], permissions['add_client'],
-                permissions['edit_client'], permissions['delete_client'], 
-                permissions['view_all_deals'], permissions['add_deal'], permissions['edit_deal'], permissions['delete_deal'],
-                permissions['verify_deal'], permissions['view_all_commissions'], permissions['add_commission'],
-                permissions['edit_commission'], permissions['delete_commission']
-            ],
-            "Salesperson": [
-                permissions['view_own_dashboard'], 
-                permissions['view_own_clients'], permissions['add_client'],
-                permissions['edit_client'], permissions['delete_client'], 
-                permissions['view_own_deals'], permissions['add_deal'],
-                permissions['edit_deal'], permissions['delete_deal'], 
-                permissions['view_commission']
-            ],
-            "Verifier": [
-                permissions['view_org_dashboard'], permissions['view_all_deals'], permissions['verify_deal']
-            ],
-        }
-        
+        role_permissions = self.get_role_permissions()
         for role_name, perms in role_permissions.items():
-            role, created = Role.objects.get_or_create(name=role_name, organization=None)
-            if created:
-                role.permissions.set(perms)
-                self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
+            role, _ = Role.objects.get_or_create(name=role_name, organization=None)
+            permissions = Permission.objects.filter(codename__in=perms)
+            role.permissions.set(permissions)
+            self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
 
-    def create_core_data(self):
-        self.stdout.write(self.style.HTTP_INFO("--- Creating Core Mock Data ---"))
-
-        # 1. Create Organization
+    def create_organization(self):
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Organization ---"))
         organization, _ = Organization.objects.get_or_create(
-            name="TechCorp Solutions",
-            defaults={'sales_goal': Decimal("2000000.00"), 'description': fake.bs()}
+            name="Innovate Inc.",
+            defaults={'sales_goal': Decimal("3000000.00"), 'description': fake.bs()}
         )
-        self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created/retrieved."))
+        self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created."))
+        return organization
 
-        # 2. Create organization-specific roles from templates
-        org_roles = self.create_org_roles(organization)
-
-        # 3. Create Users
-        self.create_users(organization, org_roles)
-
-    def create_org_roles(self, organization):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating organization-specific roles..."))
-        org_roles = {}
-        role_names = ["Organization Admin", "Sales Manager", "Team Head", "Senior Salesperson", "Salesperson", "Verifier"]
-        for name in role_names:
-            template_role = Role.objects.filter(name=name, organization__isnull=True).first()
-            if not template_role:
-                self.stdout.write(self.style.WARNING(f"    Template role '{name}' not found. Creating a blank one."))
-                template_role = Role.objects.create(name=name, organization=None)
-
-            role, created = Role.objects.get_or_create(name=name, organization=organization)
-            if created:
-                role.permissions.set(template_role.permissions.all())
-            org_roles[name] = role
-        self.stdout.write(self.style.SUCCESS("    🎭 Org roles created."))
-        return org_roles
-
-    def create_user_for_role(self, organization, username, email, password, role, sales_target=None):
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': username,
-                'organization': organization,
-                'role': role,
-                'first_name': self.faker.first_name(),
-                'last_name': self.faker.last_name(),
-                'sales_target': sales_target
-            }
-        )
-        # Always set/reset the password and active status to ensure consistency
-        user.set_password(password)
-        user.is_active = True
-        user.save()
-
-        if created:
-            UserProfile.objects.get_or_create(user=user)
-            self.stdout.write(f"    - Created user: {username} ({email}) with role: {role.name}")
-        else:
-            self.stdout.write(f"    - Updated existing user: {username} ({email})")
-            
-        return user
-
-    def create_users(self, organization, org_roles):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating specific users..."))
-
-        # Create users for each role
-        self.create_user_for_role(organization, 'org_admin1', 'org_admin1@techcorp.com', 'password123', org_roles['Organization Admin'])
-        self.create_user_for_role(organization, 'org_admin2', 'org_admin2@techcorp.com', 'password123', org_roles['Organization Admin'])
+    def create_users(self, organization):
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
+        users = {}
         
-        self.create_user_for_role(organization, 'salesperson1', 'salesperson1@techcorp.com', 'password123', org_roles['Salesperson'], sales_target=Decimal('50000.00'))
-        self.create_user_for_role(organization, 'salesperson2', 'salesperson2@techcorp.com', 'password123', org_roles['Salesperson'], sales_target=Decimal('75000.00'))
-        self.create_user_for_role(organization, 'salesperson3', 'salesperson3@techcorp.com', 'password123', org_roles['Salesperson'], sales_target=Decimal('60000.00'))
+        # Create Org-Specific Roles and Users
+        user_data = {
+            "Super Admin": [("superadmin", "super@innovate.com")],
+            "Organization Admin": [("orgadmin", "admin@innovate.com")],
+            "Salesperson": [("salestest", "sales@innovate.com"), ("salespro", "salespro@innovate.com")],
+            "Verifier": [("verifier", "verifier@innovate.com")],
+        }
 
-        self.create_user_for_role(organization, 'verifier1', 'verifier1@techcorp.com', 'password123', org_roles['Verifier'])
-        self.create_user_for_role(organization, 'verifier2', 'verifier2@techcorp.com', 'password123', org_roles['Verifier'])
-
-        self.stdout.write(self.style.SUCCESS("    👥 All specific users created."))
-
-    def create_teams(self, organization, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating teams..."))
-        salespersons = [u for u in users if u.role.name == 'Salesperson']
-        team_alpha = Team.objects.create(name="Alpha Team", organization=organization, description=fake.bs())
-        team_alpha.members.set(salespersons[:3])
-        team_beta = Team.objects.create(name="Beta Team", organization=organization, description=fake.bs())
-        team_beta.members.set(salespersons[3:])
-        self.stdout.write(self.style.SUCCESS("    🧑‍🤝‍🧑 Created Alpha and Beta teams."))
+        for role_name, user_list in user_data.items():
+            org_role, _ = Role.objects.get_or_create(name=role_name, organization=organization)
+            template_role = Role.objects.get(name=role_name, organization__isnull=True)
+            org_role.permissions.set(template_role.permissions.all())
+            
+            for username, email in user_list:
+                user, created = User.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        'username': username, 'organization': organization, 'role': org_role,
+                        'first_name': fake.first_name(), 'last_name': fake.last_name(),
+                        'sales_target': Decimal(random.randint(50000, 150000)) if role_name == "Salesperson" else None
+                    }
+                )
+                user.set_password("password123")
+                user.is_active = True
+                if role_name == "Super Admin":
+                    user.is_superuser = True
+                    user.is_staff = True
+                user.save()
+                users[username] = user
+                
+        self.stdout.write(self.style.SUCCESS("👥 Users and roles created."))
+        return users
 
     def create_clients(self, organization, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating clients..."))
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Clients ---"))
         clients = []
+        sales_users = [u for u in users.values() if u.role.name == 'Salesperson']
         for _ in range(25):
-            client = Client.objects.create(
-                client_name=fake.company(), email=fake.email(), phone_number=fake.phone_number(),
-                nationality=fake.country(), remarks=fake.sentence(),
-                status=random.choice([c[0] for c in Client.STATUS_CHOICES]),
-                satisfaction=random.choice([c[0] for c in Client.SATISFACTION_CHOICES]),
-                created_by=random.choice(users), organization=organization
-            )
-            clients.append(client)
-        self.stdout.write(self.style.SUCCESS(f"    👤 Created {len(clients)} clients."))
+            clients.append(Client.objects.create(
+                organization=organization, client_name=fake.company(),
+                email=fake.unique.email(), phone_number=fake.phone_number(),
+                created_by=random.choice(sales_users)
+            ))
+        self.stdout.write(self.style.SUCCESS(f"👤 Created {len(clients)} clients."))
         return clients
 
-    def create_projects(self, organization, clients, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating projects..."))
-        project_count = 0
-        for _ in range(30):
-            created_by_user = random.choice(users)
-            Project.objects.create(
-                name=fake.catch_phrase(),
-                description=fake.text(max_nb_chars=200),
-                status=random.choice([s[0] for s in Project.STATUS_CHOICES]),
-                created_by=created_by_user
+    def create_projects(self, users):
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Projects ---"))
+        projects = []
+        for _ in range(10):
+            projects.append(Project.objects.create(
+                name=fake.catch_phrase(), description=fake.text(),
+                created_by=random.choice(list(users.values()))
+            ))
+        self.stdout.write(self.style.SUCCESS(f"🏗️ Created {len(projects)} projects."))
+        return projects
+
+    def create_deals_for_period(self, users, clients, projects, period, count):
+        self.stdout.write(self.style.HTTP_INFO(f"--- Creating {period.capitalize()} Deals ---"))
+        salespersons = [u for u in users.values() if u.role.name == 'Salesperson']
+        verifiers = [u for u in users.values() if u.role.name == 'Verifier']
+
+        for _ in range(count):
+            now = timezone.now()
+            if period == "recent":
+                # Deals within the current month
+                deal_date = now.date() - timedelta(days=random.randint(0, now.day - 1 if now.day > 1 else 0))
+            else: # historical
+                deal_date = fake.date_between(start_date='-2y', end_date='-1M')
+
+            deal = Deal.objects.create(
+                organization=users['orgadmin'].organization,
+                client=random.choice(clients),
+                project=random.choice(projects) if projects and random.random() > 0.5 else None,
+                deal_name=fake.bs().title(),
+                deal_value=Decimal(random.randint(10000, 95000)),
+                deal_date=deal_date,
+                payment_method=random.choice([c[0] for c in Deal.PAYMENT_METHOD_CHOICES]),
+                source_type=random.choice([c[0] for c in Deal.SOURCE_TYPES]),
+                created_by=random.choice(salespersons)
             )
-            project_count += 1
-        self.stdout.write(self.style.SUCCESS(f"    🏗️  Created {project_count} projects."))
 
-    def create_deals_and_related_data(self, organization, clients, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating deals and associated data..."))
-        deals = []
-        for client in clients:
-            # Each client gets 1 to 5 deals
-            for _ in range(random.randint(1, 5)):
-                created_by_user = random.choice(users)
-                deal_date = fake.date_between(start_date='-2y', end_date='today')
-                due_date = deal_date + timedelta(days=random.randint(30, 90))
-                deal_value = Decimal(random.randint(5000, 150000))
-                payment_status = random.choice([s[0] for s in Deal.PAYMENT_STATUS_CHOICES])
+            # 80% of deals get a payment and verification
+            if random.random() < 0.8 and verifiers:
+                self.process_deal_payment_and_verification(deal, verifiers)
 
-                deal = Deal.objects.create(
-                    organization=organization,
-                    client=client,
-                    deal_value=deal_value,
-                    deal_date=deal_date,
-                    due_date=due_date,
-                    payment_status=payment_status,
-                    verification_status=random.choice([s[0] for s in Deal.DEAL_STATUS]),
-                    client_status=random.choice([s[0] for s in Deal.CLIENT_STATUS]),
-                    source_type=random.choice([s[0] for s in Deal.SOURCE_TYPES]),
-                    payment_method=random.choice([p[0] for p in Deal.PAYMENT_METHOD_CHOICES]),
-                    deal_remarks=fake.text(max_nb_chars=100),
-                    created_by=created_by_user,
-                )
-                deals.append(deal)
-                if deal.payment_status in ['verified', 'partial']:
-                    self.create_payments_for_deal(deal)
+    def process_deal_payment_and_verification(self, deal, verifiers):
+        # A payment is made 1-10 days after the deal
+        payment_date = deal.deal_date + timedelta(days=random.randint(1, 10))
+        received_amount = deal.deal_value * Decimal(random.uniform(0.5, 1.0))
+        payment = Payment.objects.create(
+            deal=deal,
+            received_amount=received_amount.quantize(Decimal('0.01')),
+            payment_date=payment_date,
+            payment_type=deal.payment_method
+        )
         
-        manager_user = next((u for u in users if u.email == 'manager@techcorp.com'), None)
-        if manager_user:
-            self.stdout.write(self.style.HTTP_INFO(f"    - Creating 50 mock deals for sales manager '{manager_user.email}'..."))
-            for _ in range(50):
-                deal_date = fake.date_between(start_date='-2y', end_date='today')
-                due_date = deal_date + timedelta(days=random.randint(30, 90))
-                deal_value = Decimal(random.randint(5000, 150000))
-                payment_status = random.choice([s[0] for s in Deal.PAYMENT_STATUS_CHOICES])
+        # Signal creates PaymentInvoice automatically
+        invoice = PaymentInvoice.objects.get(payment=payment) 
 
-                deal = Deal.objects.create(
-                    organization=organization,
-                    client=random.choice(clients),
-                    deal_value=deal_value,
-                    deal_date=deal_date,
-                    due_date=due_date,
-                    payment_status=payment_status,
-                    verification_status=random.choice([s[0] for s in Deal.DEAL_STATUS]),
-                    client_status=random.choice([s[0] for s in Deal.CLIENT_STATUS]),
-                    source_type=random.choice([s[0] for s in Deal.SOURCE_TYPES]),
-                    payment_method=random.choice([p[0] for p in Deal.PAYMENT_METHOD_CHOICES]),
-                    deal_remarks=fake.text(max_nb_chars=100),
-                    created_by=manager_user,
-                )
-                deals.append(deal)
-                if payment_status in ['verified', 'partial']:
-                    self.create_payments_for_deal(deal)
-        self.stdout.write(self.style.SUCCESS(f"    - Created {len(deals)} total deals."))
+        # Verification happens 1-5 days after payment
+        verifier = random.choice(verifiers)
+        is_verified = random.random() < 0.9 # 90% are verified
 
-    def create_payments_for_deal(self, deal):
-        # Create 1 to 3 payments for a deal
-        for _ in range(random.randint(1, 3)):
-            Payment.objects.create(
-                deal=deal,
-                payment_date=deal.deal_date + timedelta(days=random.randint(1, 15)),
-                received_amount=deal.deal_value / 2,  # Example logic
-                payment_type=random.choice(Payment.PAYMENT_TYPE)[0]
-            )
-
-    def create_commissions_for_users(self, organization, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating commissions..."))
-        salespersons = [u for u in users if 'salesperson' in u.username]
-
-        for user in salespersons:
-            total_sales = Deal.objects.filter(
-                created_by=user,
-                verification_status='verified'
-            ).aggregate(total=Sum('deal_value'))['total'] or Decimal('0.00')
-
-            if total_sales > 0:
-                commission_rate = Decimal(random.uniform(2.5, 7.5))
-                bonus = total_sales * Decimal(random.uniform(0.01, 0.05))
+        if is_verified:
+            invoice.invoice_status = 'verified'
+            deal.verification_status = 'verified'
+            deal.payment_status = 'full_payment' if payment.received_amount == deal.deal_value else 'initial payment'
+            action = "Verified"
+            
+            # Create a commission record for the salesperson
+            if deal.created_by.role and deal.created_by.role.name == 'Salesperson':
+                start_of_month = deal.deal_date.replace(day=1)
+                end_of_month = start_of_month + timedelta(days=32)
+                end_of_month = end_of_month.replace(day=1) - timedelta(days=1)
                 
                 Commission.objects.create(
-                    user=user,
-                    organization=organization,
-                    total_sales=total_sales,
-                    commission_rate=commission_rate,
-                    bonus=bonus,
-                    penalty=Decimal('0.00'),
-                    start_date=date.today().replace(day=1),
-                    end_date=date.today(),
-                    created_by=self.superuser
+                    user=deal.created_by,
+                    organization=deal.organization,
+                    total_sales=deal.deal_value,
+                    commission_rate=Decimal(random.uniform(3.0, 8.0)),
+                    start_date=start_of_month,
+                    end_date=end_of_month,
+                    created_by=verifier
                 )
-        self.stdout.write(self.style.SUCCESS(f"    - Created commissions for {len(salespersons)} salespersons."))
+        else:
+            invoice.invoice_status = 'rejected'
+            deal.verification_status = 'rejected'
+            action = "Rejected"
+        
+        invoice.save()
+        deal.save()
+        
+        PaymentApproval.objects.create(
+            deal=deal, payment=payment, approved_by=verifier,
+            approved_remarks=f"This invoice was {action.lower()}."
+        )
+        AuditLogs.objects.create(
+            organization=deal.organization, user=verifier, action=action,
+            details=f"Invoice {invoice.invoice_id} for deal {deal.deal_id} was {action.lower()}."
+        )
 
-    def create_notification_templates(self):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating notification templates..."))
-        templates = [
-            {'notification_type': 'deal_verified', 'subject': 'Your Deal has been Verified!', 'body': 'Congratulations! Your deal {{deal.deal_id}} has been successfully verified.'},
-            {'notification_type': 'deal_rejected', 'subject': 'Action Required: Your Deal was Rejected', 'body': 'Unfortunately, your deal {{deal.deal_id}} was rejected. Please review and resubmit.'},
-            {'notification_type': 'payment_received', 'subject': 'Payment Received for Deal {{deal.deal_id}}', 'body': 'A payment of {{payment.amount}} has been successfully processed for your deal.'},
-        ]
-        for t in templates:
-            NotificationTemplate.objects.get_or_create(notification_type=t['notification_type'], defaults={
-                'title_template': t['subject'],
-                'message_template': t['body'],
-                'is_active': True
-            })
-        self.stdout.write(self.style.SUCCESS("    🔔 Created default notification templates."))
+    def create_streak_building_deals(self, salesperson, clients, projects, verifiers):
+        self.stdout.write(self.style.HTTP_INFO(f"--- Creating Streak-Building Deals for {salesperson.username} ---"))
+        now = timezone.now()
+        # Create 5 verified deals on consecutive days leading up to today
+        for i in range(5):
+            deal_date = now.date() - timedelta(days=i)
+            
+            deal = Deal.objects.create(
+                organization=salesperson.organization,
+                client=random.choice(clients),
+                project=random.choice(projects) if projects and random.random() > 0.5 else None,
+                deal_name=f"Streak Deal Day {5-i}",
+                deal_value=Decimal(random.randint(200, 5000)), # Ensure value > 101
+                deal_date=deal_date,
+                payment_method=random.choice([c[0] for c in Deal.PAYMENT_METHOD_CHOICES]),
+                source_type='referral',
+                created_by=salesperson,
+            )
 
-    def create_initial_deals(self, organization, users):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating initial deals for users..."))
-        for user in users:
-            # Create a few deals for each salesperson
-            for i in range(5):
-                client = random.choice(Client.objects.filter(organization=organization))
-                deal_date = timezone.now() - timedelta(days=random.randint(0, 365))
-                Deal.objects.create(
-                    organization=organization,
-                    client=client,
-                    deal_name=f"Initial Deal {i+1} for {user.username}",
-                    created_by=user,
-                    deal_value=Decimal(random.randrange(5000, 50000)),
-                    deal_date=deal_date,
-                    due_date=deal_date + timedelta(days=random.randint(30, 90)),
-                    payment_status='pending',
-                    verification_status='pending'
-                )
+            # This part MUST succeed to build a streak
+            payment_date = deal.deal_date + timedelta(days=random.randint(0, 1))
+            received_amount = deal.deal_value * Decimal(random.uniform(0.6, 1.0))
+            payment = Payment.objects.create(
+                deal=deal,
+                received_amount=received_amount.quantize(Decimal('0.01')),
+                payment_date=payment_date,
+                payment_type=deal.payment_method
+            )
+            
+            invoice = PaymentInvoice.objects.get(payment=payment)
+            verifier = random.choice(verifiers)
 
-        self.stdout.write(self.style.SUCCESS("Initialized baseline data with predictable users and roles."))
+            # Guarantee verification
+            invoice.invoice_status = 'verified'
+            deal.verification_status = 'verified'
+            deal.payment_status = 'full_payment' if received_amount == deal.deal_value else 'initial payment'
+            action = "Verified"
+            
+            invoice.save()
+            deal.save()
+            
+            PaymentApproval.objects.create(
+                deal=deal, payment=payment, approved_by=verifier,
+                approved_remarks=f"Invoice automatically {action.lower()} by system."
+            )
+            
+            AuditLogs.objects.create(
+                organization=deal.organization, user=verifier, action=action,
+                details=f"Invoice {invoice.invoice_id} for deal {deal.deal_id} was {action.lower()}."
+            )
+        self.stdout.write(self.style.SUCCESS(f"✅ Created 5 consecutive daily deals to build a streak."))
+
+    def get_role_permissions(self):
+        # Define all permissions required by the app
+        return {
+            "Super Admin": [
+                'view_deal', 'add_deal', 'edit_deal', 'delete_deal', 
+                'view_client', 'add_client', 'edit_client', 'delete_client', 
+                'view_verifierdashboard', 'can_verify_payment', 'view_paymentinvoice'
+            ],
+            "Organization Admin": [
+                'view_deal', 'add_deal', 'edit_deal', 
+                'view_client', 'add_client', 'edit_client'
+            ],
+            "Salesperson": [
+                'add_deal', 'view_deal', 'add_client', 'view_client'
+            ],
+            "Verifier": [
+                'view_verifierdashboard', 'can_verify_payment', 
+                'view_deal', 'view_paymentinvoice'
+            ]
+        } 

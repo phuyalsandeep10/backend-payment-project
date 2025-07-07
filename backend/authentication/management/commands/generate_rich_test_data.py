@@ -2,235 +2,130 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from authentication.models import User
 from clients.models import Client
-from deals.models import Deal, Payment, ActivityLog
+from deals.models import Deal, Payment, PaymentInvoice, PaymentApproval
 from project.models import Project
 from commission.models import Commission
-from notifications.models import Notification, NotificationTemplate
-from team.models import Team
-from datetime import datetime, timedelta
+from Verifier_dashboard.models import AuditLogs
+from datetime import timedelta
 from decimal import Decimal
 import random
 from faker import Faker
-from django.db.models import Sum
 from django.utils import timezone
 
 class Command(BaseCommand):
-    help = 'Generates a rich and varied dataset for all key user roles.'
+    help = 'Generates a rich and varied dataset on top of existing data for testing purposes.'
 
     @transaction.atomic
     def handle(self, *args, **options):
         self.faker = Faker()
         self.stdout.write(self.style.HTTP_INFO("--- Generating Rich & Varied Mock Data ---"))
 
-        # Get key users to generate data for
         salespersons = list(User.objects.filter(role__name__icontains='Salesperson'))
         verifiers = list(User.objects.filter(role__name__icontains='Verifier'))
-        org_admins = list(User.objects.filter(role__name__icontains='Organization Admin'))
 
-        if not all([salespersons, verifiers, org_admins]):
-            self.stdout.write(self.style.ERROR("Key user roles not found. Please run 'initialize_app' first."))
+        if not salespersons or not verifiers:
+            self.stdout.write(self.style.ERROR("Key user roles (Salesperson, Verifier) not found. Please run 'initialize_app' first."))
             return
 
-        # 1. Create Clients owned by salespersons
-        clients = self.create_clients(salespersons)
+        clients = list(Client.objects.all())
+        projects = list(Project.objects.all())
 
-        # 2. Create Projects linked to clients and salespersons
-        projects = self.create_projects(clients, salespersons)
+        if not clients or not projects:
+            self.stdout.write(self.style.ERROR("Clients or Projects not found. Please run 'initialize_app' first."))
+            return
+            
+        self.create_additional_deals(salespersons, clients, projects, verifiers, 50)
+        self.create_guaranteed_recent_data(salespersons[0], clients, projects, verifiers)
 
-        # 3. Create a rich set of deals across different time periods
-        deals = self.create_all_deals(salespersons, clients, projects, verifiers)
-        
-        # 4. Create Payments for those deals
-        self.create_payments_for_deals(deals)
+        self.stdout.write(self.style.SUCCESS("✅ Rich mock data generation completed successfully!"))
 
-        # 5. Create Commissions based on verified deals
-        self.create_commissions(salespersons, org_admins)
+    def create_additional_deals(self, salespersons, clients, projects, verifiers, count):
+        self.stdout.write(self.style.HTTP_INFO(f"--- Creating {count} Additional Random Deals ---"))
+        for _ in range(count):
+            salesperson = random.choice(salespersons)
+            # Create deals over the last 4 months to populate charts
+            deal_date = self.faker.date_between(start_date='-4M', end_date='-1M')
+            self._create_deal_flow(salesperson, clients, projects, verifiers, deal_date)
 
-        # 6. Create Teams
-        self.create_teams(salespersons)
-        
-        # 7. Create Notifications
-        self.create_notifications(deals)
+    def create_guaranteed_recent_data(self, salesperson, clients, projects, verifiers):
+        self.stdout.write(self.style.HTTP_INFO(f"--- Creating 5 Guaranteed Recent Deals for {salesperson.username} ---"))
+        now = timezone.now()
+        # Create deals on consecutive days to build a streak
+        for i in range(5):
+            # Create deals for the last 5 days
+            deal_date = now.date() - timedelta(days=i)
+            self._create_deal_flow(salesperson, clients, projects, verifiers, deal_date, is_recent=True, guarantee_verification=True)
 
-        self.stdout.write(self.style.SUCCESS("✅ Rich mock data generated successfully!"))
-
-    def create_clients(self, salespersons):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Clients..."))
-        clients = []
-        for _ in range(50):  # Create more clients
-            clients.append(Client.objects.create(
-                organization=salespersons[0].organization,
-                client_name=self.faker.company(),
-                email=self.faker.unique.email(),
-                phone_number=self.faker.phone_number(),
-                nationality=self.faker.country(),
-                created_by=random.choice(salespersons),
-                status=random.choice([c[0] for c in Client.STATUS_CHOICES]),
-                satisfaction=random.choice([c[0] for c in Client.SATISFACTION_CHOICES])
-            ))
-        self.stdout.write(self.style.SUCCESS(f"    - Created {len(clients)} clients."))
-        return clients
-
-    def create_projects(self, clients, salespersons):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Projects..."))
-        projects = []
-        for client in random.sample(clients, 20): # Projects for a subset of clients
-            projects.append(Project.objects.create(
-                name=f"{client.client_name} - {self.faker.bs()}",
-                description=self.faker.text(max_nb_chars=250),
-                status=random.choice(['pending', 'in_progress', 'completed']),
-                created_by=random.choice(salespersons)
-            ))
-        self.stdout.write(self.style.SUCCESS(f"    - Created {len(projects)} projects."))
-        return projects
-
-    def create_all_deals(self, salespersons, clients, projects, verifiers):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Deals across all time periods..."))
-        all_deals = []
-
-        # --- Create guaranteed recent, verified deals for salesperson1 ---
-        salesperson1 = next((s for s in salespersons if s.username == 'salesperson1'), None)
-        if salesperson1:
-            self.stdout.write(self.style.HTTP_INFO("    - Creating guaranteed recent deals for salesperson1..."))
-            for _ in range(15): # Create 15 recent deals
-                # Deals within the last 30 days
-                deal_date = timezone.now().date() - timedelta(days=random.randint(0, 29))
-                deal = self.create_single_deal(salesperson1, clients, projects, verifiers, deal_date, force_verified=True)
-                deal.created_at = timezone.now() - timedelta(minutes=random.randint(1, 1440))
-                deal.save()
-                all_deals.append(deal)
-
-        # --- Create historical and varied deals for all salespersons ---
-        for salesperson in salespersons:
-            deal_count = 30 # Reduced from 40 to avoid excessive data
-            for _ in range(deal_count):
-                # Historical deals up to 2 years old
-                deal_date = self.faker.date_time_between(start_date='-2y', end_date='now', tzinfo=timezone.get_current_timezone()).date()
-                deal = self.create_single_deal(salesperson, clients, projects, verifiers, deal_date)
-                deal.created_at = self.faker.date_time_between(start_date=deal_date, end_date=timezone.now(), tzinfo=timezone.get_current_timezone())
-                deal.save()
-                all_deals.append(deal)
-
-        self.stdout.write(self.style.SUCCESS(f"    - Created a total of {len(all_deals)} deals."))
-        return all_deals
-
-    def create_single_deal(self, user, clients, projects, verifiers, deal_date, force_verified=False):
-        # Define realistic status flows
-        if force_verified:
-            verification_status = 'verified'
-        else:
-            verification_status = random.choices(['pending', 'verified', 'rejected'], weights=[0.2, 0.7, 0.1], k=1)[0]
-        
-        if verification_status == 'verified':
-            payment_status = random.choices(['pending', 'partial_payment', 'full_payment'], weights=[0.1, 0.4, 0.5], k=1)[0]
-        elif verification_status == 'rejected':
-            payment_status = 'pending' # Rejected deals can't have payments
-        else: # pending verification
-            payment_status = 'pending'
-
+    def _create_deal_flow(self, salesperson, clients, projects, verifiers, deal_date, is_recent=False, guarantee_verification=False):
+        """Helper function to create a deal and its entire lifecycle."""
         deal = Deal.objects.create(
-            organization=user.organization,
+            organization=salesperson.organization,
             client=random.choice(clients),
             project=random.choice(projects) if projects and random.random() > 0.5 else None,
             deal_name=self.faker.bs().title(),
-            deal_value=Decimal(random.randint(5000, 150000)),
-            currency=random.choice(['USD', 'EUR', 'GBP']),
+            deal_value=Decimal(random.randint(15000, 120000)),
             deal_date=deal_date,
-            due_date=deal_date + timedelta(days=random.randint(15, 90)),
-            payment_status=payment_status,
-            verification_status=verification_status,
-            source_type=random.choice(['linkedin', 'referral', 'google']),
-            payment_method=random.choice(['wallet', 'bank', 'cash']),
-            created_by=user,
-            deal_remarks=self.faker.sentence()
+            payment_method=random.choice([c[0] for c in Deal.PAYMENT_METHOD_CHOICES]),
+            source_type=random.choice([c[0] for c in Deal.SOURCE_TYPES]),
+            created_by=salesperson,
+        )
+
+        # Process payment and verification
+        should_verify = random.random() < 0.85
+        if guarantee_verification or should_verify:
+            self._process_payment_and_verification(deal, verifiers, guarantee_verification)
+
+    def _process_payment_and_verification(self, deal, verifiers, guarantee_verification=False):
+        payment_date = deal.deal_date + timedelta(days=random.randint(1, 10))
+        received_amount = deal.deal_value * Decimal(random.uniform(0.6, 1.0))
+        payment = Payment.objects.create(
+            deal=deal,
+            received_amount=received_amount.quantize(Decimal('0.01')),
+            payment_date=payment_date,
+            payment_type=deal.payment_method
         )
         
-        # Log creation
-        ActivityLog.objects.create(deal=deal, message=f"Deal created by {user.username}.")
+        invoice = PaymentInvoice.objects.get(payment=payment)
+        verifier = random.choice(verifiers)
         
-        # Simulate verification action
-        if deal.verification_status in ['verified', 'rejected']:
-            verifier = random.choice(verifiers)
-            deal.updated_by = verifier
-            deal.save()
-            ActivityLog.objects.create(deal=deal, message=f"Deal {deal.verification_status} by {verifier.username}.")
+        # Guarantee verification for streak-building deals
+        is_verified = True if guarantee_verification else random.random() < 0.9
 
-        return deal
-
-    def create_payments_for_deals(self, deals):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Payments for deals..."))
-        payment_count = 0
-        for deal in deals:
-            # Skip payments for rejected deals or deals with no payment
-            if deal.verification_status == 'rejected' or deal.payment_status == 'pending':
-                continue
-
-            payment_date = deal.deal_date + timedelta(days=random.randint(1, 20))
-            if deal.payment_status == 'full_payment':
-                Payment.objects.create(
-                    deal=deal,
-                    received_amount=deal.deal_value,
-                    payment_date=payment_date,
-                    payment_type=deal.payment_method,
-                    payment_remarks="Full payment received."
-                )
-                payment_count += 1
-            elif deal.payment_status == 'partial_payment':
-                Payment.objects.create(
-                    deal=deal,
-                    received_amount=deal.deal_value * Decimal(random.uniform(0.2, 0.7)),
-                    payment_date=payment_date,
-                    payment_type=deal.payment_method,
-                    payment_remarks="Partial payment received."
-                )
-                payment_count += 1
-        self.stdout.write(self.style.SUCCESS(f"    - Created {payment_count} payments."))
-
-    def create_commissions(self, salespersons, org_admins):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Commissions..."))
-        commission_count = 0
-        for user in salespersons:
-            total_sales = Deal.objects.filter(
-                created_by=user, 
-                verification_status='verified'
-            ).aggregate(total_sales=Sum('deal_value'))['total_sales'] or Decimal('0.00')
-
-            if total_sales > 0:
+        if is_verified:
+            invoice.invoice_status = 'verified'
+            deal.verification_status = 'verified'
+            # Use 'initial payment' or 'full_payment' for streak calculation
+            deal.payment_status = 'full_payment' if received_amount == deal.deal_value else 'initial payment'
+            action = "Verified"
+            
+            # Create a corresponding commission record
+            if deal.created_by.role and deal.created_by.role.name == 'Salesperson':
+                start_of_month = deal.deal_date.replace(day=1)
+                end_of_month = (start_of_month + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+                
                 Commission.objects.create(
-                    user=user,
-                    organization=user.organization,
-                    total_sales=total_sales,
-                    commission_rate=Decimal(random.uniform(3, 8)),
-                    bonus=total_sales * Decimal(random.uniform(0.01, 0.03)),
-                    start_date=datetime.now().date().replace(day=1),
-                    end_date=datetime.now().date(),
-                    created_by=random.choice(org_admins)
+                    user=deal.created_by,
+                    organization=deal.organization,
+                    total_sales=deal.deal_value,
+                    commission_rate=Decimal(random.uniform(3.5, 8.5)),
+                    start_date=start_of_month,
+                    end_date=end_of_month,
+                    created_by=verifier
                 )
-                commission_count += 1
-        self.stdout.write(self.style.SUCCESS(f"    - Created {commission_count} commission records."))
-
-    def create_teams(self, salespersons):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Teams..."))
-        if not salespersons: return
+        else:
+            invoice.invoice_status = 'rejected'
+            deal.verification_status = 'rejected'
+            action = "Rejected"
         
-        team_alpha = Team.objects.create(name="Alpha Team", organization=salespersons[0].organization)
-        team_alpha.members.set(salespersons[:len(salespersons)//2])
+        invoice.save()
+        deal.save()
         
-        team_beta = Team.objects.create(name="Beta Team", organization=salespersons[0].organization)
-        team_beta.members.set(salespersons[len(salespersons)//2:])
-        self.stdout.write(self.style.SUCCESS("    - Created Alpha and Beta teams."))
-
-    def create_notifications(self, deals):
-        self.stdout.write(self.style.HTTP_INFO("  - Creating Notifications..."))
-        # Simplified notification creation
-        verified_deals = [d for d in deals if d.verification_status == 'verified']
-        notification_count = 0
-        for deal in random.sample(verified_deals, min(len(verified_deals), 10)):
-            Notification.objects.create(
-                recipient=deal.created_by,
-                title=f"Deal Verified: {deal.deal_id}",
-                message=f"Congratulations! Your deal for {deal.client.client_name} has been verified.",
-                notification_type='deal_verified'
-            )
-            notification_count += 1
-        self.stdout.write(self.style.SUCCESS(f"    - Created {notification_count} notifications.")) 
+        PaymentApproval.objects.create(
+            deal=deal, payment=payment, approved_by=verifier,
+            approved_remarks=f"Invoice automatically {action.lower()} by system."
+        )
+        
+        AuditLogs.objects.create(
+            organization=deal.organization, user=verifier, action=action,
+            details=f"Invoice {invoice.invoice_id} for deal {deal.deal_id} was {action.lower()}."
+        ) 

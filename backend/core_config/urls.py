@@ -60,6 +60,7 @@ api_urlpatterns = [
     
     # Analytics & Dashboard
     path('dashboard/', include('Sales_dashboard.urls')),
+    path('verifier/', include('Verifier_dashboard.urls')),
 ]
 
 # All endpoints are now organized through app-specific URL includes

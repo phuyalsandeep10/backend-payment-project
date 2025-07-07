@@ -10,6 +10,7 @@ import io
 import os
 from django.utils import timezone
 from project.models import Project
+from django.db.models.signals import pre_save, post_save
 
 ##
 ##  Deals Section
@@ -62,7 +63,7 @@ class Deal(models.Model):
     deal_value = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='USD')
     deal_date = models.DateField(default=timezone.now)
-    due_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
     payment_method = models.CharField(max_length=100,choices=PAYMENT_METHOD_CHOICES)
     deal_remarks = models.TextField(blank=True,null=True)
     verification_status = models.CharField(max_length=100,choices=DEAL_STATUS,default='pending')
@@ -215,30 +216,30 @@ class ActivityLog(models.Model):
 ##Payment Invoice Section (a payment invoice is created when a payment model is created.. signals.py handles this creation)
 ##
 class PaymentInvoice(models.Model):
-    INVOICE_STATUS = [
-        ('verified', 'Verified'),
-        ('pending', 'Pending Verification'),
-        ('rejected', 'Rejected'),
-        ('refunded','Refunded'),
-        ('bad_debt','Bad Debt'),
-    ]
-    invoice_id = models.CharField(max_length=50)
-    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='invoices')
-    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='invoices')
+    payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='invoice')
+    invoice_id = models.CharField(max_length=255, unique=True, blank=True)
     invoice_date = models.DateField(auto_now_add=True)
-    invoice_status = models.CharField(max_length=50, choices=INVOICE_STATUS, default='pending')
-    def _str_(self):
+    due_date = models.DateField(null=True, blank=True)
+    invoice_status = models.CharField(max_length=20, default='pending')
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='invoices')
+    receipt_file = models.FileField(upload_to='receipts/', null=True, blank=True)
+
+    def __str__(self):
         return f"Invoice for {self.deal.deal_id} - {self.invoice_date}"
+
     def save(self, *args, **kwargs):
+        user = kwargs.pop('user', None) # Pop user to avoid passing it to super().save()
         if not self.invoice_id:
-            last_invoice = PaymentInvoice.objects.filter(deal__organization = self.deal.organization,invoice_id__startswith='INV-').order_by("-invoice_id").first()
+            last_invoice = PaymentInvoice.objects.order_by('id').last()
             if last_invoice:
-                last_number = int(last_invoice.invoice_id[4:])
-                new_number = last_number + 1
+                last_id = int(last_invoice.invoice_id.split('-')[1])
+                new_id = last_id + 1
+                self.invoice_id = f'INV-{new_id:04d}'
             else:
-                new_number = 1
-            self.invoice_id = f"INV-{new_number:04d}"
-        super().save(*args, **kwargs)
+                self.invoice_id = 'INV-0001'
+        
+        super(PaymentInvoice, self).save(*args, **kwargs)
+
 class PaymentApproval(models.Model):
     FAILURE_REMARKS = [
         ('insufficient_funds', 'Insufficient Funds'),

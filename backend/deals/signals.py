@@ -1,15 +1,19 @@
 from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
-from .models import Deal, Payment, ActivityLog, PaymentInvoice
+from django.dispatch import receiver, Signal
+from django.apps import apps
+from notifications.models import Notification
+from django.contrib.contenttypes.models import ContentType
+import logging
 
 # A simple cache to store the state of a deal before it's saved.
 _pre_save_deal_cache = {}
 
-@receiver(pre_save, sender=Deal)
+@receiver(pre_save, sender='deals.Deal')
 def cache_deal_state(sender, instance, **kwargs):
     """
     Cache the deal's current state before it's saved.
     """
+    Deal = apps.get_model('deals', 'Deal')
     if instance.pk:
         try:
             old_instance = Deal.objects.get(pk=instance.pk)
@@ -23,11 +27,12 @@ def cache_deal_state(sender, instance, **kwargs):
 ##
 ##  logs the creation of deal
 ##
-@receiver(post_save, sender=Deal)
+@receiver(post_save, sender='deals.Deal')
 def log_deal_activity(sender, instance, created, **kwargs):
     """
     Log creation and significant status changes for a Deal.
     """
+    ActivityLog = apps.get_model('deals', 'ActivityLog')
     if created:
         ActivityLog.objects.create(deal=instance, message=f"Deal created for {instance.client.client_name}.")
     else:
@@ -40,11 +45,12 @@ def log_deal_activity(sender, instance, created, **kwargs):
 ##
 ##  logs the creation of deal
 ##
-@receiver(post_save, sender=Payment)
+@receiver(post_save, sender='deals.Payment')
 def log_payment_activity(sender, instance, created, **kwargs):
     """
     Log creation and updates for a Payment.
     """
+    ActivityLog = apps.get_model('deals', 'ActivityLog')
     deal = instance.deal
     if created:
         message = f"Payment of {instance.received_amount} received via {instance.get_payment_type_display()}."
@@ -54,31 +60,28 @@ def log_payment_activity(sender, instance, created, **kwargs):
         # For now, focusing on creation is sufficient for a clean log.
         pass
 
-@receiver(post_save, sender=Payment)
+@receiver(post_save, sender='deals.Payment')
 def create_invoice_on_payment(sender,instance,created,**kwargs):
+    PaymentInvoice = apps.get_model('deals', 'PaymentInvoice')
     if created:
         PaymentInvoice.objects.create(
             payment=instance,
-            # if you have a deal FK in PaymentInvoice
-            deal=instance.deal,  # Only if deal field exists in PaymentInvoice
-            # invoice_date and invoice_file will be auto-handled
+            deal=instance.deal,
         )
 
 @receiver(post_save, sender='deals.PaymentApproval')
 def update_invoice_status_on_approval(sender, instance, created, **kwargs):
-    """
-    Update the related PaymentInvoice status when a PaymentApproval is created or updated.
-    """
-    try:
-        invoice = PaymentInvoice.objects.get(payment=instance.payment)
+    if getattr(instance, '_skip_signal', False):
+        return
         
-        # Logic to determine the new invoice status based on approval
-        if instance.failure_remarks:
-            invoice.invoice_status = 'rejected'
-        else:
-            invoice.invoice_status = 'verified'
-        
-        invoice.save()
-    except PaymentInvoice.DoesNotExist:
-        # Handle case where invoice might not exist, though it should with current signals
-        pass
+    PaymentInvoice = apps.get_model('deals', 'PaymentInvoice')
+    if created:
+        try:
+            invoice = PaymentInvoice.objects.get(payment=instance.payment)
+            if instance.failure_remarks:
+                invoice.invoice_status = 'rejected'
+            else:
+                invoice.invoice_status = 'verified'
+            invoice.save(user=instance.approved_by)
+        except PaymentInvoice.DoesNotExist:
+            pass
