@@ -22,7 +22,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('Successfully created "Super Admin" role.'))
 
         # Check if a user with this role already exists
-        if User.objects.filter(org_role=super_admin_role).exists():
+        if User.objects.filter(role=super_admin_role).exists():
             self.stdout.write(self.style.WARNING('A Super Admin user already exists.'))
             return
 
@@ -45,7 +45,7 @@ class Command(BaseCommand):
         )
         
         # Assign the role and set is_staff for admin panel access
-        user.org_role = super_admin_role
+        user.role = super_admin_role
         user.is_staff = True
         user.save()
 
