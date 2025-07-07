@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="DailyStreakRecord",
+            name="AuditLogs",
             fields=[
                 (
                     "id",
@@ -21,18 +21,19 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("date", models.DateField()),
-                ("deals_closed", models.IntegerField(default=0)),
-                (
-                    "total_deal_value",
-                    models.DecimalField(decimal_places=2, default=0, max_digits=12),
-                ),
-                ("streak_value", models.FloatField(default=0.0)),
-                ("streak_updated", models.BooleanField(default=False)),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("action", models.CharField(max_length=255)),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                ("details", models.TextField(blank=True, null=True)),
             ],
             options={
-                "ordering": ["-date"],
+                "permissions": [
+                    (
+                        "view_payment_verification_dashboard",
+                        "Can view payment verification dashboard",
+                    ),
+                    ("view_payment_analytics", "Can view payment analytics"),
+                    ("view_audit_logs", "Can view audit logs"),
+                ],
             },
         ),
     ]

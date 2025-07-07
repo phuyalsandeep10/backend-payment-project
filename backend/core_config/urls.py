@@ -19,7 +19,7 @@ from django.urls import path, include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from organization.views import OrganizationRegistrationView
+# from organization.views import OrganizationRegistrationView # No longer needed here
 from deals.views import DealViewSet
 from rest_framework.routers import DefaultRouter
 from django.conf import settings
@@ -42,7 +42,7 @@ schema_view = get_schema_view(
 api_urlpatterns = [
     # Authentication & User Management
     path('auth/', include('authentication.urls')),
-    path('organizations/register/', OrganizationRegistrationView.as_view(), name='organization-register'),
+    # path('organizations/register/', OrganizationRegistrationView.as_view(), name='organization-register'), # Moved
     path('organizations/', include('organization.urls')),
     
     # Core Business Logic

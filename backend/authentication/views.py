@@ -25,6 +25,7 @@ from .filters import UserFilter
 from organization.models import Organization
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from permissions.models import Role
+from permissions.permissions import IsOrgAdminOrSuperAdmin
 from Sales_dashboard.utils import calculate_streaks_for_user_login
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from django.contrib.auth.decorators import login_required
@@ -59,7 +60,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     filterset_class = UserFilter
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsOrgAdminOrSuperAdmin]
     throttle_classes = [UserRateThrottle]
 
     def get_queryset(self):
@@ -246,6 +247,19 @@ def direct_login_view(request):
     Logs in a user directly without OTP and returns an auth token.
     This is intended for development or specific internal use cases.
     """
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    security_logger.info(f"Attempting direct login for email: {email}")
+    
+    # Manually authenticate to debug
+    user = authenticate(request, username=email, password=password)
+    
+    if user is not None:
+        security_logger.info(f"Authentication successful for user: {email}")
+    else:
+        security_logger.warning(f"Authentication failed for user: {email}")
+
     serializer = UserLoginSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.validated_data['user']

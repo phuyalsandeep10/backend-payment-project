@@ -69,12 +69,12 @@ class Command(BaseCommand):
             role, _ = Role.objects.get_or_create(name=role_name, organization=None)
             permissions = Permission.objects.filter(codename__in=perms)
             role.permissions.set([p.pk for p in permissions])
-            self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
+                self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
 
         users = {}
         user_data = {
             "Super Admin": [("superadmin", "super@innovate.com")],
-            "Organization Admin": [("orgadmin", "admin@innovate.com")],
+            "Organization Admin": [("orgadmin", "orgadmin@innovate.com")],
             "Salesperson": [("salestest", "sales@innovate.com"), ("salespro", "salespro@innovate.com")],
             "Verifier": [("verifier", "verifier@innovate.com")],
         }
@@ -83,15 +83,31 @@ class Command(BaseCommand):
             template_role = Role.objects.get(name=role_name, organization__isnull=True)
             org_role.permissions.set(template_role.permissions.all())
             for username, email in user_list:
-                user, created = User.objects.get_or_create(email=email, defaults={'username': username, 'organization': organization, 'role': org_role, 'first_name': fake.first_name(), 'last_name': fake.last_name(), 'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else None})
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': username,
+                        'organization': organization if role_name != "Super Admin" else None, # Super Admin has no org
+                        'role': org_role, 
+                        'first_name': fake.first_name(), 
+                        'last_name': fake.last_name(), 
+                        'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else None
+                    }
+                )
+                # Always set these attributes to ensure correctness on every run
                 user.set_password("password123")
-                user.is_active = True
+        user.is_active = True
                 if role_name == "Super Admin":
                     user.is_superuser = True
                     user.is_staff = True
+                    user.organization = None # Ensure superadmin is not tied to an org
+        else:
+                    user.organization = organization
+                
                 user.save()
                 users[username] = user
                 NotificationSettings.objects.get_or_create(user=user)
+
         self.stdout.write(self.style.SUCCESS("👥 Users, roles, and notification settings created."))
         return users
 
@@ -202,13 +218,13 @@ class Command(BaseCommand):
         for i in range(5):
             # Create deals for the last 5 consecutive days
             deal_date = today - timedelta(days=i)
-            deal = Deal.objects.create(
+                deal = Deal.objects.create(
                 organization=salesperson.organization,
-                client=random.choice(clients),
+                    client=random.choice(clients),
                 project=random.choice(projects) if projects and random.random() > 0.5 else None,
                 deal_name=f"Streak Deal Day {i+1}",
                 deal_value=Decimal(random.randint(200, 1000)), # Ensure value is > 101
-                deal_date=deal_date,
+                    deal_date=deal_date,
                 payment_method='bank',
                 source_type='referral',
                 created_by=salesperson,
@@ -266,3 +282,18 @@ class Command(BaseCommand):
             "Salesperson": final_salesperson_perms,
             "Verifier": final_verifier_perms,
         }
+
+    def create_user(self, username, email, password, first_name, last_name, organization, role, is_superuser=False):
+        user, created = User.objects.get_or_create(email=email, defaults={'username': username, 'organization': organization, 'role': role, 'first_name': first_name, 'last_name': last_name, 'sales_target': Decimal(random.randint(25000, 75000)) if role.name == "Salesperson" else None})
+        user.set_password(password)
+        user.is_active = True
+        if is_superuser:
+            user.is_superuser = True
+            user.is_staff = True
+        user.save()
+        NotificationSettings.objects.get_or_create(user=user)
+        return user
+
+    def assign_permissions_to_role(self, role, permissions):
+        role.permissions.set(permissions)
+        self.stdout.write(self.style.SUCCESS(f"  - Assigned {len(permissions)} permissions to role '{role.name}'."))

@@ -72,6 +72,53 @@ def get_verifier_chart_data(organization, period):
         'verification_trend': verification_trend_data,
     }
 
+def get_verifier_chart_data_system_wide(period):
+    """
+    Generate data for verifier dashboard charts based on the selected period for system-wide data.
+    """
+    now = timezone.now()
+    if period == 'daily':
+        # Last 7 days
+        start_date = (now - timedelta(days=6)).date()
+        trunc_period = TruncDay
+        date_format = "%Y-%m-%d"
+    elif period == 'weekly':
+        # Last 4 weeks
+        start_date = (now - timedelta(weeks=4)).date()
+        trunc_period = TruncWeek
+        date_format = "W%U, %Y"
+    else:  # monthly is default
+        # Last 12 months
+        start_date = (now - timedelta(days=365)).date()
+        trunc_period = TruncMonth
+        date_format = "%b %Y"
+    
+    end_date = now.date()
+
+    verified_invoices_trend = PaymentInvoice.objects.filter(
+        invoice_status='verified',
+        invoice_date__gte=start_date,
+        invoice_date__lte=end_date
+    ).annotate(
+        period_start=trunc_period('invoice_date')
+    ).values('period_start').annotate(
+        total_verified_amount=Sum('payment__received_amount'),
+        count_verified=Count('id')
+    ).order_by('period_start')
+
+    verification_trend_data = [
+        {
+            'label': item['period_start'].strftime(date_format),
+            'total_amount': item['total_verified_amount'] or 0,
+            'count': item['count_verified']
+        }
+        for item in verified_invoices_trend
+    ]
+    
+    return {
+        'verification_trend': verification_trend_data,
+    }
+
 
 @swagger_auto_schema(
     method='get',
@@ -101,35 +148,59 @@ def payment_stats(request):
         user = request.user
         period = request.GET.get('period', 'monthly')
 
-        # Ensure user has organization
-        if not user.organization:
-            logger.warning(f"Unauthorized access attempt to verifier dashboard by user {user.id} without organization.")
-            return Response(
-                {'error': 'User must belong to an organization'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Handle Super Admins - provide system-wide data
+        if user.is_superuser:
+            # Filter payments system-wide for Super Admins
+            payments = Payment.objects.all()
+            deals = Deal.objects.all()
+            payment_invoice = PaymentInvoice.objects.all()
+            
+            # Calculate the required statistics
+            total_payments = payments.count()
+            total_successful_payments = deals.filter(payment_status='full_payment').count()
+            total_unsuccess_payments = deals.filter(
+                payment_status__in=['initial payment', 'partial_payment']
+            ).count()
+            total_verification_pending_payments = payment_invoice.filter(invoice_status='pending').count()
+            total_revenue = payments.aggregate(Sum('received_amount'))['received_amount__sum'] or 0
+            total_refunds = payment_invoice.filter(invoice_status='refunded').count()
+            total_refunded_amount = payment_invoice.filter(invoice_status='refunded').aggregate(Sum('payment__received_amount'))['payment__received_amount__sum'] or 0
+           
+            avg_transactional_value_raw = payment_invoice.filter(invoice_status='verified').aggregate(avg=Avg('payment__received_amount'))['avg'] or 0
+            avg_transactional_value = round(avg_transactional_value_raw, 2)
+            
+            # Get chart data for system-wide view
+            chart_data = get_verifier_chart_data_system_wide(period)
+        else:
+            # Ensure regular users have organization
+            if not user.organization:
+                logger.warning(f"Unauthorized access attempt to verifier dashboard by user {user.id} without organization.")
+                return Response(
+                    {'error': 'User must belong to an organization'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        # Filter payments based on the user's organization
-        payments = Payment.objects.filter(deal__organization=user.organization)
-        deals = Deal.objects.filter(organization=user.organization)
-        payment_invoice = PaymentInvoice.objects.filter(deal__organization=user.organization)
-        
-        # Calculate the required statistics
-        total_payments = payments.count()
-        total_successful_payments = deals.filter(payment_status='full_payment').count()
-        total_unsuccess_payments = deals.filter(
-            payment_status__in=['initial payment', 'partial_payment']
-        ).count()
-        total_verification_pending_payments = payment_invoice.filter(invoice_status='pending').count()
-        total_revenue = payments.aggregate(Sum('received_amount'))['received_amount__sum'] or 0
-        total_refunds = payment_invoice.filter(invoice_status='refunded').count()
-        total_refunded_amount = payment_invoice.filter(invoice_status='refunded').aggregate(Sum('payment__received_amount'))['payment__received_amount__sum'] or 0
-       
-        avg_transactional_value_raw = payment_invoice.filter(invoice_status='verified').aggregate(avg=Avg('payment__received_amount'))['avg'] or 0
-        avg_transactional_value = round(avg_transactional_value_raw, 2)
-        
-        # Get chart data
-        chart_data = get_verifier_chart_data(user.organization, period)
+            # Filter payments based on the user's organization
+            payments = Payment.objects.filter(deal__organization=user.organization)
+            deals = Deal.objects.filter(organization=user.organization)
+            payment_invoice = PaymentInvoice.objects.filter(deal__organization=user.organization)
+            
+            # Calculate the required statistics
+            total_payments = payments.count()
+            total_successful_payments = deals.filter(payment_status='full_payment').count()
+            total_unsuccess_payments = deals.filter(
+                payment_status__in=['initial payment', 'partial_payment']
+            ).count()
+            total_verification_pending_payments = payment_invoice.filter(invoice_status='pending').count()
+            total_revenue = payments.aggregate(Sum('received_amount'))['received_amount__sum'] or 0
+            total_refunds = payment_invoice.filter(invoice_status='refunded').count()
+            total_refunded_amount = payment_invoice.filter(invoice_status='refunded').aggregate(Sum('payment__received_amount'))['payment__received_amount__sum'] or 0
+           
+            avg_transactional_value_raw = payment_invoice.filter(invoice_status='verified').aggregate(avg=Avg('payment__received_amount'))['avg'] or 0
+            avg_transactional_value = round(avg_transactional_value_raw, 2)
+            
+            # Get chart data
+            chart_data = get_verifier_chart_data(user.organization, period)
 
         # Create a response dictionary
         response_data = {
