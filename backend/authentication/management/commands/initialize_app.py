@@ -157,8 +157,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
         
         # Clear all existing role permissions first to avoid conflicts
-        from permissions.models import Role
-        Role.objects.all().update(permissions=None)
+        from permissions.models import Role        
+        for role in Role.objects.all():
+            role.permissions.clear()
+            role.save()
         self.stdout.write(self.style.WARNING("🧹 Cleared all existing role permissions"))
         
         role_permissions = self.get_role_permissions()
