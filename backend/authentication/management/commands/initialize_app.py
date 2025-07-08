@@ -359,6 +359,9 @@ class Command(BaseCommand):
             'view_payment_verification_dashboard', 'view_payment_analytics', 'manage_invoices',
             'access_verification_queue', 'manage_refunds', 'view_audit_logs'
         ]
+        # Ensure 'create_deal' is not present
+        if 'create_deal' in verifier_additional_perms:
+            verifier_additional_perms.remove('create_deal')
         
         # Combine dynamic permissions with specific ones
         final_salesperson_perms = list(set(salesperson_perms_codenames + salesperson_additional_perms))
