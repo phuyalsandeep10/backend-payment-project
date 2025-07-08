@@ -17,7 +17,7 @@ cd backend
 #     echo "This will destroy all data and start fresh!"
 #     python manage.py nuclear_reset_db --force
 #     echo "✅ Database reset completed!"
-# fi
+    
 
 # # Clean database of orphaned data first
 # echo "🧹 Cleaning database of orphaned data..."
