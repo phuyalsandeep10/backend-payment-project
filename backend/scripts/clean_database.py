@@ -23,84 +23,88 @@ def clean_database():
     
     try:
         with connection.cursor() as cursor:
-            # Disable triggers on relevant tables to avoid foreign key issues
-            print("Disabling triggers...")
-            cursor.execute("ALTER TABLE permissions_role_permissions DISABLE TRIGGER ALL;")
-            cursor.execute("ALTER TABLE authentication_user_user_permissions DISABLE TRIGGER ALL;")
-            cursor.execute("ALTER TABLE auth_group_permissions DISABLE TRIGGER ALL;")
-            cursor.execute("ALTER TABLE permissions_role DISABLE TRIGGER ALL;")
-            
             # Clean up orphaned role permissions - be more aggressive
             print("📝 Cleaning orphaned role permissions...")
-            cursor.execute("""
-                DELETE FROM permissions_role_permissions 
-                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
-                OR permission_id IS NULL
-            """)
-            orphaned_count = cursor.rowcount
-            if orphaned_count > 0:
-                print(f"✅ Cleaned up {orphaned_count} orphaned role permissions")
+            try:
+                cursor.execute("""
+                    DELETE FROM permissions_role_permissions 
+                    WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                    OR permission_id IS NULL
+                """)
+                orphaned_count = cursor.rowcount
+                if orphaned_count > 0:
+                    print(f"✅ Cleaned up {orphaned_count} orphaned role permissions")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not clean orphaned role permissions: {e}")
             
             # Specifically clean up permission_id = 30 if it exists
-            cursor.execute("""
-                DELETE FROM permissions_role_permissions 
-                WHERE permission_id = 30
-            """)
-            specific_count = cursor.rowcount
-            if specific_count > 0:
-                print(f"✅ Cleaned up {specific_count} references to permission_id 30")
+            try:
+                cursor.execute("""
+                    DELETE FROM permissions_role_permissions 
+                    WHERE permission_id = 30
+                """)
+                specific_count = cursor.rowcount
+                if specific_count > 0:
+                    print(f"✅ Cleaned up {specific_count} references to permission_id 30")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not clean permission_id 30: {e}")
             
             # Clean up orphaned user permissions
             print("📝 Cleaning orphaned user permissions...")
-            cursor.execute("""
-                DELETE FROM authentication_user_user_permissions 
-                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
-                OR permission_id IS NULL
-            """)
-            orphaned_user_perms = cursor.rowcount
-            if orphaned_user_perms > 0:
-                print(f"✅ Cleaned up {orphaned_user_perms} orphaned user permissions")
+            try:
+                cursor.execute("""
+                    DELETE FROM authentication_user_user_permissions 
+                    WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                    OR permission_id IS NULL
+                """)
+                orphaned_user_perms = cursor.rowcount
+                if orphaned_user_perms > 0:
+                    print(f"✅ Cleaned up {orphaned_user_perms} orphaned user permissions")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not clean orphaned user permissions: {e}")
             
             # Clean up orphaned group permissions
             print("📝 Cleaning orphaned group permissions...")
-            cursor.execute("""
-                DELETE FROM auth_group_permissions 
-                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
-                OR permission_id IS NULL
-            """)
-            orphaned_group_perms = cursor.rowcount
-            if orphaned_group_perms > 0:
-                print(f"✅ Cleaned up {orphaned_group_perms} orphaned group permissions")
+            try:
+                cursor.execute("""
+                    DELETE FROM auth_group_permissions 
+                    WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                    OR permission_id IS NULL
+                """)
+                orphaned_group_perms = cursor.rowcount
+                if orphaned_group_perms > 0:
+                    print(f"✅ Cleaned up {orphaned_group_perms} orphaned group permissions")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not clean orphaned group permissions: {e}")
             
             # Clean up any orphaned roles
             print("📝 Cleaning orphaned roles...")
-            cursor.execute("""
-                DELETE FROM permissions_role 
-                WHERE id NOT IN (
-                    SELECT DISTINCT role_id FROM authentication_user WHERE role_id IS NOT NULL
-                ) AND organization_id IS NOT NULL
-            """)
-            orphaned_roles = cursor.rowcount
-            if orphaned_roles > 0:
-                print(f"✅ Cleaned up {orphaned_roles} orphaned roles")
-            
-            # Re-enable triggers
-            print("Re-enabling triggers...")
-            cursor.execute("ALTER TABLE permissions_role_permissions ENABLE TRIGGER ALL;")
-            cursor.execute("ALTER TABLE authentication_user_user_permissions ENABLE TRIGGER ALL;")
-            cursor.execute("ALTER TABLE auth_group_permissions ENABLE TRIGGER ALL;")
-            cursor.execute("ALTER TABLE permissions_role ENABLE TRIGGER ALL;")
+            try:
+                cursor.execute("""
+                    DELETE FROM permissions_role 
+                    WHERE id NOT IN (
+                        SELECT DISTINCT role_id FROM authentication_user WHERE role_id IS NOT NULL
+                    ) AND organization_id IS NOT NULL
+                """)
+                orphaned_roles = cursor.rowcount
+                if orphaned_roles > 0:
+                    print(f"✅ Cleaned up {orphaned_roles} orphaned roles")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not clean orphaned roles: {e}")
             
             # Verify the cleanup worked
-            cursor.execute("""
-                SELECT COUNT(*) FROM permissions_role_permissions 
-                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
-            """)
-            remaining_orphaned = cursor.fetchone()[0]
-            if remaining_orphaned == 0:
-                print("✅ All orphaned permissions cleaned successfully!")
-            else:
-                print(f"⚠️  Warning: {remaining_orphaned} orphaned permissions still remain")
+            try:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM permissions_role_permissions 
+                    WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                """)
+                remaining_orphaned = cursor.fetchone()[0]
+                if remaining_orphaned == 0:
+                    print("✅ All orphaned permissions cleaned successfully!")
+                else:
+                    print(f"⚠️  Warning: {remaining_orphaned} orphaned permissions still remain")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not verify cleanup: {e}")
         
         print("✅ Database cleaning completed successfully!")
         return True
