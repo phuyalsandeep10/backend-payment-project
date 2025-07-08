@@ -11,16 +11,14 @@ pip install -r backend/requirements.txt
 cd backend
 # Test migrations before applying them
 echo "🔍 Testing migrations..."
-python tests/test_migrations.py
-if [ $? -ne 0 ]; then
+python tests/test_migrations.py || (
     echo "❌ Migration test failed! Attempting to fix conflicts..."
-    python scripts/fix_migration_conflict.py
-    if [ $? -ne 0 ]; then
+    python scripts/fix_migration_conflict.py || (
         echo "❌ Failed to fix migration conflicts! Aborting deployment."
         exit 1
-    fi
+    )
     echo "✅ Migration conflicts fixed!"
-fi
+)
 
 # Create migration plan
 echo "📋 Creating migration plan..."
