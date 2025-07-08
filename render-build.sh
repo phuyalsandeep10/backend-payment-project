@@ -5,15 +5,13 @@ set -o errexit
 echo "🚀 Starting deployment build process..."
 
 # Install dependencies
-echo "📦 Installing dependencies..."
+echo " Installing dependencies..."
 pip install -r backend/requirements.txt
-
 # Change to backend directory
 cd backend
-
 # Test migrations before applying them
 echo "🔍 Testing migrations..."
-python scripts/test_migrations.py
+python tests/test_migrations.py
 if [ $? -ne 0 ]; then
     echo "❌ Migration test failed! Aborting deployment."
     exit 1
@@ -38,4 +36,4 @@ python manage.py showmigrations --list | grep -E "\[ \]" && echo "⚠️  Warnin
 echo "📧 Setting up notification templates..."
 python manage.py setup_notification_templates
 
-echo "🎉 Build process completed successfully!"
+echo "🎉 Build Complete!"
