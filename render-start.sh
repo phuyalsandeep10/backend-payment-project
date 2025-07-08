@@ -5,6 +5,12 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
+# # Nuclear option: Reset database completely (set RESET_DB=true to enable)
+# if [ "$RESET_DB" = "true" ]; then
+#     echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
+#     python scripts/reset_database.py
+# fi
+
 # Clean database of orphaned data first
 echo "🧹 Cleaning database of orphaned data..."
 python scripts/clean_database.py

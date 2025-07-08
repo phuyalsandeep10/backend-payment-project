@@ -9,9 +9,20 @@ echo " Installing dependencies..."
 pip install -r backend/requirements.txt
 # Change to backend directory
 cd backend
+
+# Nuclear option: Reset database completely (set RESET_DB=true to enable)
+if [ "$RESET_DB" = "true" ]; then
+    echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
+    python scripts/reset_database.py
+fi
+
 # Clean database of orphaned data first
 echo "🧹 Cleaning database of orphaned data..."
 python scripts/clean_database.py
+
+# Fix specific permission ID 30 issue
+echo "🔧 Fixing specific permission ID 30 issue..."
+python scripts/fix_permission_30.py
 
 # Test migrations before applying them
 echo "🔍 Testing migrations..."

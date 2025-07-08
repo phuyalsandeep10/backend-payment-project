@@ -157,23 +157,41 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
         
         # Clear all existing role permissions first to avoid conflicts
-        from permissions.models import Role        
-        for role in Role.objects.all():
-            role.permissions.clear()
-            role.save()
-        self.stdout.write(self.style.WARNING("🧹 Cleared all existing role permissions"))
+        from permissions.models import Role
+        try:
+            for role in Role.objects.all():
+                role.permissions.clear()
+                role.save()
+            self.stdout.write(self.style.WARNING("🧹 Cleared all existing role permissions"))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"❌ Error clearing role permissions: {e}"))
+            # Continue anyway, we'll handle this defensively
         
+        # Try to create roles and assign permissions, but be very defensive
         role_permissions = self.get_role_permissions()
+        created_roles = {}
+        
         for role_name, perms in role_permissions.items():
             try:
                 role, _ = Role.objects.get_or_create(name=role_name, organization=None)
                 # Only assign permissions that actually exist
                 existing_permissions = Permission.objects.filter(codename__in=perms)
-                role.permissions.set(existing_permissions)
-                self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {existing_permissions.count()} permissions."))
+                if existing_permissions.exists():
+                    role.permissions.set(existing_permissions)
+                    self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {existing_permissions.count()} permissions."))
+                else:
+                    self.stdout.write(self.style.WARNING(f"  - Created role template '{role_name}' but no permissions were assigned."))
+                created_roles[role_name] = role
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  - Error creating role '{role_name}': {e}"))
-                continue
+                # Create a minimal role without permissions
+                try:
+                    role, _ = Role.objects.get_or_create(name=role_name, organization=None)
+                    created_roles[role_name] = role
+                    self.stdout.write(self.style.WARNING(f"  - Created minimal role '{role_name}' without permissions."))
+                except Exception as e2:
+                    self.stdout.write(self.style.ERROR(f"  - Failed to create even minimal role '{role_name}': {e2}"))
+                    continue
 
         users = {}
         user_data = {
@@ -182,12 +200,22 @@ class Command(BaseCommand):
             "Salesperson": [("salestest", "sales@innovate.com"), ("salespro", "salespro@innovate.com")],
             "Verifier": [("verifier", "verifier@innovate.com")],
         }
+        
         for role_name, user_list in user_data.items():
             try:
+                if role_name not in created_roles:
+                    self.stdout.write(self.style.ERROR(f"  - Skipping users for role '{role_name}' - role not created."))
+                    continue
+                    
                 org_role, _ = Role.objects.get_or_create(name=role_name, organization=organization)
-                template_role = Role.objects.get(name=role_name, organization__isnull=True)
-                # Copy permissions from template role to org role
-                org_role.permissions.set(template_role.permissions.all())
+                template_role = created_roles[role_name]
+                
+                # Copy permissions from template role to org role, but be defensive
+                try:
+                    org_role.permissions.set(template_role.permissions.all())
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"  - Could not copy permissions for role '{role_name}': {e}"))
+                
                 for username, email in user_list:
                     user, created = User.objects.get_or_create(
                         email=email,

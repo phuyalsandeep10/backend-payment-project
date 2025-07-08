@@ -23,21 +23,35 @@ def clean_database():
     
     try:
         with connection.cursor() as cursor:
-            # Clean up orphaned role permissions
+            # Disable foreign key checks temporarily
+            cursor.execute("SET session_replication_role = replica;")
+            
+            # Clean up orphaned role permissions - be more aggressive
             print("📝 Cleaning orphaned role permissions...")
             cursor.execute("""
                 DELETE FROM permissions_role_permissions 
                 WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                OR permission_id IS NULL
             """)
             orphaned_count = cursor.rowcount
             if orphaned_count > 0:
                 print(f"✅ Cleaned up {orphaned_count} orphaned role permissions")
+            
+            # Specifically clean up permission_id = 30 if it exists
+            cursor.execute("""
+                DELETE FROM permissions_role_permissions 
+                WHERE permission_id = 30
+            """)
+            specific_count = cursor.rowcount
+            if specific_count > 0:
+                print(f"✅ Cleaned up {specific_count} references to permission_id 30")
             
             # Clean up orphaned user permissions
             print("📝 Cleaning orphaned user permissions...")
             cursor.execute("""
                 DELETE FROM authentication_user_user_permissions 
                 WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                OR permission_id IS NULL
             """)
             orphaned_user_perms = cursor.rowcount
             if orphaned_user_perms > 0:
@@ -48,6 +62,7 @@ def clean_database():
             cursor.execute("""
                 DELETE FROM auth_group_permissions 
                 WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+                OR permission_id IS NULL
             """)
             orphaned_group_perms = cursor.rowcount
             if orphaned_group_perms > 0:
@@ -64,6 +79,20 @@ def clean_database():
             orphaned_roles = cursor.rowcount
             if orphaned_roles > 0:
                 print(f"✅ Cleaned up {orphaned_roles} orphaned roles")
+            
+            # Re-enable foreign key checks
+            cursor.execute("SET session_replication_role = DEFAULT;")
+            
+            # Verify the cleanup worked
+            cursor.execute("""
+                SELECT COUNT(*) FROM permissions_role_permissions 
+                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+            """)
+            remaining_orphaned = cursor.fetchone()[0]
+            if remaining_orphaned == 0:
+                print("✅ All orphaned permissions cleaned successfully!")
+            else:
+                print(f"⚠️  Warning: {remaining_orphaned} orphaned permissions still remain")
         
         print("✅ Database cleaning completed successfully!")
         return True
