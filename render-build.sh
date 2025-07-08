@@ -21,11 +21,11 @@ cd backend
 
 # # Clean database of orphaned data first
 # echo "🧹 Cleaning database of orphaned data..."
-# python manage.py cleanup_permissions
+python manage.py cleanup_permissions
 
 # # Test migrations before applying them
 # echo "🔍 Testing migrations..."
-# python manage.py showmigrations --list > migration_status.txt
+python manage.py showmigrations --list > migration_status.txt
 # echo "Migration status saved to migration_status.txt"
 
 # Apply migrations with safety checks

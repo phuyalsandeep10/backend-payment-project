@@ -35,11 +35,11 @@ python manage.py initialize_app
 
 # Fix any permission issues that might have been created during initialization
 # # echo "🔧 Checking for permission issues after initialization..."
-# python scripts/fix_permission_issues.py
+python scripts/fix_permission_issues.py
 
 # # Assign proper permissions to roles
 # echo "🔐 Assigning permissions to roles..."
-# python manage.py assign_role_permissions
+python manage.py assign_role_permissions
 
 # # Generate rich, varied data for all API endpoints
 python manage.py generate_rich_test_data
