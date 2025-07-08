@@ -1,10 +1,9 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
-from organization.models import Organization
-from permissions.models import Role
-from django.core.validators import MinValueValidator
-# from team.models import Team # This is removed to prevent circular import
+from django.core.validators import MinValueValidator, MaxValueValidator
+# from organization.models import Organization  <- This will be removed
+# from permissions.models import Role           <- This will be removed
 
 class CustomUserManager(BaseUserManager):
     """
@@ -18,6 +17,9 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError('The Email must be set')
         email = self.normalize_email(email)
+        # Set username to email if not provided
+        if 'username' not in extra_fields:
+            extra_fields['username'] = email
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -48,17 +50,17 @@ class User(AbstractUser):
     Custom user model with roles and organization linkage.
     """
     # Use email as the primary identifier
-    username = models.CharField(max_length=150, unique=False)
+    username = models.CharField(max_length=150, unique=False, blank=True)
     email = models.EmailField('email address', unique=True)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
-    role = models.ForeignKey(Role, on_delete=models.PROTECT, null=False, blank=False)
+    organization = models.ForeignKey('organization.Organization', on_delete=models.CASCADE, null=True, blank=True)
+    role = models.ForeignKey('permissions.Role', on_delete=models.SET_NULL, null=True, blank=True)
     contact_number = models.CharField(max_length=30, blank=True, null=True)
     sales_target = models.DecimalField(max_digits=15, decimal_places=2, null=True, default=None)
-    streak = models.FloatField(default=0.0, validators=[MinValueValidator(0.0)])
+    streak = models.FloatField(default=5.0, validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
     objects = CustomUserManager()
 

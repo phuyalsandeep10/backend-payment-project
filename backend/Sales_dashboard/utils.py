@@ -28,12 +28,9 @@ def calculate_streaks_for_user_login(user):
     if last_record:
         start_date = last_record.date + timedelta(days=1)
     else:
-        # First time login - start from 30 days ago or first deal date
-        first_deal = Deal.objects.filter(created_by=user).order_by('deal_date').first()
-        if first_deal:
-            start_date = max(first_deal.deal_date.date(), today - timedelta(days=30))
-        else:
-            start_date = today
+        # First time login - only calculate for today to avoid penalizing for past inactivity.
+        # The user starts with the default streak and it's adjusted from today onwards.
+        start_date = today
     
     # Calculate streaks for each missing day up to today
     current_date = start_date
@@ -45,13 +42,19 @@ def calculate_streaks_for_user_login(user):
 
 def calculate_user_streak_for_date(user, target_date):
     """Calculate and update streak for a specific user on a specific date."""
-    
+
+    # Get the streak from the previous day
+    previous_date = target_date - timedelta(days=1)
+    previous_record = DailyStreakRecord.objects.filter(user=user, date=previous_date).first()
+    current_streak = previous_record.streak_value if previous_record else user.streak  # Fallback to user's streak
+
     daily_record, created = DailyStreakRecord.objects.get_or_create(
         user=user,
         date=target_date,
         defaults={
             'deals_closed': 0,
             'total_deal_value': 0,
+            'streak_value': current_streak,
             'streak_updated': False
         }
     )
@@ -60,11 +63,11 @@ def calculate_user_streak_for_date(user, target_date):
         return
 
     # A streak is maintained if at least one deal worth >= $101 is closed
-    # with a 'verified' or 'partial' payment status.
+    # with a 'initial payment' or 'full_payment' status.
     successful_deals = Deal.objects.filter(
         created_by=user,
         deal_date=target_date,
-        payment_status__in=['full_payment', 'partial_payment'],
+        payment_status__in=['initial payment', 'full_payment'],
         deal_value__gte=101
     )
 
@@ -76,16 +79,36 @@ def calculate_user_streak_for_date(user, target_date):
     daily_record.deals_closed = deals_count
     daily_record.total_deal_value = total_value
 
-    # Update streak with partial progress
+    # Update streak with partial progress, capping at 5.0
     if deals_count > 0:
-        user.streak += 0.5
+        daily_record.streak_value = min(5.0, current_streak + 0.5)
     else:
-        user.streak = max(0.0, user.streak - 0.5)
+        daily_record.streak_value = max(0.0, current_streak - 0.5)
 
     daily_record.streak_updated = True
     daily_record.save()
+    
+    # Also update the main user model for quick access
+    user.streak = daily_record.streak_value
     user.save(update_fields=['streak'])
 
+def calculate_streaks_from_date(user, from_date, force_recalculate=False):
+    """
+    Calculate user streaks from a specific date up to today.
+    Can be forced to recalculate existing records.
+    """
+    today = timezone.now().date()
+    
+    if force_recalculate:
+        # Delete records from the start date to ensure a clean recalculation
+        DailyStreakRecord.objects.filter(user=user, date__gte=from_date).delete()
+        
+    current_date = from_date
+    while current_date <= today:
+        calculate_user_streak_for_date(user, current_date)
+        current_date += timedelta(days=1)
+    
+    logger.info(f"Calculated streaks for {user.username} from {from_date} to {today} (forced: {force_recalculate})")
 
 STREAK_LEVELS = [
     (50, "Sales Legend"),

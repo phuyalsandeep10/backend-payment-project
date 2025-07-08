@@ -41,23 +41,14 @@ class UserSerializer(serializers.ModelSerializer):
             return TeamSerializer(obj.teams.all(), many=True).data
         return []
 
-    def update(self, instance, validated_data):
-        profile_data = validated_data.pop('profile', None)
-        instance = super().update(instance, validated_data)
-        if profile_data:
-            profile, created = UserProfile.objects.get_or_create(user=instance)
-            for attr, value in profile_data.items():
-                setattr(profile, attr, value)
-            profile.save()
-        return instance
-
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a new user (by an admin)."""
     role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'first_name', 'last_name', 'email', 'organization', 'role', 'contact_number', 'is_active')
+        fields = ('id', 'username', 'password', 'first_name', 'last_name', 'email', 'organization', 'role', 'contact_number', 'is_active')
+        read_only_fields = ('id',)
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -143,24 +134,50 @@ class PasswordChangeSerializer(serializers.Serializer):
         return attrs
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    """A detailed serializer for user info, used in other serializers."""
+    """A detailed serializer for the User model, including nested profile and team info."""
+    profile = UserProfileSerializer()
+    teams = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     role_name = serializers.CharField(source='role.name', read_only=True)
 
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'email', 'first_name', 'last_name',
-            'organization', 'organization_name', 'role', 'role_name',
-            'sales_target', 'streak', 'is_active', 'date_joined', 'last_login'
+            'id', 'username', 'email', 'first_name', 'last_name', 
+            'organization', 'organization_name', 'role_name', 
+            'contact_number', 'is_active', 'profile', 'teams'
         )
-        read_only_fields = ('id', 'date_joined', 'last_login', 'streak')
+
+    def get_teams(self, obj):
+        # Avoid circular import
+        from team.serializers import TeamSerializer
+        # Check if the user is associated with any teams
+        if hasattr(obj, 'teams'):
+            return TeamSerializer(obj.teams.all(), many=True).data
+        return "No Teams"
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating user information."""
+    """Serializer for updating user and their nested profile."""
+    profile = UserProfileSerializer(required=False)
+
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'contact_number', 'sales_target')
+        fields = ('first_name', 'last_name', 'contact_number', 'sales_target', 'profile')
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', None)
+        
+        # Update User fields
+        instance = super().update(instance, validated_data)
+
+        # Update UserProfile fields
+        if profile_data:
+            profile, created = UserProfile.objects.get_or_create(user=instance)
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
+            
+        return instance
 
 class AuthSuccessResponseSerializer(serializers.Serializer):
     """Generic response for successful authentication."""

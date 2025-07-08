@@ -33,6 +33,13 @@ class Client(models.Model):
         verbose_name = ("Client")
         verbose_name_plural = ("Clients")
         unique_together = ('email', 'organization')
+        permissions = [
+            ("view_all_clients", "Can view all clients"),
+            ("view_own_clients", "Can view own clients"),
+            ("create_new_client", "Can create a new client"),
+            ("edit_client_details", "Can edit client details"),
+            ("remove_client", "Can delete a client"),
+        ]
         
     def __str__(self):
         return self.client_name

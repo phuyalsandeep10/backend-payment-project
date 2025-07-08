@@ -3,16 +3,18 @@ from rest_framework import permissions
 
 class IsOrgAdminOrSuperAdmin(BasePermission):
     """
-    Allows access only to Super Admins or users with the 'Org Admin' role.
+    Custom permission to only allow access to organization admins or super admins.
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-            
+        
+        # Superusers have access everywhere
         if request.user.is_superuser:
             return True
             
-        return request.user.role and request.user.role.name == 'Org Admin'
+        # Check if the user has the 'Organization Admin' role
+        return request.user.role and request.user.role.name == 'Organization Admin'
 
 class CanManageRoles(permissions.BasePermission):
     """
@@ -26,4 +28,11 @@ class CanManageRoles(permissions.BasePermission):
             request.user.is_authenticated and
             request.user.role and
             request.user.role.permissions.filter(codename='can_manage_roles').exists()
-        ) 
+        )
+
+class IsSuperAdmin(BasePermission):
+    """
+    Custom permission to only allow access to super admins.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_superuser 

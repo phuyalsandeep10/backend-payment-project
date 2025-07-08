@@ -15,7 +15,6 @@ python manage.py migrate
 python manage.py initialize_app
 
 # Create custom permissions and assign them to roles
-python manage.py create_permissions
 
 # Generate rich, varied data for all API endpoints
 python manage.py generate_rich_test_data

@@ -2,9 +2,38 @@
 # exit on error
 set -o errexit
 
-# Install dependencies
-pip install -r backend/requirements.txt
+echo "🚀 Starting deployment build process..."
 
-# Change to backend directory and run migrations
+# Install dependencies
+echo " Installing dependencies..."
+pip install -r backend/requirements.txt
+# Change to backend directory
 cd backend
+# Test migrations before applying them
+echo "🔍 Testing migrations..."
+python tests/test_migrations.py
+if [ $? -ne 0 ]; then
+    echo "❌ Migration test failed! Aborting deployment."
+    exit 1
+fi
+
+# Create migration plan
+echo "📋 Creating migration plan..."
+python manage.py showmigrations > migration_plan.txt
+echo "Migration plan saved to migration_plan.txt"
+
+# Apply migrations with safety checks
+echo "🔄 Applying migrations..."
+#python manage.py migrate Sales_dashboard zero
+python manage.py makemigrations
 python manage.py migrate
+
+# Verify migrations
+echo "✅ Verifying migrations..."
+python manage.py showmigrations --list | grep -E "\[ \]" && echo "⚠️  Warning: Some migrations are not applied!" || echo "✅ All migrations applied successfully!"
+
+# Setup notification templates
+echo "📧 Setting up notification templates..."
+python manage.py setup_notification_templates
+
+echo "🎉 Build Complete!"

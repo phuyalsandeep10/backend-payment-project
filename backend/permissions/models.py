@@ -1,25 +1,14 @@
 from django.db import models
 from organization.models import Organization
-
-class Permission(models.Model):
-    """
-    Model to represent a specific, granular permission in the system.
-    e.g., "View All Clients", "Create Client".
-    """
-    name = models.CharField(max_length=255)
-    codename = models.CharField(max_length=100, unique=True)
-    category = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
+from django.contrib.auth.models import Permission
 
 class Role(models.Model):
     """
-    Model to represent a role within a specific organization.
+    Defines a role within an organization, which is a collection of permissions.
     e.g., "Salesperson" for "CG Group Pvt.Ltd".
     """
     name = models.CharField(max_length=100)
-    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='roles', null=True, blank=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='roles', null=True, blank=True)
     permissions = models.ManyToManyField(Permission, blank=True)
 
     class Meta:

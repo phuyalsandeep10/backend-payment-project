@@ -14,11 +14,11 @@ class HasClientPermission(BasePermission):
 
         required_perms_map = {
             'list': ['view_all_clients', 'view_own_clients'],
-            'create': ['create_client'],
+            'create': ['create_new_client'],
             'retrieve': ['view_all_clients', 'view_own_clients'],
             'update': ['edit_client_details'],
             'partial_update': ['edit_client_details'],
-            'destroy': ['delete_client'],
+            'destroy': ['remove_client'],
         }
         
         required_perms = required_perms_map.get(view.action, [])

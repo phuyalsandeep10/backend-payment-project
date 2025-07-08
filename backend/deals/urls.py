@@ -1,15 +1,14 @@
 from django.urls import path, include
-from rest_framework_nested import routers
-from .views import DealViewSet, PaymentViewSet, ActivityLogViewSet
+from rest_framework.routers import DefaultRouter
+from .views import DealViewSet, PaymentViewSet, ActivityLogViewSet, PaymentInvoiceViewSet, PaymentApprovalViewSet
 
-router = routers.DefaultRouter()
+router = DefaultRouter()
 router.register(r'deals', DealViewSet, basename='deal')
-
-deals_router = routers.NestedSimpleRouter(router, r'deals', lookup='deal')
-deals_router.register(r'payments', PaymentViewSet, basename='deal-payments')
-deals_router.register(r'activity', ActivityLogViewSet, basename='deal-activity')
+router.register(r'payments', PaymentViewSet, basename='payment')
+router.register(r'activity-logs', ActivityLogViewSet, basename='activity-log')
+router.register(r'invoices', PaymentInvoiceViewSet, basename='invoice')
+router.register(r'approvals', PaymentApprovalViewSet, basename='approval')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('', include(deals_router.urls)),
 ]

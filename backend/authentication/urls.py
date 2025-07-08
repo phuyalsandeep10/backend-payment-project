@@ -3,12 +3,12 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from .views import (
     UserViewSet,
-    UserProfileViewSet
+    UserProfileView
 )
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
-router.register(r'profile', UserProfileViewSet, basename='user-profile')
+# router.register(r'profile', UserProfileViewSet, basename='user-profile') # This is redundant and conflicts with the UserProfileView below
 
 app_name = 'authentication'
 

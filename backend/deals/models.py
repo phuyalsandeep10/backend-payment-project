@@ -10,6 +10,7 @@ import io
 import os
 from django.utils import timezone
 from project.models import Project
+from django.db.models.signals import pre_save, post_save
 
 ##
 ##  Deals Section
@@ -62,7 +63,7 @@ class Deal(models.Model):
     deal_value = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='USD')
     deal_date = models.DateField(default=timezone.now)
-    due_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
     payment_method = models.CharField(max_length=100,choices=PAYMENT_METHOD_CHOICES)
     deal_remarks = models.TextField(blank=True,null=True)
     verification_status = models.CharField(max_length=100,choices=DEAL_STATUS,default='pending')
@@ -77,6 +78,13 @@ class Deal(models.Model):
     
     class Meta:
         unique_together = ('organization','deal_id')
+        permissions = [
+            ("manage_invoices", "Can manage invoices"),
+            ("access_verification_queue", "Can access verification queue"),
+            ("verify_deal_payment", "Can verify deal payments"),
+            ("manage_refunds", "Can manage refunds"),
+            ("verify_payments", "Can verify payments"),
+        ]
         
     def save(self,*args,**kwargs):
         is_new = self._state.adding
@@ -130,8 +138,20 @@ class Payment(models.Model):
         return f"payment for {self.deal.deal_id} on {self.payment_date}"
     
     def save(self, *args, **kwargs):
+        # Validate cheque number for uniqueness before saving
+        if self.cheque_number:
+            # Check for other payments with the same cheque number within the same organization
+            # This check is now more robust by scoping to the organization
+            organization = self.deal.organization
+            if Payment.objects.filter(
+                deal__organization=organization,
+                cheque_number=self.cheque_number
+            ).exclude(pk=self.pk).exists():
+                from django.core.exceptions import ValidationError
+                raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
+
         # Enhanced image compression with security checks
-        if self.receipt_file and self.receipt_file.size > 1024 * 1024: # 1MB
+        if self.receipt_file and hasattr(self.receipt_file, 'size') and self.receipt_file.size > 1024 * 1024: # 1MB
             try:
                 # Security: Verify file is actually an image before processing
                 img = Image.open(self.receipt_file)
@@ -199,4 +219,78 @@ class ActivityLog(models.Model):
     
     def __str__(self):
         return f"{self.timestamp} -- {self.message}"
-    
+
+##Payment Invoice Section (a payment invoice is created when a payment model is created.. signals.py handles this creation)
+##
+class PaymentInvoice(models.Model):
+    payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='invoice')
+    invoice_id = models.CharField(max_length=255, unique=True, blank=True)
+    invoice_date = models.DateField(auto_now_add=True)
+    due_date = models.DateField(null=True, blank=True)
+    invoice_status = models.CharField(max_length=20, default='pending')
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='invoices')
+    receipt_file = models.FileField(upload_to='receipts/', null=True, blank=True)
+
+    def __str__(self):
+        return f"Invoice for {self.deal.deal_id} - {self.invoice_date}"
+
+    def save(self, *args, **kwargs):
+        user = kwargs.pop('user', None) # Pop user to avoid passing it to super().save()
+        if not self.invoice_id:
+            last_invoice = PaymentInvoice.objects.order_by('id').last()
+            if last_invoice:
+                last_id = int(last_invoice.invoice_id.split('-')[1])
+                new_id = last_id + 1
+                self.invoice_id = f'INV-{new_id:04d}'
+            else:
+                self.invoice_id = 'INV-0001'
+        
+        super(PaymentInvoice, self).save(*args, **kwargs)
+
+class PaymentApproval(models.Model):
+    FAILURE_REMARKS = [
+        ('insufficient_funds', 'Insufficient Funds'),
+        ('bank_decline', 'Bank Decline'),
+        ('technical_error', 'Technical Error'),
+        ('cheque_bounce', 'Cheque Bounce'),
+        ('payment_received_not_reflected', 'Payment Received but not Reflected'),
+    ]
+    inovice_file = models.FileField(
+        upload_to='invoices/',
+        blank=True,
+        null=True,
+        validators=[validate_file_security]
+    )
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='approvals',blank=True,null=True)
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='approvals')
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='payment_approvals')
+    approval_date = models.DateField(auto_now_add=True)
+    approved_remarks = models.TextField(blank=True, null=True)
+    failure_remarks = models.CharField(max_length=50, choices=FAILURE_REMARKS, blank=True, null=True)
+    amount_in_invoice = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    def __str__(self):
+        return f"Approval for {self.payment.deal.deal_id} - {self.approval_date}"
+    def save(self, *args, **kwargs):
+        if not self.deal and self.payment:
+            self.deal = self.payment.deal
+        super().save(*args, **kwargs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

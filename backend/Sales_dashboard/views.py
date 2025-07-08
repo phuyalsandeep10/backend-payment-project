@@ -16,7 +16,7 @@ from commission.models import Commission
 from organization.models import Organization
 from team.models import Team
 from .models import DailyStreakRecord
-from .utils import calculate_streaks_for_user_login
+from .utils import calculate_streaks_for_user_login, calculate_streaks_from_date
 from authentication.models import UserProfile
 from .serializers import (
     DashboardResponseSerializer, DashboardQuerySerializer,
@@ -31,6 +31,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db import models
 import logging
+from .permissions import IsSalesperson
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ logger = logging.getLogger(__name__)
     tags=['Dashboard']
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsSalesperson])
 def dashboard_view(request):
     """
     Main dashboard endpoint that provides comprehensive sales and performance data.
@@ -70,7 +71,10 @@ def dashboard_view(request):
         
         # Trigger streak calculation
         try:
-            calculate_streaks_for_user_login(user)
+            # Force recalculation from 7 days ago to ensure streak data is always fresh for testing
+            seven_days_ago = timezone.now().date() - timedelta(days=7)
+            calculate_streaks_from_date(user, from_date=seven_days_ago, force_recalculate=True)
+            user.refresh_from_db()  # Refresh user object to get the updated streak
         except Exception as e:
             logger.warning(f"Warning: Streak calculation failed: {e}")
         
@@ -99,7 +103,7 @@ def dashboard_view(request):
             total=Sum('deal_value')
         )['total'] or Decimal('0')
         
-        sales_target = user.sales_target or Decimal('25000')
+        sales_target = user.sales_target if user.sales_target is not None else Decimal('25000')
         progress_percentage = float((current_sales / sales_target) * 100) if sales_target > 0 else 0
         
         # Get outstanding deals
@@ -1006,16 +1010,19 @@ def get_top_clients_data(user, start_date, include_details=False):
 
 def get_all_time_top_clients_data(user):
     """
-    Get data for top clients of all time.
+    Get top 5 regular clients based on total deal value of all time.
     """
-    client_deals = Deal.objects.filter(
-        created_by=user,
-        verification_status__in=['verified', 'partial']
-    ).values('client__client_name').annotate(
+    top_clients = Deal.objects.filter(
+        created_by__organization=user.organization,
+        verification_status='verified'
+    ).values(
+        'client_id', 'client__client_name'
+    ).annotate(
         total_deals=Count('id'),
         total_value=Sum('deal_value')
     ).order_by('-total_value')[:5]
-    return list(client_deals)
+    
+    return list(top_clients)
 
 def get_commission_trends(user, period, start_date):
     """Get commission trend data for charts."""

@@ -14,11 +14,11 @@ class HasTeamPermission(BasePermission):
 
         required_perms_map = {
             'list': ['view_all_teams', 'view_own_teams'],
-            'create': ['create_team'],
+            'create': ['create_new_team'],
             'retrieve': ['view_all_teams', 'view_own_teams'],
-            'update': ['edit_team'],
-            'partial_update': ['edit_team'],
-            'destroy': ['delete_team'],
+            'update': ['edit_team_details'],
+            'partial_update': ['edit_team_details'],
+            'destroy': ['remove_team'],
         }
         
         required_perms = required_perms_map.get(view.action, [])

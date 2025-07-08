@@ -11,7 +11,8 @@ class DailyStreakRecord(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='streak_records')
     date = models.DateField()
     deals_closed = models.IntegerField(default=0)
-    total_deal_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    total_deal_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    streak_value = models.FloatField(default=0.0)
     streak_updated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

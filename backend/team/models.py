@@ -17,5 +17,14 @@ class Team(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        permissions = [
+            ("view_all_teams", "Can view all teams"),
+            ("view_own_teams", "Can view own teams"),
+            ("create_new_team", "Can create a new team"),
+            ("edit_team_details", "Can edit team details"),
+            ("remove_team", "Can delete a team"),
+        ]
+
     def __str__(self):
         return self.name
