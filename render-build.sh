@@ -12,12 +12,12 @@ cd backend
 # Test migrations before applying them
 echo "🔍 Testing migrations..."
 python tests/test_migrations.py || (
-    echo "❌ Migration test failed! Attempting to fix conflicts..."
-    python scripts/fix_migration_conflict.py || (
+    echo "❌ Migration test failed! Attempting to fix all conflicts..."
+    python scripts/fix_all_migration_conflicts.py || (
         echo "❌ Failed to fix migration conflicts! Aborting deployment."
         exit 1
     )
-    echo "✅ Migration conflicts fixed!"
+    echo "✅ All migration conflicts fixed!"
 )
 
 # Create migration plan

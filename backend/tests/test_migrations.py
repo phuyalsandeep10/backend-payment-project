@@ -46,6 +46,10 @@ def test_migrations():
     if check_column_exists('authentication_usersession', 'user_id'):
         conflicts.append("Column 'user_id' already exists in 'authentication_usersession' table")
     
+    # Check if streak_value column is missing in Sales_dashboard_dailystreakrecord table
+    if check_column_exists('Sales_dashboard_dailystreakrecord', 'id') and not check_column_exists('Sales_dashboard_dailystreakrecord', 'streak_value'):
+        conflicts.append("Column 'streak_value' is missing in 'Sales_dashboard_dailystreakrecord' table")
+    
     if conflicts:
         print("❌ Migration conflicts detected:")
         for conflict in conflicts:

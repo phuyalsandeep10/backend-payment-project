@@ -8,6 +8,10 @@ cd backend
 # Run database migrations
 python manage.py migrate
 
+# Fix any migration conflicts that might exist
+echo "🔧 Checking for migration conflicts..."
+python scripts/fix_all_migration_conflicts.py
+
 # Initialize the application with a superuser and mock data.
 # This command will run on every startup.
 # It is designed to be safe to re-run, but for a production environment
