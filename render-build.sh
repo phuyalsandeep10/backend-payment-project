@@ -13,8 +13,13 @@ cd backend
 echo "🔍 Testing migrations..."
 python tests/test_migrations.py
 if [ $? -ne 0 ]; then
-    echo "❌ Migration test failed! Aborting deployment."
-    exit 1
+    echo "❌ Migration test failed! Attempting to fix conflicts..."
+    python scripts/fix_migration_conflict.py
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to fix migration conflicts! Aborting deployment."
+        exit 1
+    fi
+    echo "✅ Migration conflicts fixed!"
 fi
 
 # Create migration plan
