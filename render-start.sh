@@ -6,9 +6,9 @@ set -o errexit
 cd backend
 
 # # Nuclear option: Reset database completely (set RESET_DB=true to enable)
-# if [ "$RESET_DB" = "true" ]; then
-#     echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
-#     python scripts/reset_database.py
+if [ "$RESET_DB" = "true" ]; then
+    echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
+    python scripts/reset_database.py
 # fi
 
 # Clean database of orphaned data first
