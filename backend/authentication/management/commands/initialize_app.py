@@ -97,7 +97,7 @@ class Command(BaseCommand):
                 'template': template_role,
                 'organization': org_role
             }
-            
+        
             self.stdout.write(self.style.SUCCESS(f"  - Created role: {role_name}"))
         
         return roles
@@ -105,7 +105,7 @@ class Command(BaseCommand):
     def create_users(self, organization, roles):
         """Create users with appropriate roles."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users ---"))
-        
+
         users = {}
         user_data = {
             "Super Admin": [("superadmin", "super@innovate.com")],
@@ -123,9 +123,9 @@ class Command(BaseCommand):
                     defaults={
                         'username': username,
                         'organization': organization if role_name != "Super Admin" else None,
-                        'role': org_role,
-                        'first_name': fake.first_name(),
-                        'last_name': fake.last_name(),
+                        'role': org_role, 
+                        'first_name': fake.first_name(), 
+                        'last_name': fake.last_name(), 
                         'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else None
                     }
                 )
@@ -146,7 +146,7 @@ class Command(BaseCommand):
                 
                 # Create notification settings
                 NotificationSettings.objects.get_or_create(user=user)
-                
+
                 self.stdout.write(self.style.SUCCESS(f"  - Created user: {username} ({role_name})"))
         
         return users
@@ -231,7 +231,7 @@ class Command(BaseCommand):
         for i in range(count):
             # Determine deal date based on period
             if period == "recent":
-                now = timezone.now()
+            now = timezone.now()
                 deal_date = now.date() - timedelta(days=random.randint(0, min(now.day - 1, 30)))
             else:
                 deal_date = fake.date_between(start_date='-2y', end_date='-1M')
@@ -259,7 +259,7 @@ class Command(BaseCommand):
             if verifiers:
                 scenario = random.choice(['verified_full', 'verified_partial', 'multi_partial', 'rejected', 'refunded', 'bad_debt'])
                 if i < 5 and period == "recent":
-                    scenario = 'verified_full'
+                     scenario = 'verified_full'
                 self.process_deal_payment_and_verification(deal, verifiers, scenario)
 
     def process_deal_payment_and_verification(self, deal, verifiers, scenario):
@@ -279,7 +279,7 @@ class Command(BaseCommand):
 
         payment_amount = deal.deal_value * Decimal(random.uniform(0.7, 1.0) if scenario == 'verified_full' else 0.5)
         self.create_payment_flow(deal, payment_amount, payment_date, verifier, scenario)
-
+        
     def create_payment_flow(self, deal, amount, payment_date, verifier, final_status):
         """Create payment flow for a deal."""
         # Create payment

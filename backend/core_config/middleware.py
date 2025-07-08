@@ -6,6 +6,7 @@ import time
 from django.http import HttpResponse
 from django.core.cache import cache
 from django.utils.deprecation import MiddlewareMixin
+from django.conf import settings
 
 security_logger = logging.getLogger('security')
 
@@ -178,4 +179,34 @@ class RequestLoggingMiddleware(MiddlewareMixin):
             ip = x_forwarded_for.split(',')[0].strip()
         else:
             ip = request.META.get('REMOTE_ADDR')
-        return ip 
+        return ip
+
+class CORSPreflightMiddleware:
+    """
+    Handle CORS preflight requests for shared development access
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Handle preflight OPTIONS requests
+        if request.method == 'OPTIONS':
+            response = HttpResponse()
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken'
+            response['Access-Control-Allow-Credentials'] = 'true'
+            response['Access-Control-Max-Age'] = '86400'  # 24 hours
+            return response
+        
+        response = self.get_response(request)
+        
+        # Add CORS headers to all responses in debug mode
+        if settings.DEBUG:
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken'
+            response['Access-Control-Allow-Credentials'] = 'true'
+        
+        return response 

@@ -21,11 +21,11 @@ cd backend
 
 # # Clean database of orphaned data first
 # echo "🧹 Cleaning database of orphaned data..."
-python manage.py cleanup_permissions
+# python manage.py cleanup_permissions
 
 # # Test migrations before applying them
 # echo "🔍 Testing migrations..."
-python manage.py showmigrations --list > migration_status.txt
+# python manage.py showmigrations --list > migration_status.txt
 # echo "Migration status saved to migration_status.txt"
 
 # Apply migrations with safety checks
@@ -41,8 +41,20 @@ python manage.py showmigrations --list | grep -E "\[ \]" && echo "⚠️  Warnin
 echo "📧 Setting up notification templates..."
 python manage.py setup_notification_templates
 
-# # Setup permissions and assign them to roles
-# echo "🔐 Setting up permissions and assigning to roles..."
+# Create all permissions first
+echo "🔐 Creating all permissions..."
+python manage.py create_all_permissions
+
+# Create deal permissions (for backward compatibility)
+echo "🔐 Creating deal permissions..."
+python manage.py create_deal_permissions
+
+# Setup permissions and assign them to roles
+echo "🔐 Setting up permissions and assigning to roles..."
 python manage.py setup_permissions
+
+# Verify permission setup
+echo "🔍 Verifying permission setup..."
+python manage.py check_permissions
 
 echo "🎉 Build Complete!"

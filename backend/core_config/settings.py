@@ -37,7 +37,18 @@ DEBUG = env.bool('DEBUG', default=False)
 
 # Define allowed hosts based on environment
 if DEBUG:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
+    ALLOWED_HOSTS = [
+        'localhost', 
+        '127.0.0.1', 
+        '0.0.0.0', 
+        '*',
+        # VS Code Dev Tunnels support
+        '.inc1.devtunnels.ms',
+        '.devtunnels.ms',
+        '.tunnel.dev',
+        '.ngrok.io',
+        '.ngrok-free.app',
+    ]
 else:
     ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['.your-production-domain.com'])
 
@@ -68,6 +79,12 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     'http://127.0.0.1:3001',
     'http://127.0.0.1:4200',
     'http://127.0.0.1:8080',
+    # VS Code Dev Tunnels support
+    'https://*.inc1.devtunnels.ms',
+    'https://*.devtunnels.ms',
+    'https://*.tunnel.dev',
+    'https://*.ngrok.io',
+    'https://*.ngrok-free.app',
 ])
 
 # File Upload Security
@@ -147,10 +164,12 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    # Token authentication middleware (must be before AuthenticationMiddleware)
-    "core_config.token_middleware.TokenAuthMiddleware",
+    # Custom CORS preflight middleware for shared development (must be early)
+    "core_config.middleware.CORSPreflightMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    # Token authentication middleware (after CORS but before auth)
+    "core_config.token_middleware.TokenAuthMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -272,36 +291,49 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = 'authentication.User'
 
 # CORS Configuration
-CORS_ALLOW_CREDENTIALS = True
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_EXPOSE_HEADERS = ['*']
+    CORS_ALLOW_PRIVATE_NETWORK = True
+    # Additional CORS settings for shared development
+    CORS_ORIGIN_ALLOW_ALL = True
+    CORS_ALLOW_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+        'cache-control',
+        'x-api-key',
+        'x-request-id',
+        'x-forwarded-for',
+        'x-forwarded-proto',
+        'x-real-ip',
+        'x-device-id',
+        'x-session-id',
+        'x-client-version',
+        'x-platform',
+        'x-app-version',
+    ]
+    CORS_ALLOW_METHODS = [
+        'DELETE',
+        'GET',
+        'OPTIONS',
+        'PATCH',
+        'POST',
+        'PUT',
+    ]
 else:
     CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
-# Allow comprehensive headers for API requests
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'cache-control',
-]
 
-# Allow common HTTP methods
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
 
 SWAGGER_SETTINGS = {
    'SECURITY_DEFINITIONS': {

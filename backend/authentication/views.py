@@ -309,3 +309,17 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             # This can happen if a user was created before the signal was in place.
             # The signal will create it now.
             return UserProfile.objects.create(user=self.request.user)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Simple health check endpoint for testing shared access
+    """
+    return Response({
+        'status': 'healthy',
+        'message': 'API is accessible',
+        'timestamp': timezone.now().isoformat(),
+        'debug': settings.DEBUG,
+        'cors_enabled': getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False),
+    })

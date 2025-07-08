@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from .views import (
     UserViewSet,
-    UserProfileView
+    UserProfileView,
+    health_check
 )
 
 router = DefaultRouter()
@@ -25,4 +26,7 @@ urlpatterns = [
     # ==================== USER PROFILE ====================
     path('profile/', views.UserProfileView.as_view(), name='profile'),
     path('user/set-sales-target/', views.set_sales_target_view, name='set_sales_target'),
+    
+    # ==================== HEALTH CHECK ====================
+    path('health/', health_check, name='health_check'),
 ]
