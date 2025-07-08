@@ -244,44 +244,29 @@ def payment_stats(request):
 @permission_classes([HasVerifierPermission])
 def verifier_invoice(request):
     try:
-        # Ensure user has organization
-        if not request.user.organization:
-            return Response(
-                {'error': 'User must belong to an organization'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        invoices = PaymentInvoice.objects.select_related('deal', 'deal__client', 'payment').filter(deal__organization=request.user.organization)
-        
-        # Search and Filter Logic
+        organization = request.user.organization
+        if not organization:
+            return Response({'error': 'User must belong to an organization'}, status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = PaymentInvoice.objects.select_related(
+            'deal__client', 'payment'
+        ).filter(deal__organization=organization)
+
         search_query = request.query_params.get('search', None)
         status_filter = request.query_params.get('status', None)
 
         if search_query:
-            invoices = invoices.filter(
+            queryset = queryset.filter(
                 Q(deal__client__client_name__icontains=search_query) |
                 Q(deal__deal_id__icontains=search_query) |
                 Q(invoice_id__icontains=search_query)
             )
 
         if status_filter:
-            invoices = invoices.filter(invoice_status__iexact=status_filter)
+            queryset = queryset.filter(invoice_status__iexact=status_filter)
 
-        data = []
-        for invoice in invoices:
-            data.append({
-                'payment_id': invoice.payment.id,
-                'invoice_id': invoice.invoice_id,
-                'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
-                'deal_name': invoice.deal.deal_id,
-                'invoice_date': invoice.invoice_date,
-                'due_date': invoice.deal.due_date,
-                'amount': invoice.payment.received_amount,
-                'status': invoice.invoice_status,
-                'receipt_file': invoice.payment.receipt_file.url if invoice.payment.receipt_file else None
-            })
-
-        serializer = VerifierInvoiceSerializer(data, many=True)
+        # Use the serializer directly on the queryset
+        serializer = VerifierInvoiceSerializer(queryset, many=True)
         return Response(serializer.data)
     except Exception as e:
         logger.exception(f"Error in verifier_invoice view for user {request.user.id}: {e}")
@@ -327,25 +312,10 @@ def verifier_invoice_delete(request, invoice_id):
 @permission_classes([HasVerifierPermission])
 def verifier_pending(request):
     try:
-        invoices = PaymentInvoice.objects.select_related('deal', 'deal__client', 'payment').filter(
-            invoice_status='pending',
-            deal__organization=request.user.organization
-        )
-        data = []
-        for invoice in invoices:
-            data.append({
-                'payment_id': invoice.payment.id,
-                'invoice_id': invoice.invoice_id,
-                'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
-                'deal_name': invoice.deal.deal_id,
-                'invoice_date': invoice.invoice_date,
-                'due_date': invoice.deal.due_date,
-                'amount': invoice.payment.received_amount,
-                'status': invoice.invoice_status,
-                'receipt_file': invoice.payment.receipt_file.url if invoice.payment.receipt_file else None
-            })
-
-        serializer = VerifierInvoiceSerializer(data, many=True)
+        # This view is now redundant. The logic is handled by verifier_invoice with ?status=pending
+        queryset = PaymentInvoice.objects.select_related('deal__client', 'payment').filter(
+            invoice_status='pending', deal__organization=request.user.organization)
+        serializer = VerifierInvoiceSerializer(queryset, many=True)
         return Response(serializer.data)
     except Exception as e:
         logger.exception(f"Error in verifier_pending view for user {request.user.id}: {e}")
@@ -360,25 +330,10 @@ def verifier_pending(request):
 @permission_classes([HasVerifierPermission])
 def verifier_verified(request):
     try:
-        invoices = PaymentInvoice.objects.select_related('deal', 'deal__client', 'payment').filter(
-            invoice_status='verified',
-            deal__organization=request.user.organization
-        )
-        data = []
-        for invoice in invoices:
-            data.append({
-                'payment_id': invoice.payment.id,
-                'invoice_id': invoice.invoice_id,
-                'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
-                'deal_name': invoice.deal.deal_id,
-                'invoice_date': invoice.invoice_date,
-                'due_date': invoice.deal.due_date,
-                'amount': invoice.payment.received_amount,
-                'status': invoice.invoice_status,
-                'receipt_file': invoice.payment.receipt_file.url if invoice.payment.receipt_file else None
-            })
-
-        serializer = VerifierInvoiceSerializer(data, many=True)
+        # This view is now redundant. The logic is handled by verifier_invoice with ?status=verified
+        queryset = PaymentInvoice.objects.select_related('deal__client', 'payment').filter(
+            invoice_status='verified', deal__organization=request.user.organization)
+        serializer = VerifierInvoiceSerializer(queryset, many=True)
         return Response(serializer.data)
     except Exception as e:
         logger.exception(f"Error in verifier_verified view for user {request.user.id}: {e}")
@@ -387,30 +342,14 @@ def verifier_verified(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-
 @api_view(['GET'])
 @permission_classes([HasVerifierPermission])
 def verifier_rejected(request):
     try:
-        invoices = PaymentInvoice.objects.select_related('deal', 'deal__client', 'payment').filter(
-            invoice_status='rejected',
-            deal__organization=request.user.organization
-        )
-        data = []
-        for invoice in invoices:
-            data.append({
-                'payment_id': invoice.payment.id,
-                'invoice_id': invoice.invoice_id,
-                'client_name': invoice.deal.client.client_name if invoice.deal.client else 'Unknown Client',
-                'deal_name': invoice.deal.deal_id,
-                'invoice_date': invoice.invoice_date,
-                'due_date': invoice.deal.due_date,
-                'amount': invoice.payment.received_amount,
-                'status': invoice.invoice_status,
-                'receipt_file': invoice.payment.receipt_file.url if invoice.payment.receipt_file else None
-            })
-
-        serializer = VerifierInvoiceSerializer(data, many=True)
+        # This view is now redundant. The logic is handled by verifier_invoice with ?status=rejected
+        queryset = PaymentInvoice.objects.select_related('deal__client', 'payment').filter(
+            invoice_status='rejected', deal__organization=request.user.organization)
+        serializer = VerifierInvoiceSerializer(queryset, many=True)
         return Response(serializer.data)
     except Exception as e:
         logger.exception(f"Error in verifier_rejected view for user {request.user.id}: {e}")

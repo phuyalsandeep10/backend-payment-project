@@ -29,21 +29,13 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
-        self.stdout.write(self.style.WARNING("--- Flushing the database ---"))
-        os.system('python manage.py flush --no-input')
-        self.stdout.write(self.style.SUCCESS("✅ Database flushed."))
-        
-        # Ensure all permissions are recreated after flush
-        self.stdout.write(self.style.WARNING("--- Recreating permissions ---"))
-        os.system('python manage.py migrate')
-        self.stdout.write(self.style.SUCCESS("✅ Permissions recreated."))
-
-        # Set up notification templates
-        self.stdout.write(self.style.WARNING("--- Setting up notification templates ---"))
-        os.system('python manage.py setup_notification_templates')
-        self.stdout.write(self.style.SUCCESS("✅ Notification templates created."))
 
         try:
+            # The database should be flushed and migrated by the build script BEFORE this runs.
+            # This command is now only responsible for creating data.
+            self.stdout.write(self.style.WARNING("--- Seeding initial data ---"))
+            
+            # Create necessary objects
             organization = self.create_organization()
             call_command('create_deal_permissions') # Use the dedicated command
             users = self.create_users(organization)
