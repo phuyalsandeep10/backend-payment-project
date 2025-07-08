@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from deals.models import Deal,Payment,PaymentInvoice
 from .serializers import (PaymentStatusSerializer,VerifierInvoiceSerializer,
                           PaymentFailureReasonSerializer,PaymentMethodSerializer,
-                          Refund_or_BadDebtSerializer,InvoiceStatusSerializer,AuditLogSerializer)
+                          InvoiceStatusSerializer,AuditLogSerializer)
 from .models import AuditLogs
 from .permissions import HasVerifierPermission, IsVerifier
 from django.db.models import Sum, Avg, Count, Q
@@ -298,67 +298,6 @@ def verifier_invoice_delete(request, invoice_id):
         )
 
 
-@swagger_auto_schema(
-    method='get',
-    operation_description="Get all pending invoices requiring verification",
-    responses={
-        200: VerifierInvoiceSerializer(many=True),
-        401: "Unauthorized",
-        403: "Forbidden - Insufficient permissions"
-    },
-    tags=['Invoice Management']
-)
-@api_view(['GET'])
-@permission_classes([HasVerifierPermission])
-def verifier_pending(request):
-    try:
-        # This view is now redundant. The logic is handled by verifier_invoice with ?status=pending
-        queryset = PaymentInvoice.objects.select_related('deal__client', 'payment').filter(
-            invoice_status='pending', deal__organization=request.user.organization)
-        serializer = VerifierInvoiceSerializer(queryset, many=True)
-        return Response(serializer.data)
-    except Exception as e:
-        logger.exception(f"Error in verifier_pending view for user {request.user.id}: {e}")
-        return Response(
-            {'error': 'An internal server error occurred.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-    
-    
-    
-@api_view(['GET'])
-@permission_classes([HasVerifierPermission])
-def verifier_verified(request):
-    try:
-        # This view is now redundant. The logic is handled by verifier_invoice with ?status=verified
-        queryset = PaymentInvoice.objects.select_related('deal__client', 'payment').filter(
-            invoice_status='verified', deal__organization=request.user.organization)
-        serializer = VerifierInvoiceSerializer(queryset, many=True)
-        return Response(serializer.data)
-    except Exception as e:
-        logger.exception(f"Error in verifier_verified view for user {request.user.id}: {e}")
-        return Response(
-            {'error': 'An internal server error occurred.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-@api_view(['GET'])
-@permission_classes([HasVerifierPermission])
-def verifier_rejected(request):
-    try:
-        # This view is now redundant. The logic is handled by verifier_invoice with ?status=rejected
-        queryset = PaymentInvoice.objects.select_related('deal__client', 'payment').filter(
-            invoice_status='rejected', deal__organization=request.user.organization)
-        serializer = VerifierInvoiceSerializer(queryset, many=True)
-        return Response(serializer.data)
-    except Exception as e:
-        logger.exception(f"Error in verifier_rejected view for user {request.user.id}: {e}")
-        return Response(
-            {'error': 'An internal server error occurred.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
 class VerifierDealViewSet(viewsets.ModelViewSet):
     serializer_class = VerifierDealSerializer
     permission_classes = [HasVerifierPermission]
@@ -468,67 +407,7 @@ def payment_methods(request):
 
 
 
-@api_view(['GET'])
-@permission_classes([HasVerifierPermission])
-def refunded_invoice(request):
-    try:
-        if not request.user.organization:
-            return Response(
-                {'error': 'User must belong to an organization'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        refunds = PaymentInvoice.objects.select_related('deal', 'deal__client', 'payment').filter(deal__organization=request.user.organization, invoice_status='refunded')
-        
-        data = []
-        for refund in refunds:
-            data.append({
-                'invoice_id': refund.invoice_id,
-                'client': refund.deal.client.client_name if refund.deal.client else 'Unknown Client',
-                'amount': refund.payment.received_amount,
-                'status': 'refunded',
-                'reasons': refund.invoice_status,
-                'date': refund.invoice_date
-            })
-        serializer = Refund_or_BadDebtSerializer(data, many=True)
-        return Response(data, status=status.HTTP_200_OK)
-    except Exception as e:
-        logger.exception(f"Error in refunded_invoice view for user {request.user.id}: {e}")
-        return Response(
-            {'error': 'An internal server error occurred.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
 
-
-
-@api_view(['GET'])
-@permission_classes([HasVerifierPermission])
-def bad_debt_invoice(request):
-    try:
-        if not request.user.organization:
-            return Response(
-                {'error': 'User must belong to an organization'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        bad_debts = PaymentInvoice.objects.select_related('deal', 'deal__client', 'payment').filter(deal__organization=request.user.organization, invoice_status='bad_debt')
-        
-        data = []
-        for bad_debt in bad_debts:
-            data.append({
-                'invoice_id': bad_debt.invoice_id,
-                'client': bad_debt.deal.client.client_name if bad_debt.deal.client else 'Unknown Client',
-                'amount': bad_debt.payment.received_amount,
-                'status': 'bad_debt',
-                'reasons': bad_debt.invoice_status,
-                'date': bad_debt.invoice_date
-            })
-        serializer = Refund_or_BadDebtSerializer(data, many=True)
-        return Response(data, status=status.HTTP_200_OK)
-    except Exception as e:
-        logger.exception(f"Error in bad_debt_invoice view for user {request.user.id}: {e}")
-        return Response(
-            {'error': 'An internal server error occurred.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
 
 
 @api_view(['GET'])
@@ -811,26 +690,24 @@ def payment_verifier_form(request, payment_id):
                 organization=request.user.organization
             )
             
-            # Create the PaymentApproval entry using the serializer for validation
-            approval_data = {
-                'payment': payment.id,
-                'approved_by': request.user.id,
-                'approval_status': approval_status,
-                'remarks': remarks,
-                'deal': payment.deal.id
-            }
+            # Create the PaymentApproval entry directly
+            approval = PaymentApproval.objects.create(
+                payment=payment,
+                approved_by=request.user,
+                approved_remarks=remarks,
+                amount_in_invoice=payment.received_amount
+            )
             
-            approval_serializer = PaymentApprovalSerializer(data=approval_data)
-            if approval_serializer.is_valid():
-                approval_serializer.save()
-                logger.info(f"User {request.user.id} successfully processed payment {payment_id} with status '{approval_status}'")
-                return Response({
-                    'status': 'success',
-                    'message': 'Invoice status successfully updated.',
-                }, status=status.HTTP_200_OK)
-            else:
-                logger.error(f"Validation failed for PaymentApproval on payment {payment_id} by user {request.user.id}: {approval_serializer.errors}")
-                return Response({'status': 'error', 'message': 'Invalid data submitted.', 'errors': approval_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            # Set failure remarks if the status is not approved
+            if approval_status != 'approved':
+                approval.failure_remarks = 'payment_received_not_reflected'  # Default failure reason
+                approval.save()
+            
+            logger.info(f"User {request.user.id} successfully processed payment {payment_id} with status '{approval_status}'")
+            return Response({
+                'status': 'success',
+                'message': 'Invoice status successfully updated.',
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.exception(f"Error processing payment verification (POST) for payment {payment_id} by user {request.user.id}: {e}")

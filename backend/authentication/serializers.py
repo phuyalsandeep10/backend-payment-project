@@ -23,17 +23,16 @@ class UserSerializer(serializers.ModelSerializer):
     teams = serializers.SerializerMethodField()
     role = RoleSerializer(read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    role_name = serializers.CharField(source='role.name', read_only=True)
     profile = UserProfileSerializer(required=False)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'organization', 'organization_name', 'role', 'role_name',
+            'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams'
         ]
-        read_only_fields = ['organization_name', 'role_name']
+        read_only_fields = ['organization_name']
 
     def get_teams(self, obj):
         from team.serializers import TeamSerializer
@@ -138,13 +137,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
     teams = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    role_name = serializers.CharField(source='role.name', read_only=True)
+    role = serializers.CharField(source='role.name', read_only=True)  # Role name as string for frontend compatibility
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'organization', 'organization_name', 'role_name', 
+            'organization', 'organization_name', 'role', 
             'contact_number', 'is_active', 'profile', 'teams'
         )
 

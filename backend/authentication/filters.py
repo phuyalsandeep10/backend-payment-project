@@ -7,11 +7,11 @@ class UserFilter(django_filters.FilterSet):
     Filter for the User model.
     """
     full_name = django_filters.CharFilter(method='filter_by_full_name', label="Full Name")
-    role_name = django_filters.CharFilter(field_name='role__name', lookup_expr='iexact')
+    role = django_filters.CharFilter(field_name='role__name', lookup_expr='iexact')
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'role', 'role_name']
+        fields = ['username', 'email', 'role']
 
     def filter_by_full_name(self, queryset, name, value):
         """

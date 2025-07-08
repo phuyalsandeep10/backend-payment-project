@@ -18,17 +18,20 @@ class PaymentStatusSerializer(serializers.Serializer):
     chart_data = serializers.DictField(child=serializers.ListField(child=serializers.DictField()))
     
     
-class VerifierInvoiceSerializer(serializers.Serializer):
-    payment_id = serializers.IntegerField()
-    invoice_id = serializers.CharField(max_length=50)
-    client_name = serializers.CharField(max_length=255)
-    deal_name =  serializers.CharField(max_length=255)
-    invoice_date = serializers.DateField()
-    due_date = serializers.DateField()
-    amount = serializers.DecimalField(max_digits=15, decimal_places=2)
-    status = serializers.CharField(max_length=50)
-    receipt_file = serializers.FileField(required=False)
-    invoice_status = serializers.CharField(max_length=50, required=False)
+class VerifierInvoiceSerializer(serializers.ModelSerializer):
+    payment_id = serializers.IntegerField(source='payment.id')
+    client_name = serializers.CharField(source='deal.client.client_name', read_only=True)
+    deal_name = serializers.CharField(source='deal.deal_name', read_only=True)
+    amount = serializers.DecimalField(source='payment.received_amount', max_digits=15, decimal_places=2, read_only=True)
+    status = serializers.CharField(source='invoice_status', read_only=True)
+    
+    class Meta:
+        model = PaymentInvoice
+        fields = [
+            'payment_id', 'invoice_id', 'client_name', 'deal_name',
+            'invoice_date', 'due_date', 'amount', 'status', 'receipt_file', 'invoice_status'
+        ]
+        read_only_fields = ['payment_id', 'invoice_id', 'client_name', 'deal_name', 'amount', 'status']
     
     
 class VerifierDealSerializer(serializers.ModelSerializer):

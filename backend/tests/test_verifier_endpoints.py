@@ -96,17 +96,20 @@ def test_verifier_endpoints(token):
 
     # --- Invoice Management ---
     print_header("Invoice Management")
+    # Test main invoices endpoint with different status filters
     run_test("GET", "/verifier/invoices/", headers, 200)
-    run_test("GET", "/verifier/invoices/pending/", headers, 200)
-    run_test("GET", "/verifier/invoices/verified/", headers, 200)
-    run_test("GET", "/verifier/invoices/rejected/", headers, 200)
-    run_test("GET", "/verifier/invoices/refunded/", headers, 200)
-    run_test("GET", "/verifier/invoices/bad-debt/", headers, 200)
+    run_test("GET", "/verifier/invoices/?status=pending", headers, 200)
+    run_test("GET", "/verifier/invoices/?status=verified", headers, 200)
+    run_test("GET", "/verifier/invoices/?status=rejected", headers, 200)
+    run_test("GET", "/verifier/invoices/?status=refunded", headers, 200)
+    run_test("GET", "/verifier/invoices/?status=bad_debt", headers, 200)
+    # Test search functionality
+    run_test("GET", "/verifier/invoices/?search=INV", headers, 200)
 
     # --- Payment Verification Workflow ---
     print_header("Payment Verification Workflow")
-    # First, find a pending payment to verify
-    pending_invoices = run_test("GET", "/verifier/invoices/pending/", headers, 200)
+    # First, find a pending payment to verify using the main invoices endpoint
+    pending_invoices = run_test("GET", "/verifier/invoices/?status=pending", headers, 200)
     payment_to_verify_id = None
     invoice_id_to_check = None
     if pending_invoices and isinstance(pending_invoices, list) and len(pending_invoices) > 0:
@@ -124,7 +127,7 @@ def test_verifier_endpoints(token):
 
         # Confirmation check: Verify the invoice is now in 'verified' status
         print(f"\n{colors.WARNING}Confirming verification status for invoice ID: {invoice_id_to_check}{colors.ENDC}")
-        verified_invoices = run_test("GET", "/verifier/invoices/verified/", headers, 200)
+        verified_invoices = run_test("GET", "/verifier/invoices/?status=verified", headers, 200)
         if verified_invoices and any(inv.get('invoice_id') == invoice_id_to_check for inv in verified_invoices):
             print(f"{colors.OKGREEN}      -> Verification confirmed. Invoice is now in 'verified' list.{colors.ENDC}")
         else:
@@ -146,8 +149,8 @@ def test_verifier_endpoints(token):
     print_header("Negative Tests (Accessing Salesperson Endpoints)")
     run_test("GET", "/dashboard/dashboard/", headers, 403)
     run_test("GET", "/commission/", headers, 403)
-    # Try to create a deal with invalid data (should fail with 400 due to missing required fields)
-    run_test("POST", "/deals/deals/", headers, 400, json_data={"client": 1, "deal_name": "Should Fail"})
+    # Try to create a deal (should fail with 403 due to insufficient permissions)
+    run_test("POST", "/deals/deals/", headers, 403, json_data={"client": 1, "deal_name": "Should Fail"})
 
 
 if __name__ == "__main__":
