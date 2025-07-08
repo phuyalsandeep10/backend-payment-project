@@ -23,8 +23,12 @@ def clean_database():
     
     try:
         with connection.cursor() as cursor:
-            # Disable foreign key checks temporarily
-            cursor.execute("SET session_replication_role = replica;")
+            # Disable triggers on relevant tables to avoid foreign key issues
+            print("Disabling triggers...")
+            cursor.execute("ALTER TABLE permissions_role_permissions DISABLE TRIGGER ALL;")
+            cursor.execute("ALTER TABLE authentication_user_user_permissions DISABLE TRIGGER ALL;")
+            cursor.execute("ALTER TABLE auth_group_permissions DISABLE TRIGGER ALL;")
+            cursor.execute("ALTER TABLE permissions_role DISABLE TRIGGER ALL;")
             
             # Clean up orphaned role permissions - be more aggressive
             print("📝 Cleaning orphaned role permissions...")
@@ -80,8 +84,12 @@ def clean_database():
             if orphaned_roles > 0:
                 print(f"✅ Cleaned up {orphaned_roles} orphaned roles")
             
-            # Re-enable foreign key checks
-            cursor.execute("SET session_replication_role = DEFAULT;")
+            # Re-enable triggers
+            print("Re-enabling triggers...")
+            cursor.execute("ALTER TABLE permissions_role_permissions ENABLE TRIGGER ALL;")
+            cursor.execute("ALTER TABLE authentication_user_user_permissions ENABLE TRIGGER ALL;")
+            cursor.execute("ALTER TABLE auth_group_permissions ENABLE TRIGGER ALL;")
+            cursor.execute("ALTER TABLE permissions_role ENABLE TRIGGER ALL;")
             
             # Verify the cleanup worked
             cursor.execute("""
@@ -108,4 +116,4 @@ if __name__ == '__main__':
     sys.path.insert(0, backend_dir)
     
     success = clean_database()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)
