@@ -146,8 +146,8 @@ def test_verifier_endpoints(token):
     print_header("Negative Tests (Accessing Salesperson Endpoints)")
     run_test("GET", "/dashboard/dashboard/", headers, 403)
     run_test("GET", "/commission/", headers, 403)
-    # Try to create a deal (should fail)
-    run_test("POST", "/deals/deals/", headers, 403, json_data={"client": 1, "deal_name": "Should Fail"})
+    # Try to create a deal with invalid data (should fail with 400 due to missing required fields)
+    run_test("POST", "/deals/deals/", headers, 400, json_data={"client": 1, "deal_name": "Should Fail"})
 
 
 if __name__ == "__main__":

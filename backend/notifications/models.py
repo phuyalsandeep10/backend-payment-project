@@ -19,6 +19,7 @@ class Notification(models.Model):
         ('project_created', 'New Project Created'),
         ('commission_created', 'New Commission Created'),
         ('payment_received', 'Payment Received'),
+        ('new_organization', 'New Organization Created'),
         ('system_alert', 'System Alert'),
     ]
     

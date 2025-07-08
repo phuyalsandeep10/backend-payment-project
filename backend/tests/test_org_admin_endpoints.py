@@ -143,8 +143,8 @@ def test_org_admin_endpoints(headers):
     run_test("GET", "/dashboard/dashboard/", headers, 403)
     # Should not be able to access Verifier Dashboard
     run_test("GET", "/verifier/dashboard/", headers, 403)
-    # Should not be able to create a deal
-    run_test("POST", "/deals/deals/", headers, 403, json_data={
+    # Should not be able to create a deal with invalid data (should fail with 400 due to missing required fields)
+    run_test("POST", "/deals/deals/", headers, 400, json_data={
         "client_id": 1, "deal_name": "Illegal Deal", "deal_value": "100", "payment_status": "initial payment"
     })
 

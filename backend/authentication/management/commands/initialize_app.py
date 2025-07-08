@@ -37,8 +37,14 @@ class Command(BaseCommand):
         os.system('python manage.py migrate')
         self.stdout.write(self.style.SUCCESS("✅ Permissions recreated."))
 
+        # Set up notification templates
+        self.stdout.write(self.style.WARNING("--- Setting up notification templates ---"))
+        os.system('python manage.py setup_notification_templates')
+        self.stdout.write(self.style.SUCCESS("✅ Notification templates created."))
+
         try:
             organization = self.create_organization()
+            self.create_missing_permissions()
             users = self.create_users(organization)
             self.create_teams(organization, users)
             clients = self.create_clients(organization, users)
@@ -58,9 +64,94 @@ class Command(BaseCommand):
 
     def create_organization(self):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Organization ---"))
-        organization, _ = Organization.objects.get_or_create(name="Innovate Inc.", defaults={'sales_goal': Decimal("500000.00"), 'description': fake.bs()})
+        organization, created = Organization.objects.get_or_create(
+            name="Innovate Inc.",
+            defaults={'description': 'A leading innovation company'}
+        )
         self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created."))
         return organization
+
+    def create_missing_permissions(self):
+        """Create missing permissions that views are checking for."""
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Missing Permissions ---"))
+        
+        from django.contrib.contenttypes.models import ContentType
+        from deals.models import Deal
+        from clients.models import Client
+        from project.models import Project
+        from team.models import Team
+        from commission.models import Commission
+        
+        # Get content types
+        deal_ct = ContentType.objects.get_for_model(Deal)
+        client_ct = ContentType.objects.get_for_model(Client)
+        project_ct = ContentType.objects.get_for_model(Project)
+        team_ct = ContentType.objects.get_for_model(Team)
+        commission_ct = ContentType.objects.get_for_model(Commission)
+        
+        # Define permissions to create
+        permissions_to_create = [
+            # Deal permissions
+            ('view_all_deals', 'Can view all deals', deal_ct),
+            ('view_own_deals', 'Can view own deals', deal_ct),
+            ('create_deal', 'Can create deal', deal_ct),
+            ('edit_deal', 'Can edit deal', deal_ct),
+            ('delete_deal', 'Can delete deal', deal_ct),
+            ('log_deal_activity', 'Can log deal activity', deal_ct),
+            ('verify_deal_payment', 'Can verify deal payment', deal_ct),
+            ('verify_payments', 'Can verify payments', deal_ct),
+            
+            # Client permissions
+            ('view_all_clients', 'Can view all clients', client_ct),
+            ('view_own_clients', 'Can view own clients', client_ct),
+            ('create_new_client', 'Can create new client', client_ct),
+            ('edit_client_details', 'Can edit client details', client_ct),
+            ('remove_client', 'Can remove client', client_ct),
+            
+            # Team permissions
+            ('view_all_teams', 'Can view all teams', team_ct),
+            ('view_own_teams', 'Can view own teams', team_ct),
+            ('create_new_team', 'Can create new team', team_ct),
+            ('edit_team_details', 'Can edit team details', team_ct),
+            ('remove_team', 'Can remove team', team_ct),
+            
+            # Commission permissions
+            ('view_all_commissions', 'Can view all commissions', commission_ct),
+            ('create_commission', 'Can create commission', commission_ct),
+            ('edit_commission', 'Can edit commission', commission_ct),
+            
+            # Project permissions
+            ('view_all_projects', 'Can view all projects', project_ct),
+            ('view_own_projects', 'Can view own projects', project_ct),
+            ('create_project', 'Can create project', project_ct),
+            ('edit_project', 'Can edit project', project_ct),
+            ('delete_project', 'Can delete project', project_ct),
+            
+            # Payment invoice permissions
+            ('view_paymentinvoice', 'Can view payment invoice', deal_ct),
+            ('create_paymentinvoice', 'Can create payment invoice', deal_ct),
+            ('edit_paymentinvoice', 'Can edit payment invoice', deal_ct),
+            ('delete_paymentinvoice', 'Can delete payment invoice', deal_ct),
+            
+            # Payment approval permissions
+            ('view_paymentapproval', 'Can view payment approval', deal_ct),
+            ('create_paymentapproval', 'Can create payment approval', deal_ct),
+            ('edit_paymentapproval', 'Can edit payment approval', deal_ct),
+            ('delete_paymentapproval', 'Can delete payment approval', deal_ct),
+        ]
+        
+        created_count = 0
+        for codename, name, content_type in permissions_to_create:
+            perm, created = Permission.objects.get_or_create(
+                codename=codename,
+                content_type=content_type,
+                defaults={'name': name}
+            )
+            if created:
+                created_count += 1
+                self.stdout.write(f"✅ Created permission: {codename}")
+        
+        self.stdout.write(self.style.SUCCESS(f"✅ Created {created_count} new permissions!"))
 
     def create_users(self, organization):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
@@ -69,7 +160,7 @@ class Command(BaseCommand):
             role, _ = Role.objects.get_or_create(name=role_name, organization=None)
             permissions = Permission.objects.filter(codename__in=perms)
             role.permissions.set([p.pk for p in permissions])
-                self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
+            self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
 
         users = {}
         user_data = {
@@ -83,10 +174,10 @@ class Command(BaseCommand):
             template_role = Role.objects.get(name=role_name, organization__isnull=True)
             org_role.permissions.set(template_role.permissions.all())
             for username, email in user_list:
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': username,
+                user, created = User.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        'username': username,
                         'organization': organization if role_name != "Super Admin" else None, # Super Admin has no org
                         'role': org_role, 
                         'first_name': fake.first_name(), 
@@ -96,12 +187,12 @@ class Command(BaseCommand):
                 )
                 # Always set these attributes to ensure correctness on every run
                 user.set_password("password123")
-        user.is_active = True
+                user.is_active = True
                 if role_name == "Super Admin":
                     user.is_superuser = True
                     user.is_staff = True
                     user.organization = None # Ensure superadmin is not tied to an org
-        else:
+                else:
                     user.organization = organization
                 
                 user.save()
@@ -218,13 +309,13 @@ class Command(BaseCommand):
         for i in range(5):
             # Create deals for the last 5 consecutive days
             deal_date = today - timedelta(days=i)
-                deal = Deal.objects.create(
+            deal = Deal.objects.create(
                 organization=salesperson.organization,
-                    client=random.choice(clients),
+                client=random.choice(clients),
                 project=random.choice(projects) if projects and random.random() > 0.5 else None,
                 deal_name=f"Streak Deal Day {i+1}",
                 deal_value=Decimal(random.randint(200, 1000)), # Ensure value is > 101
-                    deal_date=deal_date,
+                deal_date=deal_date,
                 payment_method='bank',
                 source_type='referral',
                 created_by=salesperson,
