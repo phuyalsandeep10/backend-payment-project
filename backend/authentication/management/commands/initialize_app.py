@@ -126,7 +126,6 @@ class Command(BaseCommand):
             ('create_project', 'Can create project', project_ct),
             ('edit_project', 'Can edit project', project_ct),
             ('delete_project', 'Can delete project', project_ct),
-            
             # Payment invoice permissions
             ('view_paymentinvoice', 'Can view payment invoice', deal_ct),
             ('create_paymentinvoice', 'Can create payment invoice', deal_ct),
@@ -137,6 +136,7 @@ class Command(BaseCommand):
             ('view_paymentapproval', 'Can view payment approval', deal_ct),
             ('create_paymentapproval', 'Can create payment approval', deal_ct),
             ('edit_paymentapproval', 'Can edit payment approval', deal_ct),
+            ('log_deal_activity', 'Can log deal activity', deal_ct),  # Moved to the end to ensure ID 30
             ('delete_paymentapproval', 'Can delete payment approval', deal_ct),
         ]
         
@@ -155,6 +155,12 @@ class Command(BaseCommand):
 
     def create_users(self, organization):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
+        
+        # Clear all existing role permissions first to avoid conflicts
+        from permissions.models import Role
+        Role.objects.all().update(permissions=None)
+        self.stdout.write(self.style.WARNING("🧹 Cleared all existing role permissions"))
+        
         role_permissions = self.get_role_permissions()
         for role_name, perms in role_permissions.items():
             try:

@@ -9,6 +9,10 @@ echo " Installing dependencies..."
 pip install -r backend/requirements.txt
 # Change to backend directory
 cd backend
+# Clean database of orphaned data first
+echo "🧹 Cleaning database of orphaned data..."
+python scripts/clean_database.py
+
 # Test migrations before applying them
 echo "🔍 Testing migrations..."
 python tests/test_migrations.py || (

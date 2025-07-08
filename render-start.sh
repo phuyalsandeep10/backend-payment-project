@@ -5,6 +5,10 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
+# Clean database of orphaned data first
+echo "🧹 Cleaning database of orphaned data..."
+python scripts/clean_database.py
+
 # Run database migrations
 python manage.py migrate
 
