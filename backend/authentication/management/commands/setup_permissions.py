@@ -26,6 +26,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting comprehensive permission setup..."))
         
+        # Step 0: Clean up any orphaned permission assignments
+        self.stdout.write(self.style.HTTP_INFO("🧹 Step 0: Cleaning up orphaned permission assignments..."))
+        try:
+            call_command('cleanup_permissions')
+            self.stdout.write(self.style.SUCCESS("✅ Cleanup completed successfully!"))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"⚠️  Warning during cleanup: {e}"))
+        
         # Step 1: Create all missing permissions
         if not options['skip_permission_creation']:
             self.stdout.write(self.style.HTTP_INFO("📝 Step 1: Creating all missing permissions..."))

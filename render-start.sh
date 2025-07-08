@@ -31,6 +31,7 @@ python scripts/fix_all_migration_conflicts.py
 # It is designed to be safe to re-run, but for a production environment
 # with real data, you may want to run this only once.
 python manage.py initialize_app
+python manage.py debug_permissions
 
 # Fix any permission issues that might have been created during initialization
 # echo "🔧 Checking for permission issues after initialization..."

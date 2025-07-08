@@ -54,6 +54,10 @@ python manage.py showmigrations --list | grep -E "\[ \]" && echo "⚠️  Warnin
 echo "📧 Setting up notification templates..."
 python manage.py setup_notification_templates
 
+# Clean up any orphaned permission assignments first
+echo "🧹 Cleaning up orphaned permission assignments..."
+python manage.py cleanup_permissions
+
 # Setup permissions and assign them to roles
 echo "🔐 Setting up permissions and assigning to roles..."
 python manage.py setup_permissions
