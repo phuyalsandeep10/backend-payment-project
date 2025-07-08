@@ -157,10 +157,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
         role_permissions = self.get_role_permissions()
         for role_name, perms in role_permissions.items():
-            role, _ = Role.objects.get_or_create(name=role_name, organization=None)
-            permissions = Permission.objects.filter(codename__in=perms)
-            role.permissions.set([p.pk for p in permissions])
-            self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {len(perms)} permissions."))
+            try:
+                role, _ = Role.objects.get_or_create(name=role_name, organization=None)
+                # Only assign permissions that actually exist
+                existing_permissions = Permission.objects.filter(codename__in=perms)
+                role.permissions.set(existing_permissions)
+                self.stdout.write(self.style.SUCCESS(f"  - Created role template '{role_name}' and assigned {existing_permissions.count()} permissions."))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"  - Error creating role '{role_name}': {e}"))
+                continue
 
         users = {}
         user_data = {
@@ -170,34 +175,39 @@ class Command(BaseCommand):
             "Verifier": [("verifier", "verifier@innovate.com")],
         }
         for role_name, user_list in user_data.items():
-            org_role, _ = Role.objects.get_or_create(name=role_name, organization=organization)
-            template_role = Role.objects.get(name=role_name, organization__isnull=True)
-            org_role.permissions.set(template_role.permissions.all())
-            for username, email in user_list:
-                user, created = User.objects.get_or_create(
-                    email=email,
-                    defaults={
-                        'username': username,
-                        'organization': organization if role_name != "Super Admin" else None, # Super Admin has no org
-                        'role': org_role, 
-                        'first_name': fake.first_name(), 
-                        'last_name': fake.last_name(), 
-                        'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else None
-                    }
-                )
-                # Always set these attributes to ensure correctness on every run
-                user.set_password("password123")
-                user.is_active = True
-                if role_name == "Super Admin":
-                    user.is_superuser = True
-                    user.is_staff = True
-                    user.organization = None # Ensure superadmin is not tied to an org
-                else:
-                    user.organization = organization
-                
-                user.save()
-                users[username] = user
-                NotificationSettings.objects.get_or_create(user=user)
+            try:
+                org_role, _ = Role.objects.get_or_create(name=role_name, organization=organization)
+                template_role = Role.objects.get(name=role_name, organization__isnull=True)
+                # Copy permissions from template role to org role
+                org_role.permissions.set(template_role.permissions.all())
+                for username, email in user_list:
+                    user, created = User.objects.get_or_create(
+                        email=email,
+                        defaults={
+                            'username': username,
+                            'organization': organization if role_name != "Super Admin" else None, # Super Admin has no org
+                            'role': org_role, 
+                            'first_name': fake.first_name(), 
+                            'last_name': fake.last_name(), 
+                            'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else None
+                        }
+                    )
+                    # Always set these attributes to ensure correctness on every run
+                    user.set_password("password123")
+                    user.is_active = True
+                    if role_name == "Super Admin":
+                        user.is_superuser = True
+                        user.is_staff = True
+                        user.organization = None # Ensure superadmin is not tied to an org
+                    else:
+                        user.organization = organization
+                    
+                    user.save()
+                    users[username] = user
+                    NotificationSettings.objects.get_or_create(user=user)
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"  - Error creating users for role '{role_name}': {e}"))
+                continue
 
         self.stdout.write(self.style.SUCCESS("👥 Users, roles, and notification settings created."))
         return users
@@ -343,6 +353,7 @@ class Command(BaseCommand):
         ]
         
         # Also add specific permissions that are checked in the permission classes
+        # Only include permissions that actually exist
         salesperson_additional_perms = [
             'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',
             'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
@@ -355,11 +366,17 @@ class Command(BaseCommand):
             'view_all_deals', 'view_own_deals', 'verify_deal_payment', 'verify_payments',
             'view_all_clients', 'view_own_clients',
             'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
-            'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval',
-            'view_payment_verification_dashboard', 'view_payment_analytics', 'manage_invoices',
-            'access_verification_queue', 'manage_refunds', 'view_audit_logs'
+            'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval'
         ]
-        # Ensure 'create_deal' is not present
+        
+        # Filter to only include permissions that actually exist
+        existing_perms_codenames = [p.codename for p in all_perms]
+        
+        # Filter additional permissions to only include existing ones
+        salesperson_additional_perms = [p for p in salesperson_additional_perms if p in existing_perms_codenames]
+        verifier_additional_perms = [p for p in verifier_additional_perms if p in existing_perms_codenames]
+        
+        # Ensure 'create_deal' is not present for verifiers
         if 'create_deal' in verifier_additional_perms:
             verifier_additional_perms.remove('create_deal')
         
