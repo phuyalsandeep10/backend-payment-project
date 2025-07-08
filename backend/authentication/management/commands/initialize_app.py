@@ -38,6 +38,9 @@ class Command(BaseCommand):
             # Create users
             users = self.create_users(organization, roles)
             
+            # Assign permissions to roles
+            self.assign_permissions_to_roles(organization, roles)
+            
             # Create teams
             self.create_teams(organization, users)
             
@@ -400,3 +403,50 @@ class Command(BaseCommand):
             
             # Create payment flow
             self.create_payment_flow(deal, deal.deal_value / 2, deal_date, random.choice(verifiers), 'verified')
+
+    def assign_permissions_to_roles(self, organization, roles):
+        """Assign proper permissions to roles based on their responsibilities."""
+        self.stdout.write(self.style.HTTP_INFO("--- Assigning Permissions to Roles ---"))
+        
+        # Import the assign_role_permissions command
+        from django.core.management import call_command
+        
+        try:
+            # Call the assign_role_permissions command for this organization
+            call_command('assign_role_permissions', organization=organization.name)
+            self.stdout.write(self.style.SUCCESS("✅ Permissions assigned successfully!"))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"❌ Error assigning permissions: {e}"))
+            # Fallback: manually assign critical permissions
+            self.assign_critical_permissions_fallback(organization, roles)
+    
+    def assign_critical_permissions_fallback(self, organization, roles):
+        """Fallback method to assign critical permissions if the main command fails."""
+        self.stdout.write(self.style.WARNING("⚠️  Using fallback permission assignment..."))
+        
+        from django.contrib.auth.models import Permission
+        
+        # Critical permissions for each role
+        role_permissions = {
+            'Salesperson': [
+                'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',
+                'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
+                'view_all_projects', 'view_own_projects', 'create_project', 'edit_project', 'delete_project',
+                'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
+                'view_all_commissions', 'create_commission', 'edit_commission'
+            ],
+            'Verifier': [
+                'view_payment_verification_dashboard', 'view_payment_analytics', 'view_audit_logs',
+                'verify_deal_payment', 'verify_payments', 'manage_invoices', 'access_verification_queue', 'manage_refunds',
+                'view_all_deals', 'view_own_deals', 'view_all_clients', 'view_own_clients',
+                'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
+                'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval'
+            ]
+        }
+        
+        for role_name, permission_codenames in role_permissions.items():
+            if role_name in roles:
+                org_role = roles[role_name]['organization']
+                permissions = Permission.objects.filter(codename__in=permission_codenames)
+                org_role.permissions.add(*permissions)
+                self.stdout.write(self.style.SUCCESS(f"  ✅ Assigned {permissions.count()} permissions to {role_name}"))
