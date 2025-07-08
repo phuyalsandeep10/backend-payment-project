@@ -355,7 +355,7 @@ class Command(BaseCommand):
         # Also add specific permissions that are checked in the permission classes
         # Only include permissions that actually exist
         salesperson_additional_perms = [
-            'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',
+            'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',  # Add here
             'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
             'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
             'view_all_commissions', 'create_commission', 'edit_commission',
