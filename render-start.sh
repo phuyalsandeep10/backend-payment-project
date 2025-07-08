@@ -22,9 +22,9 @@ python manage.py migrate
 echo "🔧 Checking for migration conflicts..."
 python scripts/fix_all_migration_conflicts.py
 
-# Fix any permission issues that might exist
-echo "🔧 Checking for permission issues..."
-python scripts/fix_permission_issues.py
+# # Fix any permission issues that might exist
+# echo "🔧 Checking for permission issues..."
+# python scripts/fix_permission_issues.py
 
 # Initialize the application with a superuser and mock data.
 # This command will run on every startup.
@@ -33,7 +33,7 @@ python scripts/fix_permission_issues.py
 python manage.py initialize_app
 
 # Fix any permission issues that might have been created during initialization
-echo "🔧 Checking for permission issues after initialization..."
+# echo "🔧 Checking for permission issues after initialization..."
 python scripts/fix_permission_issues.py
 
 # Assign proper permissions to roles
