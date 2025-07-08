@@ -20,9 +20,9 @@ fi
 echo "🧹 Cleaning database of orphaned data..."
 python scripts/clean_database.py
 
-# Fix specific permission ID 30 issue
-echo "🔧 Fixing specific permission ID 30 issue..."
-python scripts/fix_permission_30.py
+# # Fix specific permission ID 30 issue
+# echo "🔧 Fixing specific permission ID 30 issue..."
+# python scripts/fix_permission_30.py
 
 # Test migrations before applying them
 echo "🔍 Testing migrations..."
@@ -54,8 +54,8 @@ python manage.py showmigrations --list | grep -E "\[ \]" && echo "⚠️  Warnin
 echo "📧 Setting up notification templates..."
 python manage.py setup_notification_templates
 
-# Assign proper permissions to roles
-echo "🔐 Assigning permissions to roles..."
-python manage.py assign_role_permissions
+# Setup permissions and assign them to roles
+echo "🔐 Setting up permissions and assigning to roles..."
+python manage.py setup_permissions
 
 echo "🎉 Build Complete!"

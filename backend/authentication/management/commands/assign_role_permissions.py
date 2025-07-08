@@ -41,13 +41,21 @@ class Command(BaseCommand):
                 return
             role_names = [options['role']]
 
+        total_processed = 0
+        total_errors = 0
+
         for organization in organizations:
             self.stdout.write(self.style.HTTP_INFO(f"--- Processing Organization: {organization.name} ---"))
             
             for role_name in role_names:
-                self.assign_permissions_to_role(organization, role_name)
+                try:
+                    self.assign_permissions_to_role(organization, role_name)
+                    total_processed += 1
+                except Exception as e:
+                    total_errors += 1
+                    self.stdout.write(self.style.ERROR(f"❌ Error processing {role_name} for {organization.name}: {e}"))
 
-        self.stdout.write(self.style.SUCCESS("✅ Role permission assignment completed!"))
+        self.stdout.write(self.style.SUCCESS(f"✅ Role permission assignment completed! Processed: {total_processed}, Errors: {total_errors}"))
 
     def assign_permissions_to_role(self, organization, role_name):
         """Assign permissions to a specific role in an organization."""
@@ -72,9 +80,20 @@ class Command(BaseCommand):
 
             # Clear existing permissions and assign new ones
             role.permissions.clear()
-            role.permissions.add(*permissions)
-            
-            self.stdout.write(self.style.SUCCESS(f"  ✅ Assigned {len(permissions)} permissions to {role_name}"))
+            if permissions:
+                try:
+                    role.permissions.add(*permissions)
+                    self.stdout.write(self.style.SUCCESS(f"  ✅ Assigned {len(permissions)} permissions to {role_name}"))
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"  ❌ Error adding permissions to role {role_name}: {e}"))
+                    # Try to add permissions one by one to identify the problematic one
+                    for perm in permissions:
+                        try:
+                            role.permissions.add(perm)
+                        except Exception as perm_error:
+                            self.stdout.write(self.style.ERROR(f"    ❌ Failed to add permission {perm.codename}: {perm_error}"))
+            else:
+                self.stdout.write(self.style.WARNING(f"  - No permissions to assign for role: {role_name}"))
             
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"  ❌ Error assigning permissions to {role_name}: {e}"))
@@ -83,7 +102,11 @@ class Command(BaseCommand):
         """Get the list of permissions for a specific role."""
         if role_name == "Super Admin":
             # Super Admin gets all permissions
-            return list(Permission.objects.all())
+            try:
+                return list(Permission.objects.all())
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"  ❌ Error getting all permissions: {e}"))
+                return []
         
         elif role_name == "Organization Admin":
             # Organization Admin gets most permissions except super admin specific ones
@@ -99,21 +122,45 @@ class Command(BaseCommand):
         
         return []
 
+    def safe_get_permissions(self, codenames):
+        """Safely get permissions by codename, only returning those that exist."""
+        existing_permissions = []
+        for codename in codenames:
+            try:
+                # Use filter().first() to handle potential duplicates
+                permission = Permission.objects.filter(codename=codename).first()
+                if permission:
+                    existing_permissions.append(permission)
+                else:
+                    self.stdout.write(self.style.WARNING(f"    - Permission '{codename}' not found, skipping"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"    - Error getting permission '{codename}': {e}"))
+        return existing_permissions
+
     def get_org_admin_permissions(self):
         """Get permissions for Organization Admin role."""
         permissions = []
         
         # Get content types
         try:
+            from authentication.models import User
+            from clients.models import Client
+            from deals.models import Deal
+            from project.models import Project
+            from team.models import Team
+            from commission.models import Commission
+            from notifications.models import Notification
+            from Verifier_dashboard.models import AuditLogs
+            
             content_types = {
-                'user': ContentType.objects.get_for_model('authentication.User'),
-                'client': ContentType.objects.get_for_model('clients.Client'),
-                'deal': ContentType.objects.get_for_model('deals.Deal'),
-                'project': ContentType.objects.get_for_model('project.Project'),
-                'team': ContentType.objects.get_for_model('team.Team'),
-                'commission': ContentType.objects.get_for_model('commission.Commission'),
-                'notification': ContentType.objects.get_for_model('notifications.Notification'),
-                'audit_log': ContentType.objects.get_for_model('Verifier_dashboard.AuditLogs'),
+                'user': ContentType.objects.get_for_model(User),
+                'client': ContentType.objects.get_for_model(Client),
+                'deal': ContentType.objects.get_for_model(Deal),
+                'project': ContentType.objects.get_for_model(Project),
+                'team': ContentType.objects.get_for_model(Team),
+                'commission': ContentType.objects.get_for_model(Commission),
+                'notification': ContentType.objects.get_for_model(Notification),
+                'audit_log': ContentType.objects.get_for_model(AuditLogs),
             }
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"  - Warning: Could not get all content types: {e}"))
@@ -190,10 +237,10 @@ class Command(BaseCommand):
             notification_permissions + audit_log_permissions
         )
         
-        # Get actual permissions that exist
-        permissions = Permission.objects.filter(codename__in=all_permission_codenames)
+        # Get actual permissions that exist safely
+        permissions = self.safe_get_permissions(all_permission_codenames)
         
-        return list(permissions)
+        return permissions
 
     def get_salesperson_permissions(self):
         """Get permissions for Salesperson role."""
@@ -234,10 +281,10 @@ class Command(BaseCommand):
             team_permissions + commission_permissions
         )
         
-        # Get actual permissions that exist
-        permissions = Permission.objects.filter(codename__in=all_permission_codenames)
+        # Get actual permissions that exist safely
+        permissions = self.safe_get_permissions(all_permission_codenames)
         
-        return list(permissions)
+        return permissions
 
     def get_verifier_permissions(self):
         """Get permissions for Verifier role."""
@@ -283,7 +330,7 @@ class Command(BaseCommand):
             payment_invoice_permissions + payment_approval_permissions
         )
         
-        # Get actual permissions that exist
-        permissions = Permission.objects.filter(codename__in=all_permission_codenames)
+        # Get actual permissions that exist safely
+        permissions = self.safe_get_permissions(all_permission_codenames)
         
-        return list(permissions) 
+        return permissions 
