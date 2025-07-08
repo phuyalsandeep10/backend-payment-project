@@ -231,8 +231,10 @@ class Command(BaseCommand):
         for i in range(count):
             # Determine deal date based on period
             if period == "recent":
-            now = timezone.now()
+                now = timezone.now()
                 deal_date = now.date() - timedelta(days=random.randint(0, min(now.day - 1, 30)))
+                if deal_date < now.date() - timedelta(days=30):
+                    deal_date = now.date() - timedelta(days=30)
             else:
                 deal_date = fake.date_between(start_date='-2y', end_date='-1M')
             
