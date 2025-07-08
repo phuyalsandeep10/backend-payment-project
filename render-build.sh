@@ -43,6 +43,6 @@ python manage.py setup_notification_templates
 
 # # Setup permissions and assign them to roles
 # echo "🔐 Setting up permissions and assigning to roles..."
-# python manage.py setup_permissions
+python manage.py setup_permissions
 
 echo "🎉 Build Complete!"
