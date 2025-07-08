@@ -32,10 +32,18 @@ python scripts/fix_permission_issues.py
 # with real data, you may want to run this only once.
 python manage.py initialize_app
 
+# Fix any permission issues that might have been created during initialization
+echo "🔧 Checking for permission issues after initialization..."
+python scripts/fix_permission_issues.py
+
 # Create custom permissions and assign them to roles
 
 # Generate rich, varied data for all API endpoints
 python manage.py generate_rich_test_data
+
+# Final permission check after data generation
+echo "🔧 Final permission check after data generation..."
+python scripts/fix_permission_issues.py
 
 # Start the Gunicorn server.
 # We are already in the 'backend' directory, so we point to 'core_config.wsgi'.

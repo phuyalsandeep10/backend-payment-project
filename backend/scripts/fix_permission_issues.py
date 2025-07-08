@@ -43,6 +43,60 @@ def check_permission_issues():
                 WHERE permission_id NOT IN (SELECT id FROM auth_permission)
             """)
             print(f"✅ Cleaned up {orphaned_count} orphaned role permissions")
+        
+        # Specifically check for permission ID 30
+        cursor.execute("""
+            SELECT COUNT(*) FROM permissions_role_permissions 
+            WHERE permission_id = 30
+        """)
+        perm_30_count = cursor.fetchone()[0]
+        
+        if perm_30_count > 0:
+            issues_found.append(f"Found {perm_30_count} references to permission ID 30")
+            print(f"❌ Found {perm_30_count} references to permission ID 30")
+            
+            # Clean up permission ID 30 references
+            cursor.execute("""
+                DELETE FROM permissions_role_permissions 
+                WHERE permission_id = 30
+            """)
+            print(f"✅ Cleaned up {perm_30_count} references to permission ID 30")
+        
+        # Check for orphaned user permissions
+        cursor.execute("""
+            SELECT COUNT(*) FROM authentication_user_user_permissions 
+            WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+        """)
+        orphaned_user_perms = cursor.fetchone()[0]
+        
+        if orphaned_user_perms > 0:
+            issues_found.append(f"Found {orphaned_user_perms} orphaned user permissions")
+            print(f"❌ Found {orphaned_user_perms} orphaned user permissions")
+            
+            # Clean up orphaned user permissions
+            cursor.execute("""
+                DELETE FROM authentication_user_user_permissions 
+                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+            """)
+            print(f"✅ Cleaned up {orphaned_user_perms} orphaned user permissions")
+        
+        # Check for orphaned group permissions
+        cursor.execute("""
+            SELECT COUNT(*) FROM auth_group_permissions 
+            WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+        """)
+        orphaned_group_perms = cursor.fetchone()[0]
+        
+        if orphaned_group_perms > 0:
+            issues_found.append(f"Found {orphaned_group_perms} orphaned group permissions")
+            print(f"❌ Found {orphaned_group_perms} orphaned group permissions")
+            
+            # Clean up orphaned group permissions
+            cursor.execute("""
+                DELETE FROM auth_group_permissions 
+                WHERE permission_id NOT IN (SELECT id FROM auth_permission)
+            """)
+            print(f"✅ Cleaned up {orphaned_group_perms} orphaned group permissions")
     
     # Check for roles with no permissions
     roles_without_permissions = Role.objects.filter(permissions__isnull=True).count()
