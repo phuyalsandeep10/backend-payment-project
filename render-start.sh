@@ -5,28 +5,16 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
-# # Nuclear option: Reset database completely (set RESET_DB=true to enable)
-if [ "$RESET_DB" = "true" ]; then
-    echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
-    python scripts/reset_database.py
-# fi
-
-# Clean database of orphaned data first
-echo "🧹 Cleaning database of orphaned data..."
-python scripts/clean_database.py
-
-# Run database migrations
-python manage.py migrate
 
 # Fix any migration conflicts that might exist
-echo "🔧 Checking for migration conflicts..."
-python scripts/fix_all_migration_conflicts.py
+# echo "🔧 Checking for migration conflicts..."
+# python scripts/fix_all_migration_conflicts.py
 
-# Fix any permission issues that might exist
-echo "🔧 Checking for permission issues..."
-python scripts/fix_permission_issues.py
+# # Fix any permission issues that might exist
+# echo "🔧 Checking for permission issues..."
+# python scripts/fix_permission_issues.py
 
-# Initialize the application with a superuser and mock data.
+# # Initialize the application with a superuser and mock data.
 # This command will run on every startup.
 # It is designed to be safe to re-run, but for a production environment
 # with real data, you may want to run this only once.
