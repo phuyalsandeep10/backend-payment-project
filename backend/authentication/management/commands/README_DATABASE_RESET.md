@@ -19,7 +19,7 @@ The most comprehensive reset option with multiple safety checks.
 # Interactive mode (recommended)
 python manage.py nuclear_reset_db
 
-# Force mode (skips all confirmations)
+# Force mode (REQUIRED for non-interactive environments like Render)
 python manage.py nuclear_reset_db --force
 
 # Skip backup creation
@@ -71,6 +71,7 @@ python manage.py reset_db_for_deployment --skip-setup
 - You're manually resetting the database
 - You want automatic backup creation
 - You're in development and want to be extra careful
+- You're deploying to non-interactive environments (Render, Railway, etc.)
 
 ### Use Deployment Reset When:
 - You're setting up a fresh production environment
@@ -112,10 +113,11 @@ This will trigger the database reset during the build process using the deployme
 ## Safety Measures
 
 ### Nuclear Reset Safety:
-- Multiple confirmation prompts
+- Multiple confirmation prompts (skipped in non-interactive environments)
 - Production environment detection
 - Automatic backup creation
 - Detailed logging
+- Non-interactive environment detection (Render, Railway, etc.)
 
 ### Deployment Reset Safety:
 - Force flag for automated use

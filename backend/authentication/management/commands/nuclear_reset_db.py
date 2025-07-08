@@ -31,7 +31,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--force',
             action='store_true',
-            help='Force the operation without confirmation',
+            help='Force the operation without confirmation (REQUIRED for non-interactive environments)',
         )
         parser.add_argument(
             '--skip-backup',
@@ -45,7 +45,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if not options['force']:
+        # Check if we're in a non-interactive environment (like Render)
+        is_non_interactive = not sys.stdin.isatty() or 'RENDER' in os.environ
+        
+        if not options['force'] and not is_non_interactive:
             self.stdout.write(
                 self.style.WARNING(
                     '⚠️  NUCLEAR DATABASE RESET ⚠️\n'
@@ -63,7 +66,7 @@ class Command(BaseCommand):
                 return
 
         # Check if we're in production
-        if not settings.DEBUG:
+        if not settings.DEBUG and not options['force'] and not is_non_interactive:
             self.stdout.write(
                 self.style.WARNING(
                     '⚠️  PRODUCTION ENVIRONMENT DETECTED ⚠️\n'
@@ -72,13 +75,22 @@ class Command(BaseCommand):
                 )
             )
             
-            if not options['force']:
-                confirm_prod = input('Type "PRODUCTION RESET" to confirm: ')
-                if confirm_prod != 'PRODUCTION RESET':
-                    self.stdout.write(
-                        self.style.ERROR('Production reset cancelled by user.')
-                    )
-                    return
+            confirm_prod = input('Type "PRODUCTION RESET" to confirm: ')
+            if confirm_prod != 'PRODUCTION RESET':
+                self.stdout.write(
+                    self.style.ERROR('Production reset cancelled by user.')
+                )
+                return
+
+        # For non-interactive environments, show warnings but proceed
+        if is_non_interactive:
+            self.stdout.write(
+                self.style.WARNING(
+                    '🔄 Non-interactive environment detected (Render/Railway/etc.)\n'
+                    'Proceeding with nuclear database reset...\n'
+                    'This will destroy all data and recreate the database from scratch.'
+                )
+            )
 
         try:
             # Step 1: Create backup (optional)
