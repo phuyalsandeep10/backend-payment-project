@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from faker import Faker
+from django.core.management import call_command
 from django.contrib.auth.models import Permission
 
 from Verifier_dashboard.models import AuditLogs
@@ -44,7 +45,7 @@ class Command(BaseCommand):
 
         try:
             organization = self.create_organization()
-            self.create_missing_permissions()
+            call_command('create_deal_permissions') # Use the dedicated command
             users = self.create_users(organization)
             self.create_teams(organization, users)
             clients = self.create_clients(organization, users)
@@ -70,88 +71,6 @@ class Command(BaseCommand):
         )
         self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created."))
         return organization
-
-    def create_missing_permissions(self):
-        """Create missing permissions that views are checking for."""
-        self.stdout.write(self.style.HTTP_INFO("--- Creating Missing Permissions ---"))
-        
-        from django.contrib.contenttypes.models import ContentType
-        from deals.models import Deal
-        from clients.models import Client
-        from project.models import Project
-        from team.models import Team
-        from commission.models import Commission
-        
-        # Get content types
-        deal_ct = ContentType.objects.get_for_model(Deal)
-        client_ct = ContentType.objects.get_for_model(Client)
-        project_ct = ContentType.objects.get_for_model(Project)
-        team_ct = ContentType.objects.get_for_model(Team)
-        commission_ct = ContentType.objects.get_for_model(Commission)
-        
-        # Define permissions to create
-        permissions_to_create = [
-            # Deal permissions
-            ('view_all_deals', 'Can view all deals', deal_ct),
-            ('view_own_deals', 'Can view own deals', deal_ct),
-            ('create_deal', 'Can create deal', deal_ct),
-            ('edit_deal', 'Can edit deal', deal_ct),
-            ('delete_deal', 'Can delete deal', deal_ct),
-            ('log_deal_activity', 'Can log deal activity', deal_ct),
-            ('verify_deal_payment', 'Can verify deal payment', deal_ct),
-            ('verify_payments', 'Can verify payments', deal_ct),
-            
-            # Client permissions
-            ('view_all_clients', 'Can view all clients', client_ct),
-            ('view_own_clients', 'Can view own clients', client_ct),
-            ('create_new_client', 'Can create new client', client_ct),
-            ('edit_client_details', 'Can edit client details', client_ct),
-            ('remove_client', 'Can remove client', client_ct),
-            
-            # Team permissions
-            ('view_all_teams', 'Can view all teams', team_ct),
-            ('view_own_teams', 'Can view own teams', team_ct),
-            ('create_new_team', 'Can create new team', team_ct),
-            ('edit_team_details', 'Can edit team details', team_ct),
-            ('remove_team', 'Can remove team', team_ct),
-            
-            # Commission permissions
-            ('view_all_commissions', 'Can view all commissions', commission_ct),
-            ('create_commission', 'Can create commission', commission_ct),
-            ('edit_commission', 'Can edit commission', commission_ct),
-            
-            # Project permissions
-            ('view_all_projects', 'Can view all projects', project_ct),
-            ('view_own_projects', 'Can view own projects', project_ct),
-            ('create_project', 'Can create project', project_ct),
-            ('edit_project', 'Can edit project', project_ct),
-            ('delete_project', 'Can delete project', project_ct),
-            # Payment invoice permissions
-            ('view_paymentinvoice', 'Can view payment invoice', deal_ct),
-            ('create_paymentinvoice', 'Can create payment invoice', deal_ct),
-            ('edit_paymentinvoice', 'Can edit payment invoice', deal_ct),
-            ('delete_paymentinvoice', 'Can delete payment invoice', deal_ct),
-            
-            # Payment approval permissions
-            ('view_paymentapproval', 'Can view payment approval', deal_ct),
-            ('create_paymentapproval', 'Can create payment approval', deal_ct),
-            ('edit_paymentapproval', 'Can edit payment approval', deal_ct),
-            ('log_deal_activity', 'Can log deal activity', deal_ct),  # Moved to the end to ensure ID 30
-            ('delete_paymentapproval', 'Can delete payment approval', deal_ct),
-        ]
-        
-        created_count = 0
-        for codename, name, content_type in permissions_to_create:
-            perm, created = Permission.objects.get_or_create(
-                codename=codename,
-                content_type=content_type,
-                defaults={'name': name}
-            )
-            if created:
-                created_count += 1
-                self.stdout.write(f"✅ Created permission: {codename}")
-        
-        self.stdout.write(self.style.SUCCESS(f"✅ Created {created_count} new permissions!"))
 
     def create_users(self, organization):
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users and Roles ---"))
@@ -387,42 +306,22 @@ class Command(BaseCommand):
         verifier_perms_codenames = [
             p.codename for p in all_perms if p.content_type.app_label in verifier_apps
         ]
-        
-        # Also add specific permissions that are checked in the permission classes
-        # Only include permissions that actually exist
-        salesperson_additional_perms = [
-            'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',  # Add here
-            'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
-            'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
-            'view_all_commissions', 'create_commission', 'edit_commission',
-            'view_all_projects', 'view_own_projects', 'create_project', 'edit_project'
-        ]
-        
-        verifier_additional_perms = [
-            'view_all_deals', 'view_own_deals', 'verify_deal_payment', 'verify_payments',
-            'view_all_clients', 'view_own_clients',
-            'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
-            'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval'
-        ]
-        
-        # Filter to only include permissions that actually exist
-        existing_perms_codenames = [p.codename for p in all_perms]
-        
-        # Filter additional permissions to only include existing ones
-        salesperson_additional_perms = [p for p in salesperson_additional_perms if p in existing_perms_codenames]
-        verifier_additional_perms = [p for p in verifier_additional_perms if p in existing_perms_codenames]
-        
-        # Ensure 'create_deal' is not present for verifiers
-        if 'create_deal' in verifier_additional_perms:
-            verifier_additional_perms.remove('create_deal')
-        
-        # Combine dynamic permissions with specific ones
-        final_salesperson_perms = list(set(salesperson_perms_codenames + salesperson_additional_perms))
-        final_verifier_perms = list(set(verifier_perms_codenames + verifier_additional_perms))
-        
+
+        # The dynamic app-based permission gathering is sufficient.
+        # The additional hardcoded lists were redundant and a source of errors.
+        # We can now directly use the dynamically generated lists.
+        final_salesperson_perms = list(set(salesperson_perms_codenames))
+        final_verifier_perms = list(set(verifier_perms_codenames))
+
+        # Explicitly remove 'create_deal' from verifiers to be safe.
+        if 'create_deal' in final_verifier_perms:
+            final_verifier_perms.remove('create_deal')
+
         # Admin gets everything
-        admin_perms_codenames = list(set(final_salesperson_perms + final_verifier_perms))
-        
+        admin_perms_codenames = list(set(
+            [p.codename for p in all_perms if p.content_type.app_label in salesperson_apps + verifier_apps]
+        ))
+
         return {
             "Super Admin": [p.codename for p in all_perms],
             "Organization Admin": admin_perms_codenames,
