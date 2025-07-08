@@ -605,12 +605,12 @@ def recent_refund_or_bad_debt(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        recent_refunds = PaymentInvoice.objects.filter(
-            deal__organization=request.user.organization,
-            invoice_status__in=['refunded', 'bad_debt']
-        ).order_by('-invoice_date')[:5]  # Get the 5 most recent refunds or bad debts
+        recent_refunds = PaymentApproval.objects.filter(
+    payment__invoice__invoice_status__in=['refunded', 'bad_debt'],
+    deal__organization=request.user.organization
+).order_by('-approval_date')[:5]# Get the 5 most recent refunds or bad debts
         
-        serializer = PaymentInvoiceSerializer(recent_refunds, many=True)
+        serializer = PaymentApprovalSerializer(recent_refunds, many=True)
         return Response(serializer.data)
     except Exception as e:
         logger.exception(f"Error in recent_refund_or_bad_debt view for user {request.user.id}: {e}")

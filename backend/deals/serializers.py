@@ -121,11 +121,50 @@ class DealUpdateSerializer(serializers.ModelSerializer):
         ]
 
 class PaymentInvoiceSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='payment.deal.client.client_name', read_only=True)
+    payment_amount = serializers.DecimalField(source='payment.received_amount', max_digits=15, decimal_places=2, read_only=True)
+
+    
     class Meta:
         model = PaymentInvoice
-        fields = '__all__'
+        fields =        fields = [
+            'id', 'payment', 'payment_amount','client_name',
+            'invoice_id', 'invoice_date', 'due_date',
+            'invoice_status', 'deal', 'receipt_file'
+        ]
 
 class PaymentApprovalSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='payment.invoice.deal.client.client_name', read_only=True)
+    deal_id = serializers.CharField(source='payment.invoice.deal.deal_id', read_only=True)
+    invoice_status = serializers.CharField(source='payment.invoice.invoice_status', read_only=True)
+    payment_amount = serializers.DecimalField(source='payment.received_amount', max_digits=15, decimal_places=2, read_only=True)
+    invoice_id = serializers.CharField(source='payment.invoice.invoice_id', read_only=True)
     class Meta:
         model = PaymentApproval
-        fields = '__all__'
+        fields = [
+            'id',
+            'payment',
+            'deal',
+            'deal_id',
+            'client_name',
+            'invoice_id',
+            'invoice_status',
+            'payment_amount',
+            'inovice_file',
+            'approved_by',
+            'approval_date',
+            'approved_remarks',
+            'failure_remarks',
+            'amount_in_invoice',
+        ]
+        
+        read_only_fields = [
+            'deal',
+            'deal_id',
+            'client_name',
+            'invoice_id',
+            'invoice_status',
+            'payment_amount',
+            'approval_date',
+            'approved_by',
+        ]
