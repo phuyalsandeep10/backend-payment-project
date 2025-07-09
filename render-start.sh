@@ -5,34 +5,26 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
-# Nuclear option: Reset database completely (ONE-TIME FIX)
-echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
-echo "This will destroy all data and start fresh!"
-python manage.py nuclear_reset_db --force
-echo "✅ Database reset completed!"
+# Step 1: Flush existing data and create base structure
+echo "🔄 Flushing existing data and creating base structure..."
+python manage.py initialize_app --flush
+echo "✅ Base data structure created!"
 
-# Run database migrations
+# Step 2: Run migrations (in case of any pending migrations)
 echo "🔄 Running database migrations..."
 python manage.py migrate
 
-# Initialize the application with a superuser and mock data.
-# This command will run on every startup.
-# It is designed to be safe to re-run, but for a production environment
-# with real data, you may want to run this only once.
-echo "🚀 Initializing application..."
-python manage.py initialize_app
-
-# Fix deployment permission issues comprehensively
+# Step 3: Fix deployment permission issues comprehensively
 echo "🔧 Fixing deployment permissions..."
 python manage.py fix_deployment_permissions
 
-# Verify that all users have proper permissions
+# Step 4: Verify that all users have proper permissions
 echo "🔍 Verifying user permissions..."
 python manage.py check_permissions
 
-# Generate rich, varied data for all API endpoints
-echo "📊 Generating test data..."
-python manage.py generate_rich_test_data
+# Step 5: Generate additional rich, varied data for comprehensive testing
+echo "📊 Generating additional rich test data..."
+python manage.py generate_rich_test_data --deals 30 --clients 5 --projects 3
 
 # Final verification - check if sales@innovate.com user has proper permissions
 echo "�� Final verification - checking sales user permissions..."

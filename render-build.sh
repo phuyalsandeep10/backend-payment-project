@@ -11,23 +11,6 @@ pip install -r backend/requirements.txt
 # Change to backend directory
 cd backend
 
-# # Nuclear option: Reset database completely (set RESET_DB=true to enable)
-# if [ "$RESET_DB" = "true" ]; then
-#     echo "⚠️  NUCLEAR OPTION: Resetting database completely..."
-#     echo "This will destroy all data and start fresh!"
-#     python manage.py nuclear_reset_db --force
-#     echo "✅ Database reset completed!"
-    
-
-# # Clean database of orphaned data first
-# echo "🧹 Cleaning database of orphaned data..."
-# python manage.py cleanup_permissions
-
-# # Test migrations before applying them
-# echo "🔍 Testing migrations..."
-# python manage.py showmigrations --list > migration_status.txt
-# echo "Migration status saved to migration_status.txt"
-
 # Apply migrations with safety checks
 echo "🔄 Applying migrations..."
 python manage.py makemigrations

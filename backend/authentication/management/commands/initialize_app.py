@@ -24,9 +24,20 @@ fake = Faker()
 class Command(BaseCommand):
     help = "Initializes the application with a superuser and a rich, realistic mock dataset."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--flush',
+            action='store_true',
+            help='Flush all existing data before initializing (use with caution!)',
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
+        
+        # Flush existing data if requested
+        if options['flush']:
+            self.flush_existing_data()
         
         try:
             # Create organization
@@ -65,6 +76,73 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"❌ An error occurred during initialization: {e}"))
             import traceback
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
+
+    def flush_existing_data(self):
+        """Flush all existing data from the database."""
+        self.stdout.write(self.style.WARNING("🗑️  Flushing existing data..."))
+        
+        try:
+            # Import all models that need to be flushed
+            from authentication.models import User
+            from clients.models import Client
+            from commission.models import Commission
+            from deals.models import Deal, Payment, PaymentApproval, PaymentInvoice, ActivityLog
+            from notifications.models import Notification, NotificationSettings
+            from organization.models import Organization
+            from permissions.models import Role
+            from project.models import Project
+            from team.models import Team
+            from Verifier_dashboard.models import AuditLogs
+            
+            # Delete data in reverse dependency order
+            self.stdout.write("  - Deleting notifications...")
+            Notification.objects.all().delete()
+            NotificationSettings.objects.all().delete()
+            
+            self.stdout.write("  - Deleting audit logs...")
+            AuditLogs.objects.all().delete()
+            
+            self.stdout.write("  - Deleting activity logs...")
+            ActivityLog.objects.all().delete()
+            
+            self.stdout.write("  - Deleting payment approvals...")
+            PaymentApproval.objects.all().delete()
+            
+            self.stdout.write("  - Deleting payment invoices...")
+            PaymentInvoice.objects.all().delete()
+            
+            self.stdout.write("  - Deleting payments...")
+            Payment.objects.all().delete()
+            
+            self.stdout.write("  - Deleting commissions...")
+            Commission.objects.all().delete()
+            
+            self.stdout.write("  - Deleting deals...")
+            Deal.objects.all().delete()
+            
+            self.stdout.write("  - Deleting projects...")
+            Project.objects.all().delete()
+            
+            self.stdout.write("  - Deleting clients...")
+            Client.objects.all().delete()
+            
+            self.stdout.write("  - Deleting teams...")
+            Team.objects.all().delete()
+            
+            self.stdout.write("  - Deleting users...")
+            User.objects.all().delete()
+            
+            self.stdout.write("  - Deleting roles...")
+            Role.objects.all().delete()
+            
+            self.stdout.write("  - Deleting organizations...")
+            Organization.objects.all().delete()
+            
+            self.stdout.write(self.style.SUCCESS("✅ All existing data flushed successfully!"))
+            
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"❌ Error flushing data: {e}"))
+            raise
 
     def create_organization(self):
         """Create the main organization."""
