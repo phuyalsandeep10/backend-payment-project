@@ -14,7 +14,7 @@ Only use this in production if you're absolutely sure you want to start fresh.
 
 import os
 import sys
-import psycopg2
+import psycopg
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command
 from django.conf import settings
@@ -183,12 +183,12 @@ class Command(BaseCommand):
         
         try:
             # Connect to postgres database (not the target database)
-            conn = psycopg2.connect(
+            conn = psycopg.connect(
                 host=db_info['host'],
                 port=db_info['port'],
                 user=db_info['user'],
                 password=db_info['password'],
-                database='postgres'  # Connect to default postgres database
+                dbname='postgres'  # Connect to default postgres database
             )
             conn.autocommit = True
             cursor = conn.cursor()
