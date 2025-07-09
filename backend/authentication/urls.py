@@ -1,49 +1,39 @@
-from django.urls import path, include
+from django.urls import path, re_path, include
 from rest_framework.routers import DefaultRouter
+from . import views
 from .views import (
-    LoginView, 
-    LogoutView,
-    RefreshTokenView,
-    ForgotPasswordView,
-    ResetPasswordView,
-    VerifyEmailView,
-    SuperAdminLoginView, 
-    SuperAdminVerifyOTPView, 
-    UserViewSet, 
-    UserSessionViewSet,
-    OrgAdminLoginView,
-    OrgAdminVerifyOTPView,
-    ChangePasswordView
+    UserViewSet,
+    UserProfileView,
+    health_check
 )
 
-user_router = DefaultRouter()
-user_router.register(r'users', UserViewSet, basename='user')
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
+# router.register(r'profile', UserProfileViewSet, basename='user-profile') # This is redundant and conflicts with the UserProfileView below
 
-session_router = DefaultRouter()
-session_router.register(r'sessions', UserSessionViewSet, basename='usersession')
+app_name = 'authentication'
 
 urlpatterns = [
-    path('', include(user_router.urls)),
-    path('', include(session_router.urls)),
-    # Authentication endpoints
-    path('login/', LoginView.as_view(), name='login'),
-    path('login', LoginView.as_view(), name='login-no-slash'),
-    path('logout/', LogoutView.as_view(), name='logout'),
-    path('logout', LogoutView.as_view(), name='logout-no-slash'),
-    path('refresh/', RefreshTokenView.as_view(), name='refresh-token'),
-    path('refresh', RefreshTokenView.as_view(), name='refresh-token-no-slash'),
-    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
-    path('forgot-password', ForgotPasswordView.as_view(), name='forgot-password-no-slash'),
-    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
-    path('reset-password', ResetPasswordView.as_view(), name='reset-password-no-slash'),
-    path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
-    path('verify-email', VerifyEmailView.as_view(), name='verify-email-no-slash'),
-    # Change password using temporary token
-    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
-    path('change-password', ChangePasswordView.as_view(), name='change-password-no-slash'),
-    # Super admin endpoints
-    path('super-admin/login/', SuperAdminLoginView.as_view(), name='super-admin-login'),
-    path('super-admin/verify/', SuperAdminVerifyOTPView.as_view(), name='super-admin-verify'),
-    path('org-admin/login/', OrgAdminLoginView.as_view(), name='org-admin-login'),
-    path('org-admin/verify/', OrgAdminVerifyOTPView.as_view(), name='org-admin-verify'),
+    path('', include(router.urls)),
+    # ==================== AUTHENTICATION ENDPOINTS ====================
+    # Legacy direct login (development)
+    re_path(r'^login/?$', views.direct_login_view, name='direct_login'),
+    # OTP-based login for Super Admin and Org Admin
+    re_path(r'^super-admin/login/?$', views.super_admin_login_view, name='super_admin_login'),
+    re_path(r'^super-admin/verify/?$', views.super_admin_verify_view, name='super_admin_verify'),
+    re_path(r'^org-admin/login/?$', views.org_admin_login_view, name='org_admin_login'),
+    re_path(r'^org-admin/verify/?$', views.org_admin_verify_view, name='org_admin_verify'),
+    re_path(r'^change-password/?$', views.password_change_with_token, name='change_password_temp'),
+    re_path(r'^register/?$', views.register_view, name='register'),
+    re_path(r'^logout/?$', views.logout_view, name='logout'),
+    
+    # ==================== PASSWORD MANAGEMENT ====================
+    path('password/change/', views.password_change_view, name='password_change'),
+    
+    # ==================== USER PROFILE ====================
+    path('profile/', views.UserProfileView.as_view(), name='profile'),
+    path('user/set-sales-target/', views.set_sales_target_view, name='set_sales_target'),
+    
+    # ==================== HEALTH CHECK ====================
+    path('health/', health_check, name='health_check'),
 ]

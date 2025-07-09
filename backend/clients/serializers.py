@@ -1,68 +1,42 @@
 from rest_framework import serializers
-from .models import Client, ClientActivity
+from .models import Client
+from project.models import Project
 
 
-class ClientActivitySerializer(serializers.ModelSerializer):
-    """
-    Serializer for client activities
-    """
+class ProjectNameSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ClientActivity
-        fields = ['timestamp', 'description', 'type']
+        model = Project
+        fields = ['id', 'name']
 
 
 class ClientSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Client model to match frontend expectations.
+    Serializer for the Client model.
     """
-    name = serializers.CharField(source='client_name')
-    phoneNumber = serializers.CharField(source='phone_number', required=False)
-    lastContact = serializers.DateTimeField(source='last_contact', required=False)
-    expectedClose = serializers.DateField(source='expected_close', required=False)
-    category = serializers.CharField(required=False)
-    status = serializers.CharField(required=False)
-    satisfaction = serializers.CharField(required=False)
-    value = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    remarks = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    primaryContactName = serializers.CharField(source='primary_contact_name', required=False)
-    primaryContactPhone = serializers.CharField(source='primary_contact_phone', required=False)  
-    nationality = serializers.CharField(required=False)
-    activeDate = serializers.DateTimeField(source='active_date', read_only=True)
-    avatarUrl = serializers.URLField(source='avatar_url', required=False)
-    activities = ClientActivitySerializer(many=True, read_only=True)
-    salesperson = serializers.SerializerMethodField()
-    sales_leads = serializers.SerializerMethodField()
-    createdAt = serializers.SerializerMethodField(read_only=True)
-    updatedAt = serializers.SerializerMethodField(read_only=True)
-
+    project_count = serializers.IntegerField(read_only=True)
+    projects = ProjectNameSerializer(many=True, read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    updated_by_username = serializers.CharField(source='updated_by.username', read_only=True)
+    nationality = serializers.CharField(required=False, allow_null=True)
+    
     class Meta:
         model = Client
         fields = [
-            'id', 'name', 'email', 'phoneNumber', 'category', 'salesperson', 'lastContact', 
-            'expectedClose', 'value', 'status', 'satisfaction', 'remarks',
-            'primaryContactName', 'primaryContactPhone', 'nationality', 'address', 'activeDate',
-            'activities', 'avatarUrl', 'sales_leads', 'createdAt', 'updatedAt'
+            'id', 'client_name', 'email', 'phone_number', 'nationality',
+            'remarks', 'satisfaction', 'status',
+            'organization', 'created_at', 'created_by', 'created_by_username',
+            'updated_at', 'updated_by', 'updated_by_username',
+            'project_count', 'projects'
         ]
-        read_only_fields = ['created_by', 'organization']
+        read_only_fields = ['created_by', 'updated_by', 'organization', 'created_at', 'updated_at']
+        
 
-    def get_salesperson(self, obj):
-        """Return salesperson name"""
-        return obj.salesperson.get_full_name() if obj.salesperson else None
-
-    def get_sales_leads(self, obj):
-        """Return list of sales lead objects with id, name, and avatar"""
-        if obj.salesperson:
-            return [{
-                'id': str(obj.salesperson.id),
-                'name': obj.salesperson.get_full_name() or obj.salesperson.username,
-                'avatar': getattr(obj.salesperson, 'avatar', None) or f"https://ui-avatars.com/api/?name={obj.salesperson.get_full_name() or obj.salesperson.username}&background=random"
-            }]
-        return []
-
-    def get_createdAt(self, obj):
-        return obj.created_at.isoformat() if obj.created_at else None
-
-    def get_updatedAt(self, obj):
-        return obj.updated_at.isoformat() if obj.updated_at else None
+class ClientLiteSerializer(serializers.ModelSerializer):
+    """
+    A lightweight serializer for basic client information.
+    """
+    class Meta:
+        model = Client
+        fields = ['id', 'client_name']
         
         

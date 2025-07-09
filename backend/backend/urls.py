@@ -20,7 +20,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from commission.views import UserCommissionView
-from deals.views import PaymentVerificationView
+# from deals.views import PaymentVerificationView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -50,8 +50,10 @@ api_urlpatterns = [
     path('permissions/', include('permissions.urls')),
     path('projects/', include('project.urls')),
     # Dashboard endpoints
-    path('dashboard/', include('authentication.dashboard_urls')),  # Original dashboard routes
-    path('notifications/', include('authentication.notification_urls')),  # Original notification routes
+    # path('dashboard/', include('authentication.dashboard_urls')),  # Original dashboard routes
+    # path('notifications/', include('notifications.urls')),  # New notification system
+    # path('sales-dashboard/', include('Sales_dashboard.urls')),  # Sales analytics
+    # path('verifier/', include('Verifier_dashboard.urls')),  # Verifier dashboard
     # No-slash variants for frontend routes without trailing slash
     path('users', include('authentication.user_urls')),  # No-slash variant for list/detail endpoints
     path('deals', include('deals.urls')),  # No-slash variant
@@ -60,13 +62,15 @@ api_urlpatterns = [
     path('organizations', include('organization.urls')),  # No-slash variant
     path('permissions', include('permissions.urls')),  # No-slash variant
     path('projects', include('project.urls')),  # No-slash variant
-    path('dashboard', include('authentication.dashboard_urls')),  # No-slash variant
-    path('notifications', include('authentication.notification_urls')),  # No-slash variant
+    # path('dashboard', include('authentication.dashboard_urls')),  # No-slash variant
+    # path('notifications', include('notifications.urls')),  # No-slash variant
+    # path('sales-dashboard', include('Sales_dashboard.urls')),  # No-slash variant
+    # path('verifier', include('Verifier_dashboard.urls')),  # No-slash variant
     path('users/<int:user_id>/commission/', UserCommissionView.as_view(), name='user-commission'),
     path('users/<int:user_id>/commission', UserCommissionView.as_view(), name='user-commission-noslash'),
     # Payment verification (top-level) routes
-    path('payments/<str:payment_id>/verify/', PaymentVerificationView.as_view(), name='payment-verify'),
-    path('payments/<str:payment_id>/verify', PaymentVerificationView.as_view(), name='payment-verify-noslash'),
+    # path('payments/<str:payment_id>/verify/', PaymentVerificationView.as_view(), name='payment-verify'),
+    # path('payments/<str:payment_id>/verify', PaymentVerificationView.as_view(), name='payment-verify-noslash'),
 ]
 
 urlpatterns = [

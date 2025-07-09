@@ -1,139 +1,145 @@
-from rest_framework import viewsets
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.filters import SearchFilter, OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from .serializers import DealSerializer
+from rest_framework import viewsets, status
+from django.shortcuts import get_object_or_404
+from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
+from .serializers import (
+    DealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer,
+    PaymentInvoiceSerializer, PaymentApprovalSerializer
+)
 from .permissions import HasPermission
-from clients.models import Client
-from rest_framework.permissions import AllowAny
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from django.utils import timezone
-from django.db.models import Max
 from rest_framework.decorators import action
 
-from .models import Payment
-from .serializers import PaymentSerializer
-
-class DealCompatViewSet(viewsets.ModelViewSet):
+class DealViewSet(viewsets.ModelViewSet):
     """
-    Frontend compatibility viewset for flat deal access.
-    Provides /deals/ endpoint instead of nested /clients/{id}/deals/
+    A viewset for managing Deals, with granular permission checks and optimized queries.
     """
     serializer_class = DealSerializer
-    permission_classes = [AllowAny]
-    parser_classes = [MultiPartParser, FormParser]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status', 'category', 'satisfaction']
-    search_fields = ['client_name', 'email']
-    ordering_fields = ['created_at', 'value', 'updated_at']
-    ordering = ['-created_at']
-    queryset = Client.objects.all()
+    permission_classes = [HasPermission]
+    lookup_field = 'deal_id'
 
     def get_queryset(self):
-        """Return clients filtered according to the authenticated user's organization and role."""
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Deal.objects.none()
+
         user = self.request.user
+        queryset = Deal.objects.select_related(
+            'organization', 'client', 'created_by', 'updated_by'
+        ).prefetch_related(
+            'payments', 'activity_logs'
+        )
 
-        # Allow superusers to see everything
-        if user and user.is_authenticated and user.is_superuser:
-            return Client.objects.all()
+        if user.is_superuser:
+            return queryset.all()
 
-        # Anonymous users should get nothing (or everything if AllowAny is desired)
-        if not user or not user.is_authenticated:
-            return Client.objects.none()
-
-        # Users without an organization cannot see any clients
         if not user.organization:
-            return Client.objects.none()
+            return Deal.objects.none()
 
-        base_qs = Client.objects.filter(organization=user.organization)
+        org_queryset = queryset.filter(organization=user.organization)
 
-        # Org Admins can see all clients in their organization
-        if user.role and user.role.name.lower().replace(' ', '').replace('-', '') in ['orgadmin', 'admin']:
-            return base_qs
-
-        # Users with explicit permission can view all clients
-        if user.role and user.role.permissions.filter(codename='view_all_client').exists():
-            return base_qs
-
-        # Users with 'view_own_client_data' see only those they created / are salesperson for
-        if user.role and user.role.permissions.filter(codename='view_own_client_data').exists():
-            return base_qs.filter(created_by=user)
+        if user.role and user.role.permissions.filter(codename='view_all_deals').exists():
+            return org_queryset
         
-        # For salesperson role, show clients assigned to them
-        if user.role and user.role.name.lower().replace(' ', '').replace('-', '') == 'salesperson':
-            return base_qs.filter(salesperson=user)
+        return org_queryset.filter(created_by=user)
 
-        # Default: deny access
-        return Client.objects.none()
+    def perform_create(self, serializer):
+        serializer.save(
+            organization=self.request.user.organization,
+            created_by=self.request.user,
+            updated_by=self.request.user
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='expand', serializer_class=DealExpandedViewSerializer)
+    def expand(self, request, deal_id=None):
+        """
+        Provides an expanded view of a single deal, including detailed
+        verification information and a full payment history.
+        """
+        deal = self.get_object()
+        serializer = self.get_serializer(deal)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='log-activity', serializer_class=ActivityLogSerializer)
+    def log_activity(self, request, deal_id=None):
+        """
+        Returns the activity log for a specific deal.
+        """
+        deal = self.get_object()
+        activities = deal.activity_logs.all().order_by('-timestamp')
+        serializer = self.get_serializer(activities, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='invoices')
+    def list_invoices(self, request, deal_id=None):
+        deal = self.get_object()
+        invoices = PaymentInvoice.objects.filter(deal=deal)
+        serializer = PaymentInvoiceSerializer(invoices, many=True)
+        return Response(serializer.data)
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    """CRUD for payments; includes custom verify action."""
-
+    """
+    A viewset for managing Payments for a specific Deal.
+    """
     serializer_class = PaymentSerializer
     permission_classes = [HasPermission]
-    queryset = Payment.objects.all()
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        client_id = self.request.query_params.get('client_id')
-        if client_id:
-            qs = qs.filter(client_id=client_id)
-        return qs
+        deal_pk = self.kwargs.get('deal_pk')
+        if deal_pk:
+            return Payment.objects.select_related('deal').filter(deal_id=deal_pk)
+        return Payment.objects.none()
 
-    def create(self, request, *args, **kwargs):
-        """Assign sequence_number automatically if not provided."""
-        data = request.data.copy()
-        if 'sequence_number' not in data:
-            client_id = data.get('client')
-            if client_id:
-                last_seq = (
-                    Payment.objects.filter(client_id=client_id).aggregate(Max('sequence_number'))
-                ).get('sequence_number__max') or 0
-                data['sequence_number'] = last_seq + 1
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    def perform_create(self, serializer):
+        deal = get_object_or_404(Deal, pk=self.kwargs.get('deal_pk'))
+        serializer.save(deal=deal)
 
-    @action(detail=True, methods=['post'])
-    def verify(self, request, pk=None):
-        """Verify or reject payment depending on 'status' in body."""
-        payment = self.get_object()
-        new_status = request.data.get('status')
-        if new_status not in (Payment.STATUS_VERIFIED, Payment.STATUS_REJECTED):
-            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Update fields
-        payment.status = new_status
-        payment.verified_at = timezone.now()
-        if request.user.is_authenticated:
-            payment.verified_by = request.user
-        payment.save()
-
-        # Notify salesperson (client created_by or hypothetical field)
-        try:
-            from authentication.models import Notification, User
-            salesperson = payment.client.created_by  # assuming Client has created_by field
-            if salesperson and isinstance(salesperson, User):
-                Notification.objects.create(
-                    user=salesperson,
-                    title='Payment ' + ('verified' if new_status == Payment.STATUS_VERIFIED else 'rejected'),
-                    message=f'Payment {payment.sequence_number} for client {payment.client.client_name} has been {new_status}.',
-                    type='success' if new_status == Payment.STATUS_VERIFIED else 'error',
-                )
-        except Exception:
-            # Silently ignore notification errors for now
-            pass
-
-        return Response(self.get_serializer(payment).data)
-
-class PaymentVerificationView(APIView):
-    """Compatibility wrapper that delegates to PaymentViewSet.verify."""
+class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A read-only viewset for ActivityLogs related to a specific deal.
+    """
+    serializer_class = ActivityLogSerializer
     permission_classes = [HasPermission]
 
-    def post(self, request, payment_id):
-        viewset = PaymentViewSet.as_view({'post': 'verify'})
-        return viewset(request, pk=payment_id) 
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return ActivityLog.objects.none()
+            
+        deal_pk = self.kwargs.get('deal_pk')
+        deal = get_object_or_404(Deal, pk=deal_pk)
+        
+        # The permission class already ensures the user can view the deal.
+        return ActivityLog.objects.filter(deal=deal).order_by('-timestamp')
+
+class PaymentInvoiceViewSet(viewsets.ModelViewSet):
+    queryset = PaymentInvoice.objects.all()
+    serializer_class = PaymentInvoiceSerializer
+    permission_classes = [HasPermission]
+
+    def get_queryset(self):
+        # Prevent crash during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return PaymentInvoice.objects.none()
+        
+        # Filter by the organization of the logged-in user
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'organization'):
+            return PaymentInvoice.objects.filter(deal__organization=self.request.user.organization)
+        
+        return PaymentInvoice.objects.none()
+
+class PaymentApprovalViewSet(viewsets.ModelViewSet):
+    queryset = PaymentApproval.objects.all()
+    serializer_class = PaymentApprovalSerializer
+    permission_classes = [HasPermission]
+
+    def get_queryset(self):
+        # Prevent crash during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return PaymentApproval.objects.none()
+        
+        # Filter by the organization of the logged-in user
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'organization'):
+            return PaymentApproval.objects.filter(deal__organization=self.request.user.organization)
+        
+        return PaymentApproval.objects.none()

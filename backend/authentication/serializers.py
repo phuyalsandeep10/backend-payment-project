@@ -1,241 +1,114 @@
-from rest_framework import serializers, exceptions
+from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User, UserSession, Notification, Activity, UserNotificationPreferences
+from .models import User, UserSession, UserProfile
 from user_agents import parse
 from permissions.models import Role
 from permissions.serializers import RoleSerializer
-# from team.serializers import TeamSerializer # This is moved to prevent circular import
-from django.utils.crypto import get_random_string
-from django.contrib.auth.password_validation import validate_password
-import logging
+from organization.models import Organization
 
 class UserLiteSerializer(serializers.ModelSerializer):
-    """
-    A lightweight serializer for User model, showing only essential info.
-    """
+    """A lightweight serializer for User model, showing only essential info."""
     class Meta:
         model = User
         fields = ['id', 'username']
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for the UserProfile model."""
+    class Meta:
+        model = UserProfile
+        fields = ['profile_picture', 'bio']
+
 class UserSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the User model to match frontend expectations.
-    """
-    # Frontend expects explicit first_name / last_name / organization_name keys
+    """A detailed serializer for the User model."""
+    teams = serializers.SerializerMethodField()
+    role = RoleSerializer(read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    name = serializers.ReadOnlyField()
-    phoneNumber = serializers.CharField(source='contact_number', allow_blank=True, required=False)
-    assignedTeam = serializers.SerializerMethodField()
-    permissions = serializers.SerializerMethodField()
-    role = serializers.SerializerMethodField()
+    profile = UserProfileSerializer(required=False)
 
     class Meta:
         model = User
         fields = [
-            'id', 'name', 'first_name', 'last_name', 'email', 'phoneNumber', 'role', 'assignedTeam',
-            'status', 'avatar', 'permissions', 'organization_name', 'is_active', 'address', 'createdAt', 'updatedAt'
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'organization', 'organization_name', 'role',
+            'contact_number', 'is_active', 'profile', 'teams'
         ]
+        read_only_fields = ['organization_name']
 
-    # Explicitly declare serializer-only fields not present on the model so DRF
-    # doesn't raise a FieldError during serialization.
-    createdAt = serializers.SerializerMethodField()
-    updatedAt = serializers.SerializerMethodField()
-
-    def get_assignedTeam(self, obj):
-        """Return team name as string to match frontend expectations"""
-        return obj.team.name if obj.team else None
-
-    def get_permissions(self, obj):
-        """Get user permissions from role"""
-        if obj.role:
-            from permissions.serializers import PermissionSerializer
-            return PermissionSerializer(obj.role.permissions.all(), many=True).data
+    def get_teams(self, obj):
+        from team.serializers import TeamSerializer
+        if hasattr(obj, 'teams'):
+            return TeamSerializer(obj.teams.all(), many=True).data
         return []
 
-    def get_role(self, obj):
-        """Return role name as string to match frontend expectations"""
-        if obj.role:
-            # Map backend roles to frontend role expectations
-            role_mapping = {
-                'Super Admin': 'super-admin',
-                'Org Admin': 'org-admin',
-                'Admin': 'org-admin',  # Support both "Org Admin" and "Admin" role names
-                'Salesperson': 'salesperson',
-                'Supervisor': 'supervisor',
-                'Verifier': 'verifier',
-                'Team Member': 'team-member',
-            }
-            return role_mapping.get(obj.role.name, 'team-member')
-        return 'team-member'
-
-    def get_createdAt(self, obj):
-        return obj.date_joined.isoformat() if obj.date_joined else None
-
-    def get_updatedAt(self, obj):
-        return obj.last_login.isoformat() if obj.last_login else None
-
-    def to_representation(self, instance):
-        return super().to_representation(instance)
-
 class UserCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating a new user (by an admin).
+    If the caller does not provide a password, a random temporary password is generated.
+    If a role is not provided but an organisation **is**, the serializer automatically assigns / creates
+    the "Org Admin" role for that organisation so that super-admins can quickly add admins.
     """
-    Serializer for creating a new user.
-    """
-    org_role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
-    phoneNumber = serializers.CharField(source='contact_number', allow_blank=True, required=False)
-    username = serializers.CharField(required=False, allow_blank=True)  # Make username optional
-    
+
+    # Allow role / password to be optional – we will fill them in the create() method.
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
+
     class Meta:
         model = User
-        fields = ('username', 'password', 'first_name', 'last_name', 'email', 'organization', 'org_role', 'team', 'phoneNumber', 'is_active', 'status', 'avatar')
-        extra_kwargs = {'password': {'write_only': True, 'required': False}}
-
-    def validate_email(self, value):
-        """Ensure email is unique"""
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
-
-    def validate_organization(self, value):
-        """Ensure organization exists"""
-        if value is None:
-            raise serializers.ValidationError("Organization is required.")
-        
-        from organization.models import Organization
-        try:
-            # Handle both integer and string inputs
-            if isinstance(value, Organization):
-                return value  # Already an Organization instance
-            elif isinstance(value, int):
-                return Organization.objects.get(id=value)
-            elif isinstance(value, str) and value.isdigit():
-                return Organization.objects.get(id=int(value))
-            else:
-                raise ValueError("Invalid organization format")
-        except (Organization.DoesNotExist, ValueError, TypeError) as e:
-            raise serializers.ValidationError(f"Invalid organization: {str(e)}")
+        fields = (
+            'id', 'username', 'password', 'first_name', 'last_name', 'email',
+            'organization', 'role', 'contact_number', 'is_active'
+        )
+        read_only_fields = ('id',)
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},
+            'username': {'required': False, 'allow_blank': True}
+        }
 
     def create(self, validated_data):
-        """Create a new user while handling role assignment, password generation,
-        welcome email delivery and must_change_password flag."""
+        from django.utils.crypto import get_random_string
 
-        from permissions.models import Role  # Local import to avoid circular deps
-        from django.core.mail import send_mail
-        from django.conf import settings
+        # ---- Ensure password ----
+        password = validated_data.pop('password', None)
+        if not password:
+            # Generate a secure 12-char temporary password
+            password = get_random_string(length=12)
 
-        logger = logging.getLogger(__name__)
-        logger.info(f"Creating user with data: {validated_data}")
-
-        request_data = {}
-        request = self.context.get('request')
-        if request and hasattr(request, 'data'):
-            request_data = request.data
-
-        # --- Handle role mapping ------------------------------------------------
-        role = validated_data.pop('org_role', None)
-        role_name = request_data.get('role_name') if request_data else None
-
-        if not role and role_name:
-            role = Role.objects.filter(name__iexact=role_name.strip()).first()
-
-        # Special handling for org admin creation - ensure the role exists
+        # ---- Ensure role ----
+        role = validated_data.get('role')
         organization = validated_data.get('organization')
-        if not role and organization:
-            # Check if this is an org admin creation request based on context
-            # If the user is being created by a superuser and no role is specified,
-            # try to create/get the Org Admin role for this organization
-            request_user = self.context.get('request').user if self.context.get('request') else None
-            if request_user and request_user.is_superuser:
-                # Try to get or create the Org Admin role for this organization
-                try:
-                    role, created = Role.objects.get_or_create(
-                        name='Org Admin',
-                        organization=organization,
-                        defaults={}
-                    )
-                    if created:
-                        logger.info(f"Created new Org Admin role for organization {organization}")
-                        # Grant necessary permissions to the new Org Admin role
-                        from permissions.models import Permission
-                        try:
-                            # Add basic permissions that org admins typically need
-                            permissions = Permission.objects.filter(
-                                codename__in=['create_user', 'view_user', 'edit_user', 'delete_user', 'manage_roles']
-                            )
-                            role.permissions.set(permissions)
-                        except Permission.DoesNotExist:
-                            pass  # Permissions might not exist yet
-                    else:
-                        logger.info(f"Using existing Org Admin role for organization {organization}")
-                except Exception as e:
-                    logger.error(f"Failed to create/get Org Admin role: {e}")
-                    # If role creation fails, continue without role
-                    pass
 
-        if role is not None:
+        if not role and organization:
+            # Fetch or create the default Org Admin role for this organisation
+            role, _ = Role.objects.get_or_create(name='Org Admin', organization=organization)
             validated_data['role'] = role
 
-        # --- Password handling --------------------------------------------------
-        password = validated_data.get('password') or get_random_string(length=12)
-        validated_data['password'] = password
+        # Default username to email if not supplied
+        if 'username' not in validated_data:
+            validated_data['username'] = validated_data['email']
 
-        # Ensure username is set (fallback to email prefix)
-        if not validated_data.get('username'):
-            validated_data['username'] = validated_data['email'].split('@')[0]
+        user = User.objects.create_user(password=password, **validated_data)
 
+        # Force password change at first login
+        user.must_change_password = True
+        user.save(update_fields=['must_change_password'])
+
+        # Send the temporary password to user's email address
         try:
-            # Create user instance via custom manager (hashes password internally)
-            user = User.objects.create_user(**validated_data)
-            logger.info(f"Successfully created user: {user.email}")
+            from authentication.utils import send_temporary_password_email
+            send_temporary_password_email(user.email, password)
         except Exception as e:
-            logger.error(f"Failed to create user: {e}")
-            raise serializers.ValidationError(f"Failed to create user: {str(e)}")
-
-        # --- Post-creation flags -------------------------------------------------
-        def _norm(name: str | None) -> str:
-            return name.lower().replace(' ', '').replace('-', '') if name else ''
-
-        if role and _norm(role.name) in ['orgadmin', 'admin']:
-            user.must_change_password = True  # Org admins forced to change pwd
-            user.save(update_fields=['must_change_password'])
-
-        # --- Send welcome email --------------------------------------------------
-        subject = 'Welcome to Payment Receiving System'
-        message = (
-            f"Hello {user.first_name or user.username},\n\n"
-            f"Your PRS account has been created successfully.\n\n"
-            f"Email: {user.email}\n"
-            f"Password: {password}\n\n"
-            "You can log in using the link below and start using the platform right away.\n"
-            f"{getattr(settings, 'FRONTEND_LOGIN_URL', 'http://localhost:3000/login')}\n\n"
-            "For security, please keep this information confidential."
-        )
-
-        # Fail silently so that user creation succeeds even if email mis-configured.
-        try:
-            send_mail(
-                subject,
-                message,
-                getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@prs.local'),
-                [user.email],
-                fail_silently=True,
-            )
-            logger.info(f"Welcome email sent to {user.email}")
-        except Exception as e:
-            logger.warning(f"Failed to send welcome email: {e}")
+            # Fail silently; log in production
+            import logging
+            logging.getLogger('security').warning(f'Failed to send temp password email: {e}')
 
         return user
 
 class UserSessionSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the UserSession model.
-    Parses the user agent string into a readable format.
-    """
+    """Serializer for the UserSession model."""
     device = serializers.SerializerMethodField()
+    is_current = serializers.SerializerMethodField()
 
     class Meta:
         model = UserSession
-        fields = ['id', 'ip_address', 'created_at', 'device']
+        fields = ['id', 'ip_address', 'created_at', 'device', 'is_current']
         read_only_fields = fields
 
     def get_device(self, obj):
@@ -243,214 +116,130 @@ class UserSessionSerializer(serializers.ModelSerializer):
             return "Unknown Device"
         ua = parse(obj.user_agent)
         return f"{ua.browser.family} on {ua.os.family}"
-    
-    def to_representation(self, instance):
-        """
-        Add a flag to indicate if the session is the current one.
-        """
-        representation = super().to_representation(instance)
-        current_session_key = self.context['request'].session.session_key
-        # Note: DRF Token Auth is stateless, so we check against the token key
+
+    def get_is_current(self, obj):
         auth_header = self.context['request'].headers.get('Authorization')
         if auth_header:
             try:
                 current_token_key = auth_header.split(' ')[1]
-                representation['is_current_session'] = (instance.session_key == current_token_key)
+                # This logic assumes the token IS the session key, which might not be true.
+                return obj.session_key == current_token_key
             except IndexError:
-                representation['is_current_session'] = False
-        else:
-            representation['is_current_session'] = False
-        return representation
+                pass
+        return False
 
 
-class NotificationSerializer(serializers.ModelSerializer):
-    """
-    Serializer for notifications to match frontend expectations
-    """
-    timestamp = serializers.DateTimeField(source='created_at', read_only=True)
-    isRead = serializers.BooleanField(source='is_read')
-    userId = serializers.CharField(source='user.id', read_only=True)
-    actionUrl = serializers.URLField(source='action_url', allow_blank=True, required=False)
-
-    class Meta:
-        model = Notification
-        fields = ['id', 'title', 'message', 'type', 'timestamp', 'isRead', 'userId', 'actionUrl', 'createdAt', 'updatedAt']
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['createdAt'] = instance.created_at.isoformat()
-        representation['updatedAt'] = instance.updated_at.isoformat()
-        return representation
-
-
-class ActivitySerializer(serializers.ModelSerializer):
-    """
-    Serializer for activities to match frontend expectations
-    """
-    class Meta:
-        model = Activity
-        fields = ['timestamp', 'description', 'type']
-
-
-class LoginSerializer(serializers.Serializer):
-    """
-    Serializer for the login endpoint.
-    """
+class UserLoginSerializer(serializers.Serializer):
+    """Serializer for user login."""
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'}
-    )
+    password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
 
     def validate(self, attrs):
         email = attrs.get('email')
         password = attrs.get('password')
-
         if email and password:
-            # Since the custom User model sets `USERNAME_FIELD = "email"`,
-            # Django's default `ModelBackend` still expects the credential to be
-            # passed via the `username` keyword argument. Passing `email=`
-            # will always return `None`, resulting in 401 responses even for valid
-            # users. Therefore, forward the email value using the `username`
-            # kw-arg so that authentication succeeds.
-            user = authenticate(
-                request=self.context.get('request'),
-                username=email,  # `username` refers to the field defined by `USERNAME_FIELD`
-                password=password
-            )
+            user = authenticate(request=self.context.get('request'), email=email, password=password)
             if not user:
-                msg = 'Unable to log in with provided credentials.'
-                raise exceptions.AuthenticationFailed(msg, code='authorization')
+                raise serializers.ValidationError("Invalid credentials.", code='authorization')
+            if not user.is_active:
+                raise serializers.ValidationError("User account is disabled.", code='authorization')
         else:
-            msg = 'Must include "email" and "password".'
-            raise exceptions.AuthenticationFailed(msg, code='authorization')
-
+            raise serializers.ValidationError("Must include 'email' and 'password'.", code='authorization')
         attrs['user'] = user
         return attrs
 
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for public user registration."""
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password_confirm = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
+    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all(), required=True)
 
-class DashboardStatsSerializer(serializers.Serializer):
-    """
-    Serializer for dashboard statistics
-    """
-    totalUsers = serializers.IntegerField()
-    totalClients = serializers.IntegerField()
-    totalTeams = serializers.IntegerField()
-    totalCommission = serializers.DecimalField(max_digits=12, decimal_places=2)
-    recentActivities = ActivitySerializer(many=True)
-    notifications = NotificationSerializer(many=True)
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user profile management (account settings).
-    """
-    name = serializers.ReadOnlyField()
-    phoneNumber = serializers.CharField(source='contact_number', allow_blank=True, required=False)
-    role = serializers.SerializerMethodField()
-    
     class Meta:
         model = User
-        fields = ['id', 'name', 'first_name', 'last_name', 'email', 'phoneNumber', 'address', 'avatar', 'role']
-        read_only_fields = ['id', 'email', 'role']  # Email and role cannot be changed by user
-    
-    def get_role(self, obj):
-        """Return role name as string to match frontend expectations"""
-        if obj.role:
-            # Map backend roles to frontend role expectations
-            role_mapping = {
-                'Super Admin': 'super-admin',
-                'Org Admin': 'org-admin',
-                'Admin': 'org-admin',  # Support both "Org Admin" and "Admin" role names
-                'Salesperson': 'salesperson',
-                'Supervisor': 'supervisor',
-                'Verifier': 'verifier',
-                'Team Member': 'team-member',
-            }
-            return role_mapping.get(obj.role.name, 'team-member')
-        return 'team-member'
-    
-    def update(self, instance, validated_data):
-        """Update user profile fields"""
-        # Handle contact_number mapping
-        if 'contact_number' in validated_data:
-            instance.contact_number = validated_data.pop('contact_number')
-        
-        # Update other fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        
-        instance.save()
-        return instance
+        fields = ('username', 'email', 'password', 'password_confirm', 'first_name', 'last_name', 'organization', 'role')
 
-class ChangePasswordSerializer(serializers.Serializer):
-    """
-    Serializer for changing password for authenticated users.
-    """
-    current_password = serializers.CharField(required=True, write_only=True)
-    new_password = serializers.CharField(required=True, write_only=True)
-    confirm_password = serializers.CharField(required=True, write_only=True)
-    
-    def validate_current_password(self, value):
-        """Validate current password"""
-        user = self.context['request'].user
-        if not user.check_password(value):
-            raise serializers.ValidationError("Current password is incorrect.")
-        return value
-    
-    def validate_new_password(self, value):
-        """Validate new password using Django's password validators"""
-        user = self.context['request'].user
-        validate_password(value, user)
-        return value
-    
     def validate(self, attrs):
-        """Validate that new password and confirm password match"""
-        if attrs['new_password'] != attrs['confirm_password']:
-            raise serializers.ValidationError("New password and confirm password do not match.")
-        return attrs
-    
-    def save(self):
-        """Change the user's password"""
-        user = self.context['request'].user
-        user.set_password(self.validated_data['new_password'])
-        user.save()
-        return user
+        if attrs['password'] != attrs.pop('password_confirm'):
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return super().validate(attrs)
 
-class UserNotificationPreferencesSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user notification preferences.
-    """
-    # Map backend field names to frontend expectations
-    desktopNotification = serializers.BooleanField(source='desktop_notifications')
-    unreadNotificationBadge = serializers.BooleanField(source='unread_badge')
-    pushNotificationTimeout = serializers.CharField(source='push_timeout')
-    communicationEmails = serializers.BooleanField(source='communication_emails')
-    announcementsUpdates = serializers.BooleanField(source='announcements_updates')
-    allNotificationSounds = serializers.BooleanField(source='notification_sounds')
-    
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Serializer for changing a user's password."""
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if not user.check_password(attrs['old_password']):
+            raise serializers.ValidationError({'old_password': 'Old password is not correct.'})
+        # Add password strength validation here if needed
+        return attrs
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """A detailed serializer for the User model, including nested profile and team info."""
+    profile = UserProfileSerializer()
+    teams = serializers.SerializerMethodField()
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    role = serializers.CharField(source='role.name', read_only=True)  # Role name as string for frontend compatibility
+
     class Meta:
-        model = UserNotificationPreferences
-        fields = [
-            'desktopNotification', 'unreadNotificationBadge', 'pushNotificationTimeout',
-            'communicationEmails', 'announcementsUpdates', 'allNotificationSounds'
-        ]
-    
+        model = User
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'organization', 'organization_name', 'role',
+            'contact_number', 'is_active', 'profile', 'teams'
+        )
+
+    def get_teams(self, obj):
+        # Avoid circular import
+        from team.serializers import TeamSerializer
+        # Check if the user is associated with any teams
+        if hasattr(obj, 'teams'):
+            return TeamSerializer(obj.teams.all(), many=True).data
+        return "No Teams"
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating user and their nested profile."""
+    profile = UserProfileSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'contact_number', 'sales_target', 'profile')
+
     def update(self, instance, validated_data):
-        """Update notification preferences"""
-        # Handle field mapping
-        field_mapping = {
-            'desktop_notifications': validated_data.get('desktop_notifications'),
-            'unread_badge': validated_data.get('unread_badge'),
-            'push_timeout': validated_data.get('push_timeout'),
-            'communication_emails': validated_data.get('communication_emails'),
-            'announcements_updates': validated_data.get('announcements_updates'),
-            'notification_sounds': validated_data.get('notification_sounds'),
-        }
-        
-        for field, value in field_mapping.items():
-            if value is not None:
-                setattr(instance, field, value)
-        
-        instance.save()
+        profile_data = validated_data.pop('profile', None)
+
+        # Update User fields
+        instance = super().update(instance, validated_data)
+
+        # Update UserProfile fields
+        if profile_data:
+            profile, created = UserProfile.objects.get_or_create(user=instance)
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
+
         return instance
+
+class AuthSuccessResponseSerializer(serializers.Serializer):
+    """Generic response for successful authentication."""
+    token = serializers.CharField(read_only=True)
+    user = UserDetailSerializer(read_only=True)
+
+class UserProfileResponseSerializer(serializers.Serializer):
+    """Generic response for user profile requests."""
+    user = UserDetailSerializer(read_only=True)
+
+class MessageResponseSerializer(serializers.Serializer):
+    """Generic response for simple messages (e.g., logout)."""
+    message = serializers.CharField()
+
+class ErrorResponseSerializer(serializers.Serializer):
+    """Generic response for errors."""
+    error = serializers.CharField()
+    detail = serializers.CharField(required=False)
+    code = serializers.CharField(required=False)

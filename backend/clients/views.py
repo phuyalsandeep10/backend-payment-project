@@ -1,86 +1,85 @@
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from .models import Client, ClientActivity
-from .serializers import ClientSerializer, ClientActivitySerializer
-from .permissions import CanAccessClient
-from django.db import models
-import logging, traceback
+from rest_framework import viewsets, serializers, permissions
+from django.db.models import Count
+from .models import Client
+from .serializers import ClientSerializer
+from .permissions import HasClientPermission
+from organization.models import Organization
 
 class ClientViewSet(viewsets.ModelViewSet):
     """
-    A viewset for viewing and editing Client instances.
+    A viewset for viewing and editing Client instances, with granular permissions.
     """
     serializer_class = ClientSerializer
-    permission_classes = [CanAccessClient]
+    permission_classes = [permissions.IsAuthenticated, HasClientPermission]
 
     def get_queryset(self):
         """
         This view should return a list of all the clients
-        created by the currently authenticated user.
+        for the currently authenticated user's organization.
         Superusers can see all clients.
         """
+        # Handle schema generation when user is anonymous
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Client.objects.none()
+            
         user = self.request.user
+        
+        # Base queryset
+        base_queryset = Client.objects.all()
+
         if user.is_superuser:
-            return Client.objects.all()
+            return base_queryset
         
-        if user.role and user.role.name.replace(' ', '').lower() in ['orgadmin', 'admin']:
-            return Client.objects.filter(organization=user.organization)
-        
-        if user.role and user.role.name.replace(' ', '').lower() == 'salesperson':
-            # Salesperson can see clients assigned to them or in their team
-            return Client.objects.filter(
-                models.Q(salesperson=user) | models.Q(teams__in=user.teams.all())
-            ).distinct()
+        if not hasattr(user, 'organization') or not user.organization:
+            return Client.objects.none()
+
+        organization_queryset = base_queryset.filter(organization=user.organization)
+
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_clients').exists():
+            return organization_queryset
+
+        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_clients').exists():
+            return organization_queryset.filter(created_by=user)
             
         return Client.objects.none()
 
     def perform_create(self, serializer):
         """
         Associate the client with the creator and their organization.
-        For salespersons, also assign them as the salesperson.
+        Super Admins can optionally specify an organization or use a default one.
         """
-        try:
-            user = self.request.user
-            save_kwargs = {
-                'created_by': user,
-                'organization': user.organization
-            }
+        user = self.request.user
+        if user.is_superuser:
+            org_id = self.request.data.get('organization')
+            organization = None
             
-            # If the user is a salesperson, assign them as the salesperson
-            if user.role and user.role.name.replace(' ', '').lower() == 'salesperson':
-                save_kwargs['salesperson'] = user
+            if org_id:
+                try:
+                    organization = Organization.objects.get(id=org_id)
+                except Organization.DoesNotExist:
+                    raise serializers.ValidationError({'organization': 'Organization not found.'})
+            else:
+                # For SuperAdmins without specified organization, use the first available organization
+                # or create a default system organization
+                organization = Organization.objects.first()
+                if not organization:
+                    # Create a default system organization for SuperAdmin operations
+                    organization = Organization.objects.create(
+                        name="System Organization",
+                        description="Default organization for system operations"
+                    )
             
-            serializer.save(**save_kwargs)
-        except Exception as exc:
-            logging.error("Client create failed: %s", exc)
-            logging.error(traceback.format_exc())
-            raise
+            serializer.save(created_by=user, organization=organization)
+        else:
+            if not user.organization:
+                raise serializers.ValidationError({'detail': 'You must belong to an organization to create clients.'})
+            serializer.save(
+                created_by=user,
+                organization=user.organization
+            )
 
-    @action(detail=True, methods=['post'])
-    def add_activity(self, request, pk=None):
+    def perform_update(self, serializer):
         """
-        Add an activity to a client.
-        Frontend expects: POST /clients/{clientId}/activities
+        Set the user who last updated the client.
         """
-        client = self.get_object()
-        
-        # Create activity data
-        activity_data = request.data.copy()
-        activity_data['client'] = client.id
-        activity_data['created_by'] = request.user.id
-        
-        serializer = ClientActivitySerializer(data=activity_data)
-        if serializer.is_valid():
-            serializer.save()
-            # Return updated client with activities
-            return Response(ClientSerializer(client).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_activities(self, request, pk=None):
-        """
-        Get all activities for a client.
-        """
-        client = self.get_object()
-        activities = client.activities.all()
-        return Response(ClientActivitySerializer(activities, many=True).data)
+        serializer.save(updated_by=self.request.user)

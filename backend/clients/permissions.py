@@ -1,41 +1,42 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission
 
-class CanAccessClient(BasePermission):
+class HasClientPermission(BasePermission):
     """
-    Custom permission to only allow users with specific permissions to access client data.
-    - SuperAdmin and OrgAdmin have full access.
-    - Salespersons can view clients assigned to them or within their team.
-    - All other roles are denied.
+    Custom permission to check for client-related permissions.
+    Assumes user is already authenticated.
     """
-
     def has_permission(self, request, view):
-        user = request.user
-        if not user or not user.is_authenticated:
+        if request.user.is_superuser:
+            return True
+
+        if not request.user.role:
             return False
 
-        if user.is_superuser or (user.role and user.role.name.replace(' ', '').lower() in ['orgadmin', 'admin']):
-            return True
+        required_perms_map = {
+            'list': ['view_all_clients', 'view_own_clients'],
+            'create': ['create_new_client'],
+            'retrieve': ['view_all_clients', 'view_own_clients'],
+            'update': ['edit_client_details'],
+            'partial_update': ['edit_client_details'],
+            'destroy': ['remove_client'],
+        }
         
-        # Allow Salespersons to manage (create/read) clients. Object-level checks will validate write access.
-        if user.role and user.role.name.replace(' ', '').lower() == 'salesperson':
-            return True  # Object permissions will restrict access as needed
-
-        return False
+        required_perms = required_perms_map.get(view.action, [])
+        if not required_perms:
+            return False
+            
+        return request.user.role.permissions.filter(codename__in=required_perms).exists()
 
     def has_object_permission(self, request, view, obj):
-        user = request.user
-        if not user or not user.is_authenticated:
-            return False
-
-        if user.is_superuser or (user.role and user.role.name.replace(' ', '').lower() in ['orgadmin', 'admin'] and obj.organization == user.organization):
+        if request.user.is_superuser:
             return True
 
-        # Salespersons can view or manage clients assigned to them or in their team
-        if user.role and user.role.name.replace(' ', '').lower() == 'salesperson':
-            is_assigned = getattr(obj, 'salesperson', None) == user
-            is_in_team = hasattr(obj, 'teams') and any(team in user.teams.all() for team in obj.teams.all())
+        if obj.organization != request.user.organization:
+            return False
 
-            if is_assigned or is_in_team:
-                return True
-
-        return False 
+        # If user can only see their own, check if they are the creator
+        if not request.user.role.permissions.filter(codename='view_all_clients').exists() and \
+           request.user.role.permissions.filter(codename='view_own_clients').exists():
+            return obj.created_by == request.user
+            
+        return True 

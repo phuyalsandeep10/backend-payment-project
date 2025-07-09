@@ -1,150 +1,170 @@
 from rest_framework import serializers
+from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
+from authentication.serializers import UserLiteSerializer
+from clients.serializers import ClientLiteSerializer
 from clients.models import Client
-from .models import Payment
-from authentication.models import User
-from datetime import timedelta
-from django.utils import timezone
 
-class PaymentSimpleSerializer(serializers.ModelSerializer):
-    """Simple payment serializer for nested display in deals"""
-    payment_date = serializers.DateTimeField(source='created_at')
-    received_amount = serializers.DecimalField(source='amount', max_digits=12, decimal_places=2)
-    payment_remarks = serializers.CharField(allow_null=True, default="")
-    cheque_number = serializers.SerializerMethodField()
-    verified_by = serializers.SerializerMethodField()
-    verification_remarks = serializers.CharField(allow_null=True, default="")
-    receipt_file = serializers.URLField(allow_null=True)
-    version = serializers.SerializerMethodField()
-    
+class ActivityLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the ActivityLog model.
+    """
+    class Meta:
+        model = ActivityLog
+        fields = '__all__'
+
+class PaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Payment model.
+    """
     class Meta:
         model = Payment
         fields = [
-            'id', 'payment_date', 'receipt_file', 'payment_remarks', 
-            'received_amount', 'cheque_number', 'payment_method', 'status',
-            'verified_by', 'verification_remarks', 'version'
+            'id', 'deal', 'payment_date', 'receipt_file', 'payment_remarks',
+            'received_amount', 'cheque_number', 'payment_type'
         ]
-    
-    def get_version(self, obj):
-        """Return version 1 for all payments"""
-        return 1
-    
-    def get_cheque_number(self, obj):
-        """Generate a cheque number based on payment info"""
-        return f"CHQ-{obj.client.id}-{obj.sequence_number}"
-    
-    def get_verified_by(self, obj):
-        if obj.verified_by:
-            return {
-                'id': str(obj.verified_by.id),
-                'full_name': f"{obj.verified_by.first_name} {obj.verified_by.last_name}".strip() or obj.verified_by.username,
-                'email': obj.verified_by.email
-            }
-        return None
+        read_only_fields = ['deal']
 
 class DealSerializer(serializers.ModelSerializer):
     """
-    Enhanced serializer mapping Client fields to Deal-like structure expected by the
-    frontend. Includes all fields that the DealsTable component expects.
+    Serializer for the Deal model, used for both read and write operations.
     """
-    # Basic client info mapped to deal fields
-    name = serializers.CharField(source='client_name')
-    deal_name = serializers.SerializerMethodField()
-    client_name = serializers.CharField()
-    deal_value = serializers.DecimalField(source='value', max_digits=12, decimal_places=2)
-    deal_date = serializers.DateTimeField(source='created_at')
-    due_date = serializers.SerializerMethodField()
-    deal_remarks = serializers.CharField(source='remarks', allow_null=True)
-    
-    # Payment status and related info
-    pay_status = serializers.SerializerMethodField()
-    payments = PaymentSimpleSerializer(many=True, read_only=True)
-    
-    # Organization and user info
-    organization = serializers.SerializerMethodField()
-    created_by = serializers.SerializerMethodField()
-    
-    # Deal metadata
-    deal_id = serializers.SerializerMethodField()
-    source_type = serializers.CharField(default="direct")
-    version = serializers.IntegerField(default=1)
-    activity_logs = serializers.ListField(child=serializers.DictField(), default=list)
+    created_by = UserLiteSerializer(read_only=True)
+    updated_by = UserLiteSerializer(read_only=True)
+    client = ClientLiteSerializer(read_only=True)
+    client_id = serializers.PrimaryKeyRelatedField(
+        queryset=Client.objects.all(), source='client', write_only=True
+    )
+    payments = PaymentSerializer(many=True, read_only=True)
+    activity_logs = ActivityLogSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Client
+        model = Deal
         fields = [
-            # Original client fields
-            'id', 'name', 'email', 'value', 'status', 'satisfaction', 'created_at', 'updated_at',
-            # Deal-specific fields for frontend compatibility
-            'deal_id', 'organization', 'client_name', 'deal_name', 'created_by', 'pay_status',
-            'source_type', 'deal_value', 'deal_date', 'due_date', 'deal_remarks', 'payments',
-            'activity_logs', 'version'
+            'id', 'deal_id', 'organization', 'client', 'client_id', 'created_by', 
+            'updated_by', 'payment_status', 'verification_status', 'client_status', 'source_type', 
+            'deal_value', 'deal_date', 'due_date', 'payment_method', 'deal_remarks', 
+            'payments', 'activity_logs', 'version', 'deal_name', 'currency', 'created_at', 'updated_at'
         ]
-        read_only_fields = fields
+        read_only_fields = [
+            'organization', 'deal_id', 'created_by', 'updated_by'
+        ]
 
-    def get_deal_name(self, obj):
-        """Generate a deal name based on client name and value"""
-        return f"{obj.client_name} - Deal (${obj.value:,.0f})"
-    
-    def get_deal_id(self, obj):
-        """Generate a deal ID"""
-        return f"DL-{obj.id:04d}"
-    
-    def get_organization(self, obj):
-        """Get organization name"""
-        return obj.organization.name if obj.organization else "Unknown"
-    
-    def get_created_by(self, obj):
-        """Get salesperson info"""
-        if obj.salesperson:
-            return {
-                'id': str(obj.salesperson.id),
-                'full_name': f"{obj.salesperson.first_name} {obj.salesperson.last_name}".strip() or obj.salesperson.username,
-                'email': obj.salesperson.email
-            }
-        elif obj.created_by:
-            return {
-                'id': str(obj.created_by.id),
-                'full_name': f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username,
-                'email': obj.created_by.email
-            }
-        return {
-            'id': 'unknown',
-            'full_name': 'Unknown User',
-            'email': 'unknown@example.com'
-        }
-    
-    def get_pay_status(self, obj):
-        """Calculate payment status based on payments vs deal value"""
-        payments = obj.payments.filter(status='verified')
-        if not payments.exists():
-            return 'partial_payment'
-        
-        total_paid = sum(payment.amount for payment in payments)
-        if total_paid >= obj.value:
-            return 'full_payment'
-        return 'partial_payment'
-    
-    def get_due_date(self, obj):
-        """Calculate due date (30 days from creation by default)"""
-        return obj.created_at + timedelta(days=30)
+class DealPaymentHistorySerializer(serializers.ModelSerializer):
+    """
+    A serializer to represent a single payment record for the deal's expanded history view.
+    """
+    payment_serial = serializers.SerializerMethodField()
+    payment_value = serializers.DecimalField(source='received_amount', max_digits=15, decimal_places=2)
+    receipt_link = serializers.FileField(source='receipt_file', read_only=True)
 
-# ==================== PAYMENT SERIALIZER ====================
-
-class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = [
+            'payment_serial', 'payment_date', 'created_at', 'payment_value',
+            'receipt_link'
+        ]
+
+    def get_payment_serial(self, obj):
+        # The serial number is passed via context from the parent serializer
+        return self.context.get('serial_number', 0)
+
+class DealExpandedViewSerializer(serializers.ModelSerializer):
+    """
+    A serializer for the expanded deal view, providing detailed verification and payment history.
+    """
+    payment_history = serializers.SerializerMethodField()
+    verified_by = serializers.CharField(source='updated_by.get_full_name', default=None, read_only=True)
+    verifier_remark_status = serializers.SerializerMethodField()
+    payment_version = serializers.CharField(source='version', read_only=True)
+
+    class Meta:
+        model = Deal
+        fields = [
+            'payment_history', 'verified_by', 'deal_remarks',
+            'verifier_remark_status', 'payment_version'
+        ]
+
+    def get_payment_history(self, obj):
+        payments = obj.payments.all().order_by('created_at')
+        # Pass the serial number to the child serializer via context
+        return [
+            DealPaymentHistorySerializer(p, context={'serial_number': i + 1}).data
+            for i, p in enumerate(payments)
+        ]
+
+    def get_verifier_remark_status(self, obj):
+        return "yes" if obj.verification_status == 'verified' else "no"
+
+class DealUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Deal
+        fields = [
             'id',
+            'deal_id',
+            'organization',
             'client',
-            'sequence_number',
-            'amount',
+            'project',
+            'deal_name',
+            'deal_value',
             'currency',
+            'deal_date',
+            'due_date',
+            'payment_status',
             'payment_method',
-            'receipt_file',
-            'status',
-            'verified_at',
-            'verified_by',
+            'source_type',
+            'verification_status',
+            'version',
+            'created_by',
+            'updated_by',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['status', 'verified_at', 'verified_by', 'created_at', 'updated_at'] 
+
+class PaymentInvoiceSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='payment.deal.client.client_name', read_only=True)
+    payment_amount = serializers.DecimalField(source='payment.received_amount', max_digits=15, decimal_places=2, read_only=True)
+
+    
+    class Meta:
+        model = PaymentInvoice
+        fields =        fields = [
+            'id', 'payment', 'payment_amount','client_name',
+            'invoice_id', 'invoice_date', 'due_date',
+            'invoice_status', 'deal', 'receipt_file'
+        ]
+
+class PaymentApprovalSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='payment.invoice.deal.client.client_name', read_only=True)
+    deal_id = serializers.CharField(source='payment.invoice.deal.deal_id', read_only=True)
+    invoice_status = serializers.CharField(source='payment.invoice.invoice_status', read_only=True)
+    payment_amount = serializers.DecimalField(source='payment.received_amount', max_digits=15, decimal_places=2, read_only=True)
+    invoice_id = serializers.CharField(source='payment.invoice.invoice_id', read_only=True)
+    class Meta:
+        model = PaymentApproval
+        fields = [
+            'id',
+            'payment',
+            'deal',
+            'deal_id',
+            'client_name',
+            'invoice_id',
+            'invoice_status',
+            'payment_amount',
+            'inovice_file',
+            'approved_by',
+            'approval_date',
+            'approved_remarks',
+            'failure_remarks',
+            'amount_in_invoice',
+        ]
+        
+        read_only_fields = [
+            'deal',
+            'deal_id',
+            'client_name',
+            'invoice_id',
+            'invoice_status',
+            'payment_amount',
+            'approval_date',
+            'approved_by',
+        ]

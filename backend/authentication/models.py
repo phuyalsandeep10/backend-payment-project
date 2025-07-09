@@ -1,9 +1,12 @@
+"""
+Merged User Model Template
+Combines Frontend_PRS compatibility with Backend_PRS-1 advanced features
+"""
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
-from organization.models import Organization
-from permissions.models import Role
-# from team.models import Team # This is removed to prevent circular import
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class CustomUserManager(BaseUserManager):
     """
@@ -17,6 +20,9 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError('The Email must be set')
         email = self.normalize_email(email)
+        # Set username to email if not provided
+        if 'username' not in extra_fields:
+            extra_fields['username'] = email
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -44,9 +50,9 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractUser):
     """
-    Custom user model with roles and organization linkage.
+    Enhanced user model with frontend compatibility and advanced features.
     """
-    # Status choices to match frontend expectations
+    # Frontend compatibility: Status choices
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
@@ -61,22 +67,30 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 
-    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
-    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    # Relationships
+    organization = models.ForeignKey('organization.Organization', on_delete=models.SET_NULL, null=True, blank=True)
+    role = models.ForeignKey('permissions.Role', on_delete=models.SET_NULL, null=True, blank=True)
     team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
     
-    # Additional fields to match frontend expectations
+    # Contact information
+    contact_number = models.CharField(max_length=30, blank=True, null=True)
+    address = models.TextField(blank=True, null=True, help_text="User's address")
+    
+    # Frontend compatibility fields
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     avatar = models.URLField(blank=True, null=True, help_text="URL to user's avatar image")
     must_change_password = models.BooleanField(default=False, help_text="Require user to change password at next login")
-    address = models.TextField(blank=True, null=True, help_text="User's address")
+    
+    # Advanced features from Backend_PRS-1
+    sales_target = models.DecimalField(max_digits=15, decimal_places=2, null=True, default=None)
+    streak = models.FloatField(default=5.0, validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
     objects = CustomUserManager()
 
     def __str__(self):
         return self.email
 
+    # Frontend compatibility properties
     @property
     def name(self):
         """Combined name property to match frontend expectations"""
@@ -85,6 +99,11 @@ class User(AbstractUser):
     @property
     def phone_number(self):
         """Alias for contact_number to match frontend expectations"""
+        return self.contact_number
+
+    @property
+    def phoneNumber(self):
+        """Alternative alias for contact_number"""
         return self.contact_number
 
 
@@ -102,9 +121,21 @@ class UserSession(models.Model):
         return f"{self.user.email}'s session from {self.ip_address}"
 
 
+class UserProfile(models.Model):
+    """
+    Stores user profile information, including profile picture.
+    """
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    bio = models.TextField(blank=True, null=True, max_length=500)
+
+    def __str__(self):
+        return f'{self.user.username} Profile'
+
+
 class Notification(models.Model):
     """
-    Model for user notifications
+    Model for user notifications - Enhanced from Backend_PRS
     """
     TYPE_CHOICES = [
         ('info', 'Info'),
@@ -131,7 +162,7 @@ class Notification(models.Model):
 
 class Activity(models.Model):
     """
-    Model for tracking activities/events
+    Model for tracking activities/events - Enhanced from Backend_PRS
     """
     TYPE_CHOICES = [
         ('meeting', 'Meeting'),
@@ -159,7 +190,7 @@ class Activity(models.Model):
 
 class UserNotificationPreferences(models.Model):
     """
-    Model for user notification preferences
+    Model for user notification preferences - Enhanced from Backend_PRS
     """
     TIMEOUT_CHOICES = [
         ('select', 'Select the Option'),
@@ -186,4 +217,4 @@ class UserNotificationPreferences(models.Model):
         verbose_name_plural = "User Notification Preferences"
 
     def __str__(self):
-        return f"{self.user.email}'s notification preferences"
+        return f"{self.user.email}'s notification preferences" 

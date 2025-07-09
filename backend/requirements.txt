@@ -27,4 +27,6 @@ ua-parser-builtins==0.18.0.post1
 uritemplate==4.2.0
 urllib3==2.5.0
 user-agents==2.2.0
- jdjango-redis==5.4.0
+# jdjango-redis==5.4.0
+# django-redis==5.4.0
+whitenoise==6.7.0
