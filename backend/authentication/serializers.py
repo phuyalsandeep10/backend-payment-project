@@ -30,7 +30,8 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
-            'contact_number', 'is_active', 'profile', 'teams'
+            'contact_number', 'is_active', 'profile', 'teams',
+            'status', 'avatar', 'address'
         ]
         read_only_fields = ['organization_name']
 
@@ -41,17 +42,65 @@ class UserSerializer(serializers.ModelSerializer):
         return []
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating a new user (by an admin)."""
-    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
+    """Serializer for creating a new user (by an admin).
+    If the caller does not provide a password, a random temporary password is generated.
+    If a role is not provided but an organisation **is**, the serializer automatically assigns / creates
+    the "Org Admin" role for that organisation so that super-admins can quickly add admins.
+    """
+
+    # Allow role / password to be optional – we will fill them in the create() method.
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'password', 'first_name', 'last_name', 'email', 'organization', 'role', 'contact_number', 'is_active')
+        fields = (
+            'id', 'username', 'password', 'first_name', 'last_name', 'email',
+            'organization', 'role', 'contact_number', 'is_active',
+            'address', 'status', 'avatar'
+        )
         read_only_fields = ('id',)
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},
+            'username': {'required': False, 'allow_blank': True}
+        }
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
+        from django.utils.crypto import get_random_string
+
+        # ---- Ensure password ----
+        password = validated_data.pop('password', None)
+        if not password:
+            # Generate a secure 12-char temporary password
+            password = get_random_string(length=12)
+
+        # ---- Ensure role ----
+        role = validated_data.get('role')
+        organization = validated_data.get('organization')
+
+        if not role and organization:
+            # Fetch or create the default Org Admin role for this organisation
+            role, _ = Role.objects.get_or_create(name='Org Admin', organization=organization)
+            validated_data['role'] = role
+
+        # Default username to email if not supplied
+        if 'username' not in validated_data:
+            validated_data['username'] = validated_data['email']
+
+        user = User.objects.create_user(password=password, **validated_data)
+
+        # Force password change at first login
+        user.must_change_password = True
+        user.save(update_fields=['must_change_password'])
+
+        # Send the temporary password to user's email address
+        try:
+            from authentication.utils import send_temporary_password_email
+            send_temporary_password_email(user.email, password)
+        except Exception as e:
+            # Fail silently; log in production
+            import logging
+            logging.getLogger('security').warning(f'Failed to send temp password email: {e}')
+
         return user
 
 class UserSessionSerializer(serializers.ModelSerializer):
@@ -142,9 +191,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'email', 'first_name', 'last_name', 
-            'organization', 'organization_name', 'role', 
-            'contact_number', 'is_active', 'profile', 'teams'
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'organization', 'organization_name', 'role',
+            'contact_number', 'is_active', 'profile', 'teams',
+            'address', 'status', 'avatar'
         )
 
     def get_teams(self, obj):
@@ -161,7 +211,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'contact_number', 'sales_target', 'profile')
+        fields = ('first_name', 'last_name', 'contact_number', 'sales_target', 'profile', 'address', 'status', 'avatar')
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', None)

@@ -1,9 +1,12 @@
+"""
+Merged User Model Template
+Combines Frontend_PRS compatibility with Backend_PRS-1 advanced features
+"""
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-# from organization.models import Organization  <- This will be removed
-# from permissions.models import Role           <- This will be removed
 
 class CustomUserManager(BaseUserManager):
     """
@@ -47,8 +50,16 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractUser):
     """
-    Custom user model with roles and organization linkage.
+    Enhanced user model with frontend compatibility and advanced features.
     """
+    # Frontend compatibility: Status choices
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('invited', 'Invited'),
+        ('suspended', 'Suspended'),
+    ]
+    
     # Use email as the primary identifier
     username = models.CharField(max_length=150, unique=False, blank=True)
     email = models.EmailField('email address', unique=True)
@@ -56,9 +67,21 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    organization = models.ForeignKey('organization.Organization', on_delete=models.CASCADE, null=True, blank=True)
+    # Relationships
+    organization = models.ForeignKey('organization.Organization', on_delete=models.SET_NULL, null=True, blank=True)
     role = models.ForeignKey('permissions.Role', on_delete=models.SET_NULL, null=True, blank=True)
+    team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
+    
+    # Contact information
     contact_number = models.CharField(max_length=30, blank=True, null=True)
+    address = models.TextField(blank=True, null=True, help_text="User's address")
+    
+    # Frontend compatibility fields
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    avatar = models.URLField(blank=True, null=True, help_text="URL to user's avatar image")
+    must_change_password = models.BooleanField(default=False, help_text="Require user to change password at next login")
+    
+    # Advanced features
     sales_target = models.DecimalField(max_digits=15, decimal_places=2, null=True, default=None)
     streak = models.FloatField(default=5.0, validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
@@ -66,6 +89,22 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    # Frontend compatibility properties
+    @property
+    def name(self):
+        """Combined name property to match frontend expectations"""
+        return f"{self.first_name} {self.last_name}".strip() or self.username
+
+    @property
+    def phone_number(self):
+        """Alias for contact_number to match frontend expectations"""
+        return self.contact_number
+
+    @property
+    def phoneNumber(self):
+        """Alternative alias for contact_number"""
+        return self.contact_number
 
 
 class UserSession(models.Model):

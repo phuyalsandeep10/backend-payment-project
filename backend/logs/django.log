@@ -1,0 +1,689 @@
+INFO 2025-07-09 04:30:50,234 autoreload 6188 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:31:11,784 autoreload 6261 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:42:22,058 autoreload 7308 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:42:43,374 autoreload 7586 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:50:36,899 autoreload 7966 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:51:28,401 autoreload 8069 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:52:40,239 autoreload 8230 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 04:53:01,727 autoreload 8296 8654151424 Watching for file changes with StatReloader
+WARNING 2025-07-09 04:53:35,615 log 8296 6204190720 Not Found: /api/dashboard/main
+WARNING 2025-07-09 04:53:35,615 log 8296 6221017088 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 04:53:35,616 basehttp 8296 6204190720 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 04:53:35,616 basehttp 8296 6221017088 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 04:53:35,626 log 8296 6204190720 Not Found: /api/dashboard/main
+WARNING 2025-07-09 04:53:35,629 log 8296 6221017088 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 04:53:35,630 basehttp 8296 6204190720 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 04:53:35,630 basehttp 8296 6221017088 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 04:53:36,648 log 8296 6204190720 Not Found: /api/dashboard/main
+WARNING 2025-07-09 04:53:36,648 basehttp 8296 6204190720 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 04:53:36,676 log 8296 6204190720 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 04:53:36,676 basehttp 8296 6204190720 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 04:53:36,692 log 8296 6204190720 Not Found: /api/dashboard/main
+WARNING 2025-07-09 04:53:36,692 basehttp 8296 6204190720 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 04:53:36,740 log 8296 6204190720 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 04:53:36,740 basehttp 8296 6204190720 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 04:53:38,712 log 8296 6204190720 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 04:53:38,713 basehttp 8296 6204190720 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 04:53:38,828 log 8296 6204190720 Not Found: /api/dashboard/main
+WARNING 2025-07-09 04:53:38,833 log 8296 6221017088 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 04:53:38,833 basehttp 8296 6204190720 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 04:53:38,834 basehttp 8296 6221017088 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 04:53:38,857 log 8296 6204190720 Not Found: /api/dashboard/main
+WARNING 2025-07-09 04:53:38,857 basehttp 8296 6204190720 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 04:53:50,187 basehttp 8296 6204190720 "OPTIONS /api/auth/login/ HTTP/1.1" 200 0
+WARNING 2025-07-09 04:53:50,430 log 8296 6204190720 Unauthorized: /api/auth/login/
+WARNING 2025-07-09 04:53:50,430 basehttp 8296 6204190720 "POST /api/auth/login/ HTTP/1.1" 401 45
+WARNING 2025-07-09 04:53:51,653 log 8296 6204190720 Unauthorized: /api/auth/login/
+WARNING 2025-07-09 04:53:51,653 basehttp 8296 6204190720 "POST /api/auth/login/ HTTP/1.1" 401 45
+WARNING 2025-07-09 04:53:53,883 log 8296 6204190720 Unauthorized: /api/auth/login/
+WARNING 2025-07-09 04:53:53,883 basehttp 8296 6204190720 "POST /api/auth/login/ HTTP/1.1" 401 45
+INFO 2025-07-09 04:59:48,113 autoreload 8296 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/backend/settings.py changed, reloading.
+INFO 2025-07-09 04:59:48,461 autoreload 8627 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:01:21,984 basehttp 8627 6194753536 "POST /api/auth/login/ HTTP/1.1" 200 264
+INFO 2025-07-09 05:01:24,315 basehttp 8627 6194753536 "OPTIONS /api/v1/organizations/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:01:24,319 basehttp 8627 6211579904 "OPTIONS /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 0
+INFO 2025-07-09 05:01:24,320 basehttp 8627 6228406272 "OPTIONS /api/v1/auth/users/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:01:24,325 basehttp 8627 6245232640 "OPTIONS /api/v1/organizations/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:01:24,326 basehttp 8627 6194753536 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:24,329 basehttp 8627 6262059008 "OPTIONS /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 0
+INFO 2025-07-09 05:01:24,331 basehttp 8627 6278885376 "OPTIONS /api/v1/auth/users/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:01:24,335 basehttp 8627 6211579904 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:24,337 basehttp 8627 6194753536 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:24,337 basehttp 8627 6228406272 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:01:24,339 basehttp 8627 6278885376 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:24,342 basehttp 8627 6228406272 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+WARNING 2025-07-09 05:01:34,977 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:34,977 log 8627 6312538112 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:34,977 basehttp 8627 6312538112 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:34,978 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:35,004 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:35,006 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:01:35,007 basehttp 8627 6228406272 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+WARNING 2025-07-09 05:01:35,009 log 8627 6312538112 Not Found: /api/dashboard/commission
+INFO 2025-07-09 05:01:35,010 basehttp 8627 6194753536 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+WARNING 2025-07-09 05:01:35,011 basehttp 8627 6312538112 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:01:35,011 basehttp 8627 6278885376 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:35,021 basehttp 8627 6228406272 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:35,022 basehttp 8627 6211579904 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:01:35,024 basehttp 8627 6278885376 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:01:36,061 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:36,061 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:36,094 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:36,094 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:36,150 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:36,150 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:36,187 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:36,187 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:38,184 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:38,185 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:38,204 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:38,205 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:38,260 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:38,260 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:38,302 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:38,302 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:52,626 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:52,629 log 8627 6312538112 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:52,630 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:52,630 basehttp 8627 6312538112 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:52,636 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:52,638 log 8627 6312538112 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:52,638 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:52,638 basehttp 8627 6312538112 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:01:52,662 basehttp 8627 6278885376 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:52,662 basehttp 8627 6211579904 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:52,665 basehttp 8627 6194753536 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:52,665 basehttp 8627 6228406272 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:01:52,667 basehttp 8627 6278885376 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:01:52,670 basehttp 8627 6194753536 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+WARNING 2025-07-09 05:01:54,392 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:54,392 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:01:54,399 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:54,399 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:56,492 log 8627 6295711744 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:01:56,493 basehttp 8627 6295711744 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:01:56,593 log 8627 6295711744 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:01:56,593 basehttp 8627 6295711744 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:04:57,122 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:04:57,126 log 8627 6211579904 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:04:57,126 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:04:57,126 basehttp 8627 6211579904 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:04:57,163 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:04:57,163 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:04:57,168 log 8627 6211579904 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:04:57,168 basehttp 8627 6211579904 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:00,054 log 8627 6211579904 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:00,054 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:00,055 basehttp 8627 6211579904 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:00,056 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:02,175 log 8627 6194753536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:02,176 basehttp 8627 6194753536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:02,194 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:02,195 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:04,747 log 8627 6211579904 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:04,749 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:04,749 basehttp 8627 6211579904 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:04,749 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:04,756 log 8627 6194753536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:04,757 log 8627 6211579904 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:04,758 basehttp 8627 6194753536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:04,758 basehttp 8627 6211579904 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:05,803 log 8627 6194753536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:05,803 basehttp 8627 6194753536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:05,847 log 8627 6194753536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:05,847 basehttp 8627 6194753536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:05,876 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:05,876 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:05,885 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:05,885 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:08,007 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:08,010 log 8627 6211579904 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:08,010 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:08,011 basehttp 8627 6211579904 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:05:08,042 log 8627 6194753536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:05:08,043 basehttp 8627 6194753536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:05:08,049 log 8627 6211579904 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:05:08,049 basehttp 8627 6211579904 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:05:33,809 basehttp 8627 6194753536 "POST /api/auth/login/ HTTP/1.1" 200 264
+INFO 2025-07-09 05:05:33,909 basehttp 8627 6211579904 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:33,910 basehttp 8627 6194753536 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:33,912 basehttp 8627 6228406272 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:05:33,915 basehttp 8627 6194753536 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:33,915 basehttp 8627 6211579904 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:33,922 basehttp 8627 6228406272 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:05:41,053 basehttp 8627 6228406272 "OPTIONS /api/organizations/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:05:41,062 basehttp 8627 6228406272 "GET /api/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:43,729 basehttp 8627 6228406272 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:43,732 basehttp 8627 6228406272 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:47,913 basehttp 8627 6211579904 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:47,914 basehttp 8627 6228406272 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:47,916 basehttp 8627 6194753536 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:05:47,920 basehttp 8627 6228406272 "GET /api/v1/organizations/ HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:47,920 basehttp 8627 6211579904 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:05:47,924 basehttp 8627 6194753536 "GET /api/v1/auth/users/ HTTP/1.1" 200 309
+INFO 2025-07-09 05:05:59,071 basehttp 8627 6194753536 "POST /api/organizations/ HTTP/1.1" 201 91
+INFO 2025-07-09 05:05:59,150 basehttp 8627 6194753536 "GET /api/organizations/ HTTP/1.1" 200 143
+INFO 2025-07-09 05:06:02,987 basehttp 8627 6194753536 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:06:02,990 basehttp 8627 6194753536 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:06:22,853 basehttp 8627 6194753536 "OPTIONS /api/auth/users/ HTTP/1.1" 200 0
+WARNING 2025-07-09 05:06:22,879 log 8627 6194753536 Bad Request: /api/auth/users/
+WARNING 2025-07-09 05:06:22,879 basehttp 8627 6194753536 "POST /api/auth/users/ HTTP/1.1" 400 114
+INFO 2025-07-09 05:06:25,999 basehttp 8627 6194753536 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:06:26,005 basehttp 8627 6194753536 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:10:46,501 autoreload 8627 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/organization/serializers.py changed, reloading.
+INFO 2025-07-09 05:10:46,885 autoreload 9320 8654151424 Watching for file changes with StatReloader
+WARNING 2025-07-09 05:11:48,588 log 9320 6171406336 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:11:48,589 log 9320 6188232704 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:11:48,589 basehttp 9320 6171406336 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:11:48,589 basehttp 9320 6188232704 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:11:48,595 log 9320 6171406336 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:11:48,597 log 9320 6188232704 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:11:48,597 basehttp 9320 6171406336 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:11:48,598 basehttp 9320 6188232704 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:11:48,599 basehttp 9320 6205059072 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:11:48,606 basehttp 9320 6205059072 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:11:49,612 log 9320 6171406336 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:11:49,613 basehttp 9320 6171406336 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:11:49,654 log 9320 6171406336 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:11:49,654 basehttp 9320 6171406336 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:11:49,694 log 9320 6171406336 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:11:49,694 basehttp 9320 6171406336 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:11:49,700 log 9320 6171406336 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:11:49,700 basehttp 9320 6171406336 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:11:50,399 basehttp 9320 6205059072 "GET /api/organizations/ HTTP/1.1" 200 143
+WARNING 2025-07-09 05:11:51,638 log 9320 6171406336 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:11:51,639 basehttp 9320 6171406336 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:11:51,711 log 9320 6171406336 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:11:51,711 basehttp 9320 6171406336 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:11:51,755 log 9320 6171406336 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:11:51,756 basehttp 9320 6171406336 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:11:51,896 log 9320 6171406336 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:11:51,896 basehttp 9320 6171406336 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:12:00,514 log 9320 6205059072 Bad Request: /api/auth/users/
+WARNING 2025-07-09 05:12:00,515 basehttp 9320 6205059072 "POST /api/auth/users/ HTTP/1.1" 400 114
+INFO 2025-07-09 05:12:02,029 basehttp 9320 6205059072 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:12:02,033 basehttp 9320 6205059072 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:13:17,456 autoreload 9320 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/serializers.py changed, reloading.
+INFO 2025-07-09 05:13:17,832 autoreload 9511 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:16:30,385 autoreload 9511 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/serializers.py changed, reloading.
+INFO 2025-07-09 05:16:30,759 autoreload 9645 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:17:02,686 autoreload 9645 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/views.py changed, reloading.
+INFO 2025-07-09 05:17:03,014 autoreload 9676 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:17:13,467 autoreload 9676 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/urls.py changed, reloading.
+INFO 2025-07-09 05:17:13,776 autoreload 9697 8654151424 Watching for file changes with StatReloader
+WARNING 2025-07-09 05:17:48,961 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:17:48,961 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:17:48,963 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:17:48,963 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:17:48,969 log 9697 6202241024 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:17:48,971 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:17:48,975 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:17:48,975 basehttp 9697 6202241024 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:17:48,981 basehttp 9697 6235893760 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:17:48,986 basehttp 9697 6235893760 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:17:50,052 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:17:50,054 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:17:50,055 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:17:50,055 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:17:50,070 log 9697 6202241024 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:17:50,072 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:17:50,073 basehttp 9697 6202241024 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:17:50,073 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:17:50,671 basehttp 9697 6202241024 "GET /api/organizations/ HTTP/1.1" 200 143
+WARNING 2025-07-09 05:17:52,112 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:17:52,116 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:17:52,131 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:17:52,131 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:17:52,153 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:17:52,154 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:17:52,166 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:17:52,166 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:18:00,598 log 9697 6202241024 Bad Request: /api/auth/users/
+WARNING 2025-07-09 05:18:00,599 basehttp 9697 6202241024 "POST /api/auth/users/ HTTP/1.1" 400 40
+INFO 2025-07-09 05:18:02,089 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:18:02,093 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:21:32,392 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:21:32,394 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:21:32,394 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:21:32,394 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:21:32,401 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:21:32,402 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:21:32,403 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:21:32,403 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:21:32,418 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:21:32,421 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:21:33,432 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:21:33,432 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:21:33,457 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:21:33,457 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:21:33,471 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:21:33,471 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:21:33,507 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:21:33,507 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:21:33,678 basehttp 9697 6202241024 "GET /api/organizations/ HTTP/1.1" 200 143
+WARNING 2025-07-09 05:21:35,456 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:21:35,457 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:21:35,498 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:21:35,499 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:21:35,513 log 9697 6202241024 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:21:35,514 basehttp 9697 6202241024 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:21:35,707 log 9697 6202241024 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:21:35,708 basehttp 9697 6202241024 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:21:43,734 log 9697 6202241024 Bad Request: /api/auth/users/
+WARNING 2025-07-09 05:21:43,735 basehttp 9697 6202241024 "POST /api/auth/users/ HTTP/1.1" 400 40
+INFO 2025-07-09 05:21:46,938 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:21:46,941 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:22:15,663 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:22:15,666 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:22:15,666 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:22:15,667 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:22:15,675 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:22:15,678 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:22:15,678 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:22:15,678 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:22:15,693 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:22:15,699 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:22:16,738 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:22:16,738 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:22:16,766 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:22:16,766 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:22:16,781 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:22:16,782 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:22:16,789 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:22:16,789 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:22:18,801 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:22:18,802 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:22:18,810 log 9697 6235893760 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:22:18,810 basehttp 9697 6235893760 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:22:18,849 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:22:18,849 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:22:18,882 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:22:18,883 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:24:25,154 log 9697 6202241024 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:24:25,156 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:24:25,157 basehttp 9697 6202241024 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:24:25,157 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:24:25,175 log 9697 6219067392 Not Found: /api/dashboard/main
+INFO 2025-07-09 05:24:25,177 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:24:25,178 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:24:25,181 log 9697 6235893760 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:24:25,181 basehttp 9697 6235893760 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:24:25,184 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:24:26,183 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:24:26,183 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:24:26,210 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:24:26,210 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:24:26,229 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:24:26,229 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:24:26,263 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:24:26,263 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:24:26,836 basehttp 9697 6202241024 "GET /api/organizations/ HTTP/1.1" 200 143
+WARNING 2025-07-09 05:24:28,326 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:24:28,326 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:24:28,346 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:24:28,346 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:24:28,426 log 9697 6219067392 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:24:28,426 basehttp 9697 6219067392 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:24:28,447 log 9697 6219067392 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:24:28,447 basehttp 9697 6219067392 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:24:34,971 log 9697 6202241024 Bad Request: /api/auth/users/
+WARNING 2025-07-09 05:24:34,972 basehttp 9697 6202241024 "POST /api/auth/users/ HTTP/1.1" 400 40
+INFO 2025-07-09 05:24:36,303 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:24:36,308 basehttp 9697 6202241024 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:25:40,481 autoreload 9697 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/serializers.py changed, reloading.
+INFO 2025-07-09 05:25:40,913 autoreload 10007 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:25:43,212 autoreload 10007 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/serializers.py changed, reloading.
+INFO 2025-07-09 05:25:43,459 autoreload 10015 8654151424 Watching for file changes with StatReloader
+WARNING 2025-07-09 05:25:52,634 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:25:52,634 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:25:52,635 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:25:52,635 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:25:52,647 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:25:52,649 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:25:52,650 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:25:52,650 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:25:52,652 basehttp 10015 6158364672 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+INFO 2025-07-09 05:25:52,655 basehttp 10015 6158364672 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 52
+WARNING 2025-07-09 05:25:53,676 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:25:53,676 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:25:53,687 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:25:53,687 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:25:53,715 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:25:53,715 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:25:53,721 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:25:53,721 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:25:54,006 basehttp 10015 6158364672 "GET /api/organizations/ HTTP/1.1" 200 143
+WARNING 2025-07-09 05:25:55,715 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:25:55,716 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:25:55,793 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:25:55,794 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:25:55,815 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:25:55,815 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:25:55,909 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:25:55,911 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:26:02,193 basehttp 10015 6158364672 "POST /api/auth/users/ HTTP/1.1" 201 189
+INFO 2025-07-09 05:26:02,255 basehttp 10015 6158364672 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 399
+INFO 2025-07-09 05:26:02,259 basehttp 10015 6158364672 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 399
+INFO 2025-07-09 05:26:32,185 basehttp 10015 6158364672 "POST /api/auth/login/ HTTP/1.1" 200 321
+INFO 2025-07-09 05:26:36,986 basehttp 10015 6124711936 "OPTIONS /api/teams/?params=undefined HTTP/1.1" 200 0
+INFO 2025-07-09 05:26:36,993 basehttp 10015 6124711936 "GET /api/teams/?params=undefined HTTP/1.1" 200 52
+INFO 2025-07-09 05:26:36,995 basehttp 10015 6158364672 "GET /api/auth/users/ HTTP/1.1" 200 399
+INFO 2025-07-09 05:26:39,532 basehttp 10015 6158364672 "OPTIONS /api/deals/?params=%5Bobject+Object%5D HTTP/1.1" 200 0
+INFO 2025-07-09 05:26:39,582 basehttp 10015 6158364672 "GET /api/deals/?params=%5Bobject+Object%5D HTTP/1.1" 200 292
+INFO 2025-07-09 05:26:44,079 basehttp 10015 6158364672 "OPTIONS /api/clients/?page=1&limit=10&search= HTTP/1.1" 200 0
+WARNING 2025-07-09 05:26:44,094 log 10015 6158364672 Forbidden: /api/clients/
+WARNING 2025-07-09 05:26:44,095 basehttp 10015 6158364672 "GET /api/clients/?page=1&limit=10&search= HTTP/1.1" 403 63
+WARNING 2025-07-09 05:26:45,159 log 10015 6158364672 Unauthorized: /api/clients/
+WARNING 2025-07-09 05:26:45,160 basehttp 10015 6158364672 "GET /api/clients/?page=1&limit=10&search= HTTP/1.1" 401 58
+WARNING 2025-07-09 05:26:47,181 log 10015 6158364672 Unauthorized: /api/clients/
+WARNING 2025-07-09 05:26:47,182 basehttp 10015 6158364672 "GET /api/clients/?page=1&limit=10&search= HTTP/1.1" 401 58
+WARNING 2025-07-09 05:26:48,165 log 10015 6175191040 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:26:48,165 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:26:48,166 basehttp 10015 6175191040 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:26:48,166 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:26:48,170 log 10015 6158364672 Unauthorized: /api/clients/
+WARNING 2025-07-09 05:26:48,170 basehttp 10015 6158364672 "GET /api/clients/?page=1&limit=10&search= HTTP/1.1" 401 58
+WARNING 2025-07-09 05:26:48,173 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:26:48,174 log 10015 6175191040 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:26:48,174 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:26:48,174 basehttp 10015 6175191040 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:26:49,235 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:26:49,236 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:26:49,249 log 10015 6158364672 Unauthorized: /api/clients/
+WARNING 2025-07-09 05:26:49,249 basehttp 10015 6158364672 "GET /api/clients/?page=1&limit=10&search= HTTP/1.1" 401 58
+WARNING 2025-07-09 05:26:49,255 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:26:49,255 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:26:49,264 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:26:49,264 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:26:49,282 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:26:49,282 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:26:50,535 basehttp 10015 6158364672 "OPTIONS /api/commission/?params=undefined HTTP/1.1" 200 0
+WARNING 2025-07-09 05:26:50,536 log 10015 6158364672 Unauthorized: /api/commission/
+WARNING 2025-07-09 05:26:50,536 basehttp 10015 6158364672 "GET /api/commission/?params=undefined HTTP/1.1" 401 58
+WARNING 2025-07-09 05:26:51,307 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:26:51,307 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:26:51,321 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:26:51,322 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:26:51,376 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:26:51,376 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:26:51,413 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:26:51,414 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:26:51,582 log 10015 6158364672 Unauthorized: /api/commission/
+WARNING 2025-07-09 05:26:51,582 basehttp 10015 6158364672 "GET /api/commission/?params=undefined HTTP/1.1" 401 58
+WARNING 2025-07-09 05:26:53,726 log 10015 6158364672 Unauthorized: /api/commission/
+WARNING 2025-07-09 05:26:53,727 basehttp 10015 6158364672 "GET /api/commission/?params=undefined HTTP/1.1" 401 58
+WARNING 2025-07-09 05:27:23,083 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:27:23,088 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:27:23,088 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:27:23,089 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:27:23,110 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:27:23,116 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:27:23,117 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:27:23,117 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:27:24,136 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:27:24,137 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:27:24,157 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:27:24,157 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:27:24,198 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:27:24,199 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:27:24,223 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:27:24,223 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:27:26,176 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:27:26,176 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:27:26,230 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:27:26,230 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:27:26,303 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:27:26,304 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:27:26,369 log 10015 6124711936 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:27:26,370 basehttp 10015 6124711936 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:27:44,052 basehttp 10015 6124711936 "POST /api/auth/login/ HTTP/1.1" 200 321
+INFO 2025-07-09 05:27:45,610 basehttp 10015 6141538304 "GET /api/teams/?params=undefined HTTP/1.1" 200 52
+INFO 2025-07-09 05:27:45,612 basehttp 10015 6124711936 "GET /api/auth/users/ HTTP/1.1" 200 399
+INFO 2025-07-09 05:29:04,343 basehttp 10015 6124711936 "POST /api/auth/users/ HTTP/1.1" 201 180
+INFO 2025-07-09 05:29:04,354 basehttp 10015 6124711936 "GET /api/auth/users/ HTTP/1.1" 200 399
+INFO 2025-07-09 05:29:38,694 basehttp 10015 6124711936 "POST /api/auth/login/ HTTP/1.1" 200 254
+WARNING 2025-07-09 05:29:39,519 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:29:39,521 log 10015 6158364672 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:29:39,521 basehttp 10015 6158364672 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:29:39,521 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:29:39,527 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:29:39,529 log 10015 6158364672 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:29:39,529 basehttp 10015 6158364672 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:29:39,529 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:29:40,578 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:29:40,579 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:29:40,612 log 10015 6141538304 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:29:40,612 basehttp 10015 6141538304 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:29:40,622 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:29:40,622 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:29:40,626 log 10015 6158364672 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:29:40,626 basehttp 10015 6158364672 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:31:54,320 log 10015 6124711936 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:31:54,322 log 10015 6141538304 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:31:54,323 basehttp 10015 6124711936 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:31:54,323 basehttp 10015 6141538304 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+INFO 2025-07-09 05:38:08,539 autoreload 10015 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/serializers.py changed, reloading.
+INFO 2025-07-09 05:38:09,038 autoreload 10935 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:38:22,565 autoreload 10935 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/serializers.py changed, reloading.
+INFO 2025-07-09 05:38:22,888 autoreload 10950 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:38:27,205 autoreload 10950 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/views.py changed, reloading.
+INFO 2025-07-09 05:38:27,447 autoreload 10962 8654151424 Watching for file changes with StatReloader
+INFO 2025-07-09 05:38:39,947 autoreload 10962 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/urls.py changed, reloading.
+INFO 2025-07-09 05:38:40,282 autoreload 10980 8654151424 Watching for file changes with StatReloader
+WARNING 2025-07-09 05:38:54,257 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:38:54,257 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:38:54,259 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:38:54,259 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:38:54,279 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:38:54,284 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:38:54,284 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:38:54,285 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:05,365 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:05,368 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:05,369 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:05,369 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:05,429 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:05,429 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:05,433 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:05,433 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:15,465 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:15,467 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:15,468 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:15,468 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:15,475 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:15,477 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:15,477 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:15,477 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:33,201 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:33,203 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:33,204 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:33,204 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:33,215 log 10980 6198521856 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:33,220 log 10980 6215348224 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:33,220 basehttp 10980 6198521856 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:33,220 basehttp 10980 6215348224 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:36,544 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:36,549 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:36,550 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:36,550 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:36,581 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:36,582 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:36,582 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:36,582 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:37,597 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:37,598 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:37,626 log 10980 6198521856 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:37,626 basehttp 10980 6198521856 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:37,666 log 10980 6198521856 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:37,666 basehttp 10980 6198521856 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:37,694 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:37,694 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:39,760 log 10980 6198521856 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:39,761 basehttp 10980 6198521856 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:39,771 log 10980 6198521856 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:39,771 basehttp 10980 6198521856 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:39,792 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:39,793 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:39,805 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:39,805 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:45,742 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:45,745 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:45,745 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:45,746 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:45,752 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:45,753 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:45,754 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:45,754 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:55,412 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:55,414 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:55,415 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:55,415 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:39:55,424 log 10980 6198521856 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:39:55,425 log 10980 6215348224 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:39:55,426 basehttp 10980 6215348224 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:39:55,426 basehttp 10980 6198521856 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:41:14,076 basehttp 10980 6198521856 "OPTIONS /api/auth/org-admin/login/ HTTP/1.1" 200 0
+WARNING 2025-07-09 05:41:14,195 log 10980 6198521856 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:41:14,195 basehttp 10980 6198521856 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:41:15,313 log 10980 6198521856 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:41:15,313 basehttp 10980 6198521856 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:41:17,446 log 10980 6198521856 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:41:17,446 basehttp 10980 6198521856 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+INFO 2025-07-09 05:42:17,189 autoreload 10980 8654151424 /Users/shishirkafle/Desktop/BrahmabyteLab/PRS/backend/Backend_PRS/backend/authentication/views.py changed, reloading.
+INFO 2025-07-09 05:42:17,560 autoreload 11213 8654151424 Watching for file changes with StatReloader
+WARNING 2025-07-09 05:42:45,183 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:42:45,183 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:42:45,184 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:42:45,185 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:42:45,195 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:42:45,197 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:42:45,197 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:42:45,198 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:42:46,221 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:42:46,223 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:42:46,224 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:42:46,224 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:42:46,264 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:42:46,264 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:42:46,271 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:42:46,271 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:42:48,311 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:42:48,312 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:42:48,320 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:42:48,321 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:42:48,324 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:42:48,324 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:42:48,434 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:42:48,435 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:42:52,719 log 11213 6130380800 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:42:52,719 basehttp 11213 6130380800 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:42:53,858 log 11213 6130380800 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:42:53,859 basehttp 11213 6130380800 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:42:55,994 log 11213 6130380800 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:42:55,994 basehttp 11213 6130380800 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:45:23,911 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:45:23,914 log 11213 6164033536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:45:23,915 basehttp 11213 6164033536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:45:23,916 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:45:23,926 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:45:23,928 log 11213 6164033536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:45:23,928 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:45:23,928 basehttp 11213 6164033536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:45:24,951 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:45:24,952 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:45:24,974 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:45:24,974 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:45:24,991 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:45:24,991 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:45:25,000 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:45:25,001 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:45:27,089 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:45:27,089 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:45:27,104 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:45:27,105 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:45:27,113 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:45:27,113 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:45:27,153 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:45:27,153 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:45:59,323 log 11213 6130380800 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:45:59,324 basehttp 11213 6130380800 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:46:00,452 log 11213 6130380800 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:46:00,452 basehttp 11213 6130380800 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:46:02,589 log 11213 6130380800 Forbidden: /api/auth/org-admin/login/
+WARNING 2025-07-09 05:46:02,589 basehttp 11213 6130380800 "POST /api/auth/org-admin/login/ HTTP/1.1" 403 36
+WARNING 2025-07-09 05:47:17,230 log 11213 6164033536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:47:17,236 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:47:17,236 basehttp 11213 6164033536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:47:17,237 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:47:17,247 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:47:17,249 log 11213 6164033536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:47:17,249 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:47:17,250 basehttp 11213 6164033536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:10,892 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:48:10,901 log 11213 6147207168 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:48:10,901 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:48:10,902 basehttp 11213 6147207168 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:10,911 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:48:10,925 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:48:10,926 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:48:10,926 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:11,945 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:48:11,948 log 11213 6147207168 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:48:11,949 basehttp 11213 6147207168 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:48:11,949 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:12,312 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:48:12,314 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:48:12,351 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:48:12,352 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:14,073 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:48:14,073 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:14,119 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:48:14,119 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:48:14,435 log 11213 6130380800 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:48:14,435 basehttp 11213 6130380800 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:48:14,519 log 11213 6130380800 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:48:14,519 basehttp 11213 6130380800 "GET /api/dashboard/main HTTP/1.1" 404 7685
+INFO 2025-07-09 05:48:19,050 basehttp 11213 6130380800 "OPTIONS /api/auth/login/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,308 basehttp 11213 6130380800 "POST /api/auth/login/ HTTP/1.1" 200 264
+INFO 2025-07-09 05:48:19,803 basehttp 11213 6130380800 "OPTIONS /api/v1/organizations/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,805 basehttp 11213 6147207168 "OPTIONS /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,805 basehttp 11213 6164033536 "OPTIONS /api/v1/auth/users/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,826 basehttp 11213 6325039104 "OPTIONS /api/v1/organizations/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,835 basehttp 11213 6358691840 "OPTIONS /api/v1/auth/users/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,839 basehttp 11213 6341865472 "OPTIONS /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:19,845 basehttp 11213 6147207168 "GET /api/v1/organizations/ HTTP/1.1" 200 143
+INFO 2025-07-09 05:48:19,851 basehttp 11213 6341865472 "GET /api/v1/organizations/ HTTP/1.1" 200 143
+INFO 2025-07-09 05:48:19,851 basehttp 11213 6130380800 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 399
+INFO 2025-07-09 05:48:19,853 basehttp 11213 6164033536 "GET /api/v1/auth/users/ HTTP/1.1" 200 864
+INFO 2025-07-09 05:48:19,862 basehttp 11213 6147207168 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 399
+INFO 2025-07-09 05:48:19,864 basehttp 11213 6341865472 "GET /api/v1/auth/users/ HTTP/1.1" 200 864
+INFO 2025-07-09 05:48:26,407 basehttp 11213 6130380800 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 399
+INFO 2025-07-09 05:48:26,412 basehttp 11213 6130380800 "GET /api/v1/auth/users/?role_name=Org+Admin HTTP/1.1" 200 399
+INFO 2025-07-09 05:48:47,211 basehttp 11213 6130380800 "POST /api/auth/login/ HTTP/1.1" 200 321
+INFO 2025-07-09 05:48:52,825 basehttp 11213 6147207168 "OPTIONS /api/teams/?params=undefined HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:52,826 basehttp 11213 6130380800 "OPTIONS /api/auth/users/ HTTP/1.1" 200 0
+INFO 2025-07-09 05:48:52,834 basehttp 11213 6130380800 "GET /api/teams/?params=undefined HTTP/1.1" 200 52
+INFO 2025-07-09 05:48:52,835 basehttp 11213 6147207168 "GET /api/auth/users/ HTTP/1.1" 200 399
+INFO 2025-07-09 05:49:18,735 basehttp 11213 6147207168 "POST /api/auth/users/ HTTP/1.1" 201 198
+INFO 2025-07-09 05:49:18,760 basehttp 11213 6147207168 "GET /api/auth/users/ HTTP/1.1" 200 399
+INFO 2025-07-09 05:50:02,914 basehttp 11213 6147207168 "POST /api/auth/login/ HTTP/1.1" 200 272
+WARNING 2025-07-09 05:50:03,408 log 11213 6325039104 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:50:03,410 log 11213 6164033536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:50:03,411 basehttp 11213 6325039104 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:50:03,411 basehttp 11213 6164033536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:50:03,439 log 11213 6164033536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:50:03,440 log 11213 6325039104 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:50:03,441 basehttp 11213 6325039104 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:50:03,441 basehttp 11213 6164033536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:50:04,485 log 11213 6164033536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:50:04,490 log 11213 6325039104 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:50:04,490 basehttp 11213 6164033536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:50:04,491 basehttp 11213 6325039104 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:50:04,507 log 11213 6164033536 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:50:04,508 basehttp 11213 6164033536 "GET /api/dashboard/commission HTTP/1.1" 404 7703
+WARNING 2025-07-09 05:50:04,533 log 11213 6164033536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:50:04,533 basehttp 11213 6164033536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:50:19,375 log 11213 6164033536 Not Found: /api/dashboard/main
+WARNING 2025-07-09 05:50:19,378 log 11213 6325039104 Not Found: /api/dashboard/commission
+WARNING 2025-07-09 05:50:19,378 basehttp 11213 6164033536 "GET /api/dashboard/main HTTP/1.1" 404 7685
+WARNING 2025-07-09 05:50:19,378 basehttp 11213 6325039104 "GET /api/dashboard/commission HTTP/1.1" 404 7703

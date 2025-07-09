@@ -5,9 +5,10 @@ django-filter==24.3
 django-environ==0.11.2
 dj-database-url==3.0.1
 
-# PostgreSQL (✅ Compatible with Python 3.13)
+# PostgreSQL
 psycopg==3.2.9
 psycopg-binary==3.2.9
+psycopg2-binary==2.9.9
 
 # Production Server
 gunicorn==23.0.0
