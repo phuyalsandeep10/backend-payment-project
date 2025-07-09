@@ -81,6 +81,9 @@ class Command(BaseCommand):
             ('view_payment_verification_dashboard', 'Can view payment verification dashboard', audit_log_ct),
             ('view_payment_analytics', 'Can view payment analytics', audit_log_ct),
             ('view_audit_logs', 'Can view audit logs', audit_log_ct),
+            
+            # Role management permissions
+            ('can_manage_roles', 'Can manage roles', audit_log_ct),  # Using audit_log_ct as content type
         ]
         
         created_count = 0

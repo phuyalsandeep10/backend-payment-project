@@ -229,12 +229,17 @@ class Command(BaseCommand):
             'view_audit_logs', 'view_payment_verification_dashboard', 'view_payment_analytics'
         ]
         
+        # Role management permissions
+        role_management_permissions = [
+            'can_manage_roles'
+        ]
+        
         # Combine all permissions
         all_permission_codenames = (
             user_permissions + client_permissions + deal_permissions + 
             project_permissions + team_permissions + commission_permissions +
             payment_invoice_permissions + payment_approval_permissions +
-            notification_permissions + audit_log_permissions
+            notification_permissions + audit_log_permissions + role_management_permissions
         )
         
         # Get actual permissions that exist safely

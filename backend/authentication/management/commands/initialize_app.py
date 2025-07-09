@@ -207,7 +207,7 @@ class Command(BaseCommand):
                         'role': org_role, 
                         'first_name': fake.first_name(), 
                         'last_name': fake.last_name(), 
-                        'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else None
+                        'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else Decimal('0.00')
                     }
                 )
                 

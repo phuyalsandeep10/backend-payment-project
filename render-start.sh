@@ -51,6 +51,12 @@ except Exception as e:
     print(f'❌ Error: {e}')
 "
 
+# Create the missing permission
+python manage.py create_all_permissions
+
+# Assign permissions to roles (including the new can_manage_roles)
+python manage.py assign_role_permissions
+
 echo "🎉 Application startup complete!"
 
 # Start the Gunicorn server.

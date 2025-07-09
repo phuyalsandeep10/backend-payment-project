@@ -27,7 +27,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('No existing super admin found. Proceeding with creation...'))
 
-        admin_email = options.get('email') or getattr(settings, 'ADMIN_EMAIL', 'admin@example.com')
+        admin_email = options.get('email') or f"{getattr(settings, 'ADMIN_USER', 'admin')}@innovate.com"
         admin_password = options.get('password') or getattr(settings, 'ADMIN_PASS', None)
         admin_username = options.get('username') or getattr(settings, 'ADMIN_USER', 'admin')
 
@@ -36,18 +36,22 @@ class Command(BaseCommand):
             return
 
         try:
-            # Ensure the Super_admin role exists
-            super_admin_role, created = Role.objects.get_or_create(name='Super_admin')
+            # Ensure the Super Admin role exists (matching initialize_app)
+            super_admin_role, created = Role.objects.get_or_create(name='Super Admin')
             if created:
-                self.stdout.write(self.style.SUCCESS('Created "Super_admin" role.'))
+                self.stdout.write(self.style.SUCCESS('Created "Super Admin" role.'))
 
-            # Create the superuser
-            User.objects.create_superuser(
+            # Create the superuser first
+            superuser = User.objects.create_superuser(
                 email=admin_email,
                 username=admin_username,
-                password=admin_password,
-                role=super_admin_role
+                password=admin_password
             )
+            
+            # Then assign the role
+            superuser.role = super_admin_role
+            superuser.save()
+            
             self.stdout.write(self.style.SUCCESS(f'Successfully created super admin: {admin_email}'))
 
         except Exception as e:

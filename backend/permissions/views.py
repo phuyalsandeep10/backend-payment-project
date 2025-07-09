@@ -18,19 +18,19 @@ class PermissionListView(generics.ListAPIView):
     """
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         
-        # Group permissions by category for the UI
+        # Group permissions by content_type for the UI
         grouped_data = {}
         for item in serializer.data:
-            category = item['category']
-            if category not in grouped_data:
-                grouped_data[category] = []
-            grouped_data[category].append(item)
+            content_type = item['content_type']
+            if content_type not in grouped_data:
+                grouped_data[content_type] = []
+            grouped_data[content_type].append(item)
             
         return Response(grouped_data)
 

@@ -181,9 +181,8 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'sales_target': openapi.Schema(type=openapi.TYPE_NUMBER, description='The new sales target.')
-        },
-        required=['sales_target']
+            'sales_target': openapi.Schema(type=openapi.TYPE_NUMBER, description='The new sales target (optional, defaults to 0.00).')
+        }
     ),
     responses={200: UserDetailSerializer, 400: "Bad Request", 401: "Unauthorized"},
     tags=['User Profile']
@@ -196,11 +195,13 @@ def set_sales_target_view(request):
     """
     sales_target = request.data.get('sales_target')
     if sales_target is None:
-        return Response({'error': 'sales_target is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    try:
-        sales_target = Decimal(sales_target)
-    except (ValueError, TypeError):
-        return Response({'error': 'Invalid sales_target format.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Use default value if not provided
+        sales_target = Decimal('0.00')
+    else:
+        try:
+            sales_target = Decimal(sales_target)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid sales_target format.'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = request.user
     user.sales_target = sales_target

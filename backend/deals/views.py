@@ -78,22 +78,113 @@ class DealViewSet(viewsets.ModelViewSet):
         serializer = PaymentInvoiceSerializer(invoices, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'], url_path='payments')
+    def list_payments(self, request, deal_id=None):
+        """
+        Get all payments for this deal with their related invoices and approvals.
+        """
+        deal = self.get_object()
+        payments = Payment.objects.filter(deal=deal).select_related(
+            'deal', 'deal__client', 'deal__organization'
+        ).prefetch_related(
+            'invoice', 'approvals', 'approvals__approved_by'
+        ).order_by('-payment_date')
+        
+        from .serializers import PaymentExpandedSerializer
+        serializer = PaymentExpandedSerializer(payments, many=True)
+        
+        return Response({
+            'deal': {
+                'deal_id': deal.deal_id,
+                'deal_name': deal.deal_name,
+                'deal_value': deal.deal_value,
+                'client_name': deal.client.client_name if deal.client else None,
+            },
+            'payments': serializer.data,
+            'total_payments': payments.count(),
+            'total_amount': sum(payment.received_amount for payment in payments)
+        })
+
 class PaymentViewSet(viewsets.ModelViewSet):
     """
-    A viewset for managing Payments for a specific Deal.
+    A viewset for managing Payments with support for filtering by deal ID.
     """
     serializer_class = PaymentSerializer
     permission_classes = [HasPermission]
 
     def get_queryset(self):
-        deal_pk = self.kwargs.get('deal_pk')
-        if deal_pk:
-            return Payment.objects.select_related('deal').filter(deal_id=deal_pk)
-        return Payment.objects.none()
+        # Prevent crash during schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return Payment.objects.none()
+        
+        user = self.request.user
+        queryset = Payment.objects.select_related('deal', 'deal__organization', 'deal__client')
+        
+        # Filter by organization
+        if user.is_superuser:
+            pass  # Superuser can see all payments
+        elif user.organization:
+            queryset = queryset.filter(deal__organization=user.organization)
+        else:
+            return Payment.objects.none()
+        
+        # Filter by deal ID if provided in query params
+        deal_id = self.request.query_params.get('deal_id', None)
+        if deal_id:
+            queryset = queryset.filter(deal__deal_id=deal_id)
+        
+        # Filter by deal UUID if provided in query params
+        deal_uuid = self.request.query_params.get('deal', None)
+        if deal_uuid:
+            queryset = queryset.filter(deal_id=deal_uuid)
+        
+        return queryset
 
     def perform_create(self, serializer):
-        deal = get_object_or_404(Deal, pk=self.kwargs.get('deal_pk'))
-        serializer.save(deal=deal)
+        serializer.save()
+
+    @action(detail=False, methods=['get'], url_path='by-deal/(?P<deal_id>[^/.]+)')
+    def by_deal(self, request, deal_id=None):
+        """
+        Get all payments for a specific deal with their related invoices and approvals.
+        """
+        try:
+            # Find the deal by deal_id
+            deal = get_object_or_404(Deal, deal_id=deal_id, organization=request.user.organization)
+            
+            # Get all payments for this deal with related data
+            payments = Payment.objects.filter(deal=deal).select_related(
+                'deal', 'deal__client', 'deal__organization'
+            ).prefetch_related(
+                'invoice', 'approvals', 'approvals__approved_by'
+            ).order_by('-payment_date')
+            
+            # Serialize with expanded data
+            from .serializers import PaymentExpandedSerializer
+            serializer = PaymentExpandedSerializer(payments, many=True)
+            
+            return Response({
+                'deal': {
+                    'deal_id': deal.deal_id,
+                    'deal_name': deal.deal_name,
+                    'deal_value': deal.deal_value,
+                    'client_name': deal.client.client_name if deal.client else None,
+                },
+                'payments': serializer.data,
+                'total_payments': payments.count(),
+                'total_amount': sum(payment.received_amount for payment in payments)
+            })
+            
+        except Deal.DoesNotExist:
+            return Response(
+                {'error': f'Deal with ID {deal_id} not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error retrieving payments: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -116,6 +207,7 @@ class PaymentInvoiceViewSet(viewsets.ModelViewSet):
     queryset = PaymentInvoice.objects.all()
     serializer_class = PaymentInvoiceSerializer
     permission_classes = [HasPermission]
+    lookup_field = 'invoice_id'  # Use invoice_id instead of id
 
     def get_queryset(self):
         # Prevent crash during schema generation
