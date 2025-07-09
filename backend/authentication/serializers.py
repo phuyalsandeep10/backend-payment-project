@@ -176,7 +176,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                 setattr(profile, attr, value)
             profile.save()
             
+        # Return the updated instance, which will be serialized by the view
         return instance
+
+    def to_representation(self, instance):
+        """Return the detailed representation of the user after update."""
+        return UserDetailSerializer(instance, context=self.context).data
 
 class AuthSuccessResponseSerializer(serializers.Serializer):
     """Generic response for successful authentication."""

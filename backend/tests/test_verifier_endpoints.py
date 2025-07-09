@@ -58,12 +58,16 @@ def get_auth_token(email, password):
         print(f"{colors.FAIL}Authentication failed: {e}{colors.ENDC}")
     return token
 
-def run_test(method, endpoint, headers, expected_status, json_data=None):
+def run_test(method, endpoint, headers, expected_status, json_data=None, data=None):
     """Runs a generic test for an endpoint and asserts the status code."""
     url = f"{BASE_URL}{endpoint}"
     response_json = None
     try:
-        response = requests.request(method, url, headers=headers, json=json_data)
+        if method.upper() == 'POST' and data is not None:
+            response = requests.post(url, headers=headers, data=data)
+        else:
+            response = requests.request(method, url, headers=headers, json=json_data)
+            
         if response.text:
             try:
                 response_json = response.json()
@@ -119,19 +123,25 @@ def test_verifier_endpoints(token):
     if payment_to_verify_id:
         print(f"\n{colors.WARNING}Attempting to verify payment ID: {payment_to_verify_id}{colors.ENDC}")
         run_test("GET", f"/verifier/verifier-form/{payment_to_verify_id}/", headers, 200)
+        
+        # This data now matches what the UI and the updated backend view expect.
         verification_data = {
-            "approval_status": "approved",
-            "remarks": "Automated test verification - Approved"
+            "approved_remarks": "approved",
         }
-        run_test("POST", f"/verifier/verifier-form/{payment_to_verify_id}/", headers, 200, json_data=verification_data)
+        run_test("POST", f"/verifier/verifier-form/{payment_to_verify_id}/", headers, 200, data=verification_data)
 
         # Confirmation check: Verify the invoice is now in 'verified' status
         print(f"\n{colors.WARNING}Confirming verification status for invoice ID: {invoice_id_to_check}{colors.ENDC}")
         verified_invoices = run_test("GET", "/verifier/invoices/?status=verified", headers, 200)
-        if verified_invoices and any(inv.get('invoice_id') == invoice_id_to_check for inv in verified_invoices):
+        
+        is_verified = verified_invoices and any(inv.get('invoice_id') == invoice_id_to_check for inv in verified_invoices)
+        
+        if is_verified:
             print(f"{colors.OKGREEN}      -> Verification confirmed. Invoice is now in 'verified' list.{colors.ENDC}")
         else:
             print(f"{colors.FAIL}      -> Verification FAILED. Invoice not found in 'verified' list.{colors.ENDC}")
+        
+        assert is_verified, f"Invoice {invoice_id_to_check} was not found in the verified list after approval."
 
     else:
         print(f"{colors.WARNING}No pending payments found to test verification workflow.{colors.ENDC}")

@@ -116,26 +116,38 @@ def test_org_admin_endpoints(headers):
     }
     created_user = run_test("POST", "/auth/users/", headers, 201, json_data=new_user_data)
     
+    team_lead_id = None
     if created_user and created_user.get('id'):
         user_id = created_user.get('id')
+        team_lead_id = user_id  # Use this dynamically created user as the team lead
         print(f"{colors.OKGREEN}      -> User creation confirmed.{colors.ENDC}")
         run_test("GET", f"/auth/users/{user_id}/", headers, 200)
         run_test("PATCH", f"/auth/users/{user_id}/", headers, 200, json_data={"first_name": "Updated"})
-        run_test("DELETE", f"/auth/users/{user_id}/", headers, 204)
-        print(f"{colors.OKGREEN}      -> User update and delete confirmed.{colors.ENDC}")
+        # Note: Deletion is deferred until after the team tests are complete.
+        print(f"{colors.OKGREEN}      -> User read and update confirmed.{colors.ENDC}")
 
     # --- TEAM MANAGEMENT (Full CRUD) ---
     print_header("Team Management (CRUD)")
-    new_team_data = { "name": "New Test Team", "team_lead": 3 } # Assuming user ID 3 (sales@innovate.com) exists
-    created_team = run_test("POST", "/teams/", headers, 201, json_data=new_team_data)
     
-    if created_team and created_team.get('id'):
-        team_id = created_team.get('id')
-        print(f"{colors.OKGREEN}      -> Team creation confirmed.{colors.ENDC}")
-        run_test("GET", f"/teams/{team_id}/", headers, 200)
-        run_test("PATCH", f"/teams/{team_id}/", headers, 200, json_data={"description": "Updated team description."})
-        run_test("DELETE", f"/teams/{team_id}/", headers, 204)
-        print(f"{colors.OKGREEN}      -> Team update and delete confirmed.{colors.ENDC}")
+    if not team_lead_id:
+        print(f"{colors.FAIL}Skipping Team Management tests because user creation failed.{colors.ENDC}")
+    else:
+        new_team_data = { "name": "New Test Team", "team_lead": team_lead_id }
+        created_team = run_test("POST", "/teams/", headers, 201, json_data=new_team_data)
+        
+        if created_team and created_team.get('id'):
+            team_id = created_team.get('id')
+            print(f"{colors.OKGREEN}      -> Team creation confirmed.{colors.ENDC}")
+            run_test("GET", f"/teams/{team_id}/", headers, 200)
+            run_test("PATCH", f"/teams/{team_id}/", headers, 200, json_data={"description": "Updated team description."})
+            run_test("DELETE", f"/teams/{team_id}/", headers, 204)
+            print(f"{colors.OKGREEN}      -> Team update and delete confirmed.{colors.ENDC}")
+
+        # --- USER CLEANUP ---
+        # Now that the team tests are done, we can delete the user.
+        print_header("User Cleanup")
+        run_test("DELETE", f"/auth/users/{team_lead_id}/", headers, 204)
+        print(f"{colors.OKGREEN}      -> Test user deleted successfully.{colors.ENDC}")
 
     # --- NEGATIVE TESTS ---
     print_header("Negative Tests")
