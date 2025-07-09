@@ -20,6 +20,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """A detailed serializer for the User model."""
+    phoneNumber = serializers.CharField(source='contact_number', read_only=True)
     teams = serializers.SerializerMethodField()
     role = RoleSerializer(read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True)
@@ -31,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'status', 'avatar', 'address'
+            'status', 'avatar', 'address', 'phoneNumber'
         ]
         read_only_fields = ['organization_name']
 
@@ -184,6 +185,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     """A detailed serializer for the User model, including nested profile and team info."""
     profile = UserProfileSerializer()
+    phoneNumber = serializers.CharField(source='contact_number', read_only=True)
     teams = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     role = serializers.CharField(source='role.name', read_only=True)  # Role name as string for frontend compatibility
@@ -194,7 +196,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'address', 'status', 'avatar'
+            'address', 'status', 'avatar', 'phoneNumber'
         )
 
     def get_teams(self, obj):

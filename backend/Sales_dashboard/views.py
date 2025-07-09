@@ -1049,3 +1049,76 @@ def get_commission_trends(user, period, start_date):
         }
         for item in trends
     ]
+
+# ==================== Front-end compatibility alias endpoints ====================
+
+# Note: Use minimal logic; these endpoints proxy existing helper functions or aggregate data
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def chart_view(request):
+    """
+    Returns chart data for the dashboard.
+    Equivalent to the internal chart_data structure used in dashboard_view.
+    """
+    period = request.GET.get('period', 'monthly')
+    now = timezone.now()
+    if period == 'daily':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == 'weekly':
+        start_date = now - timedelta(days=now.weekday())
+        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == 'yearly':
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    data = get_chart_data(request.user, period, start_date, now)
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def goals_view(request):
+    """
+    Returns the user's sales goals progress (target, achieved, percentage).
+    """
+    user = request.user
+    target = user.sales_target or Decimal('25000')
+    achieved = Deal.objects.filter(
+        created_by=user,
+        verification_status='verified'
+    ).aggregate(total=Sum('deal_value'))['total'] or Decimal('0')
+
+    percentage = float((achieved / target) * 100) if target else 0
+    return Response({
+        'target': str(target),
+        'achieved': str(achieved),
+        'percentage': round(percentage, 2)
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def payment_verification_view(request):
+    """
+    Returns counts and totals of deals by verification status for the current user.
+    """
+    summary_qs = Deal.objects.filter(created_by=request.user).values('verification_status').annotate(
+        count=Count('id'),
+        total_value=Sum('deal_value')
+    )
+
+    output = {
+        'pending': {'count': 0, 'total': '0'},
+        'verified': {'count': 0, 'total': '0'},
+        'rejected': {'count': 0, 'total': '0'},
+    }
+
+    for row in summary_qs:
+        status_key = row['verification_status']
+        if status_key in output:
+            output[status_key]['count'] = row['count']
+            output[status_key]['total'] = str(row['total_value'] or 0)
+
+    return Response(output, status=status.HTTP_200_OK)
