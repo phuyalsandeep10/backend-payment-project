@@ -115,7 +115,7 @@ class Payment(models.Model):
         ('partial_payment','Partial Payment'),
         ('full_payment','Full Payment'),
     ]
-    
+    transaction_id = models.CharField(max_length=100, unique=True, blank=True, null=True)
     deal = models.ForeignKey(Deal,on_delete=models.CASCADE,related_name = 'payments')
     payment_date = models.DateField()
     receipt_file = models.FileField(
@@ -149,6 +149,15 @@ class Payment(models.Model):
             ).exclude(pk=self.pk).exists():
                 from django.core.exceptions import ValidationError
                 raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
+        
+        if not self.transaction_id:
+            last_transaction = Payment.objects.order_by('id').last()
+            if last_transaction and last_transaction.transaction_id:
+                last_id = int(last_transaction.transaction_id.split('-')[1])
+                new_id = last_id + 1
+                self.transaction_id = f'TXN-{new_id:04d}'
+            else:
+                self.transaction_id = 'TXN-0001'
 
         # Enhanced image compression with security checks
         if self.receipt_file and hasattr(self.receipt_file, 'size') and self.receipt_file.size > 1024 * 1024: # 1MB
@@ -196,6 +205,7 @@ class Payment(models.Model):
                     
                     # Save the compressed file
                     self.receipt_file.save(f"{file_name}_optimized{file_ext}", new_file, save=False)
+                
 
             except Exception as e:
                 # Security: Log the exception but don't expose details to user
@@ -246,6 +256,8 @@ class PaymentInvoice(models.Model):
                 self.invoice_id = 'INV-0001'
         
         super(PaymentInvoice, self).save(*args, **kwargs)
+    
+    
 
 class PaymentApproval(models.Model):
     FAILURE_REMARKS = [
@@ -255,14 +267,16 @@ class PaymentApproval(models.Model):
         ('cheque_bounce', 'Cheque Bounce'),
         ('payment_received_not_reflected', 'Payment Received but not Reflected'),
     ]
-    inovice_file = models.FileField(
+    invoice_file = models.FileField(
         upload_to='invoices/',
         blank=True,
         null=True,
         validators=[validate_file_security]
     )
+
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='approvals',blank=True,null=True)
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='approvals')
+    invoice = models.ForeignKey(PaymentInvoice, on_delete=models.CASCADE, related_name='approvals', blank=True, null=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='payment_approvals')
     approval_date = models.DateField(auto_now_add=True)
     approved_remarks = models.TextField(blank=True, null=True)
@@ -273,9 +287,8 @@ class PaymentApproval(models.Model):
     def save(self, *args, **kwargs):
         if not self.deal and self.payment:
             self.deal = self.payment.deal
+        
         super().save(*args, **kwargs)
-
-
 
 
 

@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from deals.models import Deal,Payment,PaymentInvoice
@@ -21,6 +21,7 @@ from datetime import timedelta
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 import logging
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import MultiPartParser, FormParser
 
 logger = logging.getLogger(__name__)
 
@@ -250,7 +251,7 @@ def verifier_invoice(request):
 
         queryset = PaymentInvoice.objects.select_related(
             'deal__client', 'payment'
-        ).filter(deal__organization=organization)
+        ).filter(deal__organization=organization).order_by('invoice_id')
 
         search_query = request.query_params.get('search', None)
         status_filter = request.query_params.get('status', None)
@@ -275,17 +276,21 @@ def verifier_invoice(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+import datetime
 @api_view(['DELETE'])
 @permission_classes([HasVerifierPermission])
 def verifier_invoice_delete(request, invoice_id):
+    now = datetime.datetime.now().isoformat()
+    logger.info(f"[{now}] DELETE attempt by User {request.user.id} for Invoice {invoice_id}")
     try:
         invoice = PaymentInvoice.objects.get(
             invoice_id=invoice_id,
             deal__organization=request.user.organization
         )
-        
+        print(f"Invoice found: {invoice}")
         invoice.delete()
-        logger.info(f"User {request.user.id} deleted invoice {invoice_id} from organization {request.user.organization.id}")
+        print(f"Invoice {invoice_id} deleted successfully.")
+        logger.info(f"[{now}] Invoice {invoice_id} deleted successfully by User {request.user.id}")
         return Response({"detail": "Invoice deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
     except PaymentInvoice.DoesNotExist:
         logger.warning(f"User {request.user.id} attempted to delete non-existent invoice {invoice_id}")
@@ -293,7 +298,7 @@ def verifier_invoice_delete(request, invoice_id):
     except Exception as e:
         logger.exception(f"Error deleting invoice {invoice_id} by user {request.user.id}: {e}")
         return Response(
-            {'error': 'An internal server error occurred.'},
+            {f'error': 'An internal server error occurred. : {e}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -426,7 +431,7 @@ def recent_refund_or_bad_debt(request):
         recent_refunds = PaymentApproval.objects.filter(
     payment__invoice__invoice_status__in=['refunded', 'bad_debt'],
     deal__organization=request.user.organization
-).order_by('-approval_date')[:5]# Get the 5 most recent refunds or bad debts
+).order_by('-approval_date')
         
         serializer = PaymentApprovalSerializer(recent_refunds, many=True)
         return Response(serializer.data)
@@ -522,12 +527,12 @@ def payment_status_distribution(request):
         invoices = PaymentInvoice.objects.filter(deal__organization=request.user.organization)
         invoices_count = invoices.count()
         
-        paid_invoices = (invoices.filter(invoice_status='verified').count()/invoices_count) * 100 if invoices_count else 0
-        pending_invoices = (invoices.filter(invoice_status='pending').count()/invoices_count) * 100 if invoices_count else 0
-        rejected_invoices = (invoices.filter(invoice_status='rejected').count()/invoices_count) * 100 if invoices_count else 0
-        refunded_invoices = (invoices.filter(invoice_status='refunded').count()/invoices_count) * 100 if invoices_count else 0
-        bad_debt_invoices = (invoices.filter(invoice_status='bad_debt').count()/invoices_count) * 100 if invoices_count else 0  
-        
+        paid_invoices = round((invoices.filter(invoice_status='verified').count() / invoices_count) * 100, 2) if invoices_count else 0
+        pending_invoices = round((invoices.filter(invoice_status='pending').count() / invoices_count) * 100, 2) if invoices_count else 0
+        rejected_invoices = round((invoices.filter(invoice_status='rejected').count() / invoices_count) * 100, 2) if invoices_count else 0
+        refunded_invoices = round((invoices.filter(invoice_status='refunded').count() / invoices_count) * 100, 2) if invoices_count else 0
+        bad_debt_invoices = round((invoices.filter(invoice_status='bad_debt').count() / invoices_count) * 100, 2) if invoices_count else 0
+        # Create a data dictionary for the serializer
         data = {
             'paid_invoices': paid_invoices,
             'pending_invoices': pending_invoices,
@@ -639,11 +644,15 @@ def audit_logs(request):
 )
 @api_view(['GET', 'POST'])
 @permission_classes([HasVerifierPermission])
+@parser_classes([MultiPartParser, FormParser])  
 def payment_verifier_form(request, payment_id):
     try:
         # Retrieve the payment and its associated invoice, ensuring it belongs to the user's organization
+        # payment_id = request.data.get('payment_id')
+        # if not payment_id:
+        #     return Response({'status': 'error', 'message': 'Payment ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
         payment = Payment.objects.select_related('deal').get(id=payment_id, deal__organization=request.user.organization)
-        invoice = PaymentInvoice.objects.get(payment=payment)
+        invoice = PaymentInvoice.objects.get(payment_id = payment)
     except Payment.DoesNotExist:
         logger.warning(f"User {request.user.id} attempted to access non-existent payment {payment_id}")
         return Response({'status': 'error', 'message': 'Payment not found.'}, status=status.HTTP_404_NOT_FOUND)
@@ -665,8 +674,9 @@ def payment_verifier_form(request, payment_id):
 
     elif request.method == 'POST':
         try:
-            approval_status = request.data.get('approval_status')
-            remarks = request.data.get('remarks', '')
+            approval_status = request.data.get('approved_remarks')
+            remarks = request.data.get('failure_remarks', '')
+            uploaded_file = request.FILES.get('invoice_file')
 
             # Validate approval_status
             valid_statuses = ['approved', 'rejected', 'bad_debt']
@@ -685,7 +695,7 @@ def payment_verifier_form(request, payment_id):
             # Log the audit trail
             AuditLogs.objects.create(
                 user=request.user,
-                action=f"Invoice status changed to {invoice.invoice_status}",
+                action=f"{invoice.invoice_status} {invoice.invoice_id}",
                 details=f"Invoice {invoice.invoice_id} for Deal {invoice.deal.deal_id} status was changed to {invoice.invoice_status} by {request.user.username}. Remarks: {remarks}",
                 organization=request.user.organization
             )
@@ -695,7 +705,8 @@ def payment_verifier_form(request, payment_id):
                 payment=payment,
                 approved_by=request.user,
                 approved_remarks=remarks,
-                amount_in_invoice=payment.received_amount
+                amount_in_invoice=payment.received_amount,
+                invoice_file=uploaded_file 
             )
             
             # Set failure remarks if the status is not approved
