@@ -7,6 +7,7 @@ from .permissions import IsOrgAdminOrSuperAdmin
 from authentication.models import User
 from django.db.models import Q
 from rest_framework import serializers
+from django.db import IntegrityError
 
 # Create your views here.
 
@@ -62,7 +63,17 @@ class RoleViewSet(viewsets.ModelViewSet):
                     organization = Organization.objects.get(id=org_id)
                 except Organization.DoesNotExist:
                     raise serializers.ValidationError({'organization': 'Organization not found.'})
-            serializer.save(organization=organization)
+            
+            # Handle potential duplicate role creation
+            try:
+                serializer.save(organization=organization)
+            except IntegrityError:
+                # If role already exists, fetch and return the existing one
+                role_name = serializer.validated_data.get('name')
+                existing_role = Role.objects.get(name=role_name, organization=organization)
+                # Update the serializer instance to return the existing role
+                serializer.instance = existing_role
+                
         else:
             # Org Admins can only create roles for their own organization.
             # Fail if they try to specify a different one.
@@ -70,4 +81,13 @@ class RoleViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError({
                     'organization': 'You do not have permission to create roles for other organizations.'
                 })
-            serializer.save(organization=user.organization)
+            
+            # Handle potential duplicate role creation
+            try:
+                serializer.save(organization=user.organization)
+            except IntegrityError:
+                # If role already exists, fetch and return the existing one
+                role_name = serializer.validated_data.get('name')
+                existing_role = Role.objects.get(name=role_name, organization=user.organization)
+                # Update the serializer instance to return the existing role
+                serializer.instance = existing_role

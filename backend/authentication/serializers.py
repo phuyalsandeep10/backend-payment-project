@@ -7,6 +7,7 @@ from permissions.serializers import RoleSerializer
 # from team.serializers import TeamSerializer # This is moved to prevent circular import
 from django.utils.crypto import get_random_string
 from django.contrib.auth.password_validation import validate_password
+import logging
 
 class UserLiteSerializer(serializers.ModelSerializer):
     """
@@ -82,11 +83,37 @@ class UserCreateSerializer(serializers.ModelSerializer):
     """
     org_role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
     phoneNumber = serializers.CharField(source='contact_number', allow_blank=True, required=False)
+    username = serializers.CharField(required=False, allow_blank=True)  # Make username optional
     
     class Meta:
         model = User
         fields = ('username', 'password', 'first_name', 'last_name', 'email', 'organization', 'org_role', 'team', 'phoneNumber', 'is_active', 'status', 'avatar')
         extra_kwargs = {'password': {'write_only': True, 'required': False}}
+
+    def validate_email(self, value):
+        """Ensure email is unique"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate_organization(self, value):
+        """Ensure organization exists"""
+        if value is None:
+            raise serializers.ValidationError("Organization is required.")
+        
+        from organization.models import Organization
+        try:
+            # Handle both integer and string inputs
+            if isinstance(value, Organization):
+                return value  # Already an Organization instance
+            elif isinstance(value, int):
+                return Organization.objects.get(id=value)
+            elif isinstance(value, str) and value.isdigit():
+                return Organization.objects.get(id=int(value))
+            else:
+                raise ValueError("Invalid organization format")
+        except (Organization.DoesNotExist, ValueError, TypeError) as e:
+            raise serializers.ValidationError(f"Invalid organization: {str(e)}")
 
     def create(self, validated_data):
         """Create a new user while handling role assignment, password generation,
@@ -96,14 +123,54 @@ class UserCreateSerializer(serializers.ModelSerializer):
         from django.core.mail import send_mail
         from django.conf import settings
 
-        request_data = self.context.get('request').data if self.context.get('request') else {}
+        logger = logging.getLogger(__name__)
+        logger.info(f"Creating user with data: {validated_data}")
+
+        request_data = {}
+        request = self.context.get('request')
+        if request and hasattr(request, 'data'):
+            request_data = request.data
 
         # --- Handle role mapping ------------------------------------------------
         role = validated_data.pop('org_role', None)
-        role_name = request_data.get('role_name')
+        role_name = request_data.get('role_name') if request_data else None
 
         if not role and role_name:
             role = Role.objects.filter(name__iexact=role_name.strip()).first()
+
+        # Special handling for org admin creation - ensure the role exists
+        organization = validated_data.get('organization')
+        if not role and organization:
+            # Check if this is an org admin creation request based on context
+            # If the user is being created by a superuser and no role is specified,
+            # try to create/get the Org Admin role for this organization
+            request_user = self.context.get('request').user if self.context.get('request') else None
+            if request_user and request_user.is_superuser:
+                # Try to get or create the Org Admin role for this organization
+                try:
+                    role, created = Role.objects.get_or_create(
+                        name='Org Admin',
+                        organization=organization,
+                        defaults={}
+                    )
+                    if created:
+                        logger.info(f"Created new Org Admin role for organization {organization}")
+                        # Grant necessary permissions to the new Org Admin role
+                        from permissions.models import Permission
+                        try:
+                            # Add basic permissions that org admins typically need
+                            permissions = Permission.objects.filter(
+                                codename__in=['create_user', 'view_user', 'edit_user', 'delete_user', 'manage_roles']
+                            )
+                            role.permissions.set(permissions)
+                        except Permission.DoesNotExist:
+                            pass  # Permissions might not exist yet
+                    else:
+                        logger.info(f"Using existing Org Admin role for organization {organization}")
+                except Exception as e:
+                    logger.error(f"Failed to create/get Org Admin role: {e}")
+                    # If role creation fails, continue without role
+                    pass
 
         if role is not None:
             validated_data['role'] = role
@@ -116,8 +183,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if not validated_data.get('username'):
             validated_data['username'] = validated_data['email'].split('@')[0]
 
-        # Create user instance via custom manager (hashes password internally)
-        user = User.objects.create_user(**validated_data)
+        try:
+            # Create user instance via custom manager (hashes password internally)
+            user = User.objects.create_user(**validated_data)
+            logger.info(f"Successfully created user: {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to create user: {e}")
+            raise serializers.ValidationError(f"Failed to create user: {str(e)}")
 
         # --- Post-creation flags -------------------------------------------------
         def _norm(name: str | None) -> str:
@@ -140,13 +212,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
         )
 
         # Fail silently so that user creation succeeds even if email mis-configured.
-        send_mail(
-            subject,
-            message,
-            getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@prs.local'),
-            [user.email],
-            fail_silently=True,
-        )
+        try:
+            send_mail(
+                subject,
+                message,
+                getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@prs.local'),
+                [user.email],
+                fail_silently=True,
+            )
+            logger.info(f"Welcome email sent to {user.email}")
+        except Exception as e:
+            logger.warning(f"Failed to send welcome email: {e}")
 
         return user
 
