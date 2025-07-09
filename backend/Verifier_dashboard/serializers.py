@@ -95,6 +95,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
         fields = ['action', 'timestamp', 'user', 'details']
 
 class PaymentApprovalSerializer(serializers.ModelSerializer):
+    payment = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = PaymentApproval
         fields = '__all__'

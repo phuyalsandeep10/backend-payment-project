@@ -270,7 +270,7 @@ class Command(BaseCommand):
         for i in range(25):
             client = Client.objects.create(
                 organization=organization,
-                client_name=fake.company(),
+                client_name=f"{fake.company()} {fake.company_suffix()}",
                 email=fake.unique.email(),
                 phone_number=fake.phone_number(),
                 created_by=random.choice(sales_users),
@@ -294,7 +294,7 @@ class Command(BaseCommand):
         for _ in range(10):
             project = Project.objects.create(
                 name=fake.catch_phrase(),
-                description=fake.text(),
+                description=f"{fake.catch_phrase()}. {fake.text(max_nb_chars=200)}",
                 created_by=random.choice(list(users.values()))
             )
             projects.append(project)
@@ -335,7 +335,7 @@ class Command(BaseCommand):
             # Create activity log
             ActivityLog.objects.create(
                 deal=deal, 
-                message=f"Deal created by {deal.created_by.username}."
+                message=f"Deal '{deal.deal_name}' created by {deal.created_by.username} for {deal.client.client_name}."
             )
             
             # Process payment and verification if verifiers exist

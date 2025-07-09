@@ -144,9 +144,10 @@ class PaymentApprovalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PaymentApproval
+       
         fields = [
             'id',
-            'payment',
+            'payment_id',
             'deal',
             'deal_id',
             'client_name',

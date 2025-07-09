@@ -251,7 +251,7 @@ def verifier_invoice(request):
 
         queryset = PaymentInvoice.objects.select_related(
             'deal__client', 'payment'
-        ).filter(deal__organization=organization).order_by('invoice_id')
+        ).filter(deal__organization=organization)
 
         search_query = request.query_params.get('search', None)
         status_filter = request.query_params.get('status', None)

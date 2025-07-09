@@ -257,7 +257,8 @@ class PaymentInvoice(models.Model):
         
         super(PaymentInvoice, self).save(*args, **kwargs)
     
-    
+    class Meta:
+        ordering = ['-invoice_date']
 
 class PaymentApproval(models.Model):
     FAILURE_REMARKS = [

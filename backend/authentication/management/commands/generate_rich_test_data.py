@@ -71,12 +71,12 @@ class Command(BaseCommand):
         for i in range(count):
             client = Client.objects.create(
                 organization=organization,
-                client_name=self.faker.company(),
+                client_name=f"{self.faker.company()} {self.faker.company_suffix()}",
                 email=self.faker.unique.email(),
                 phone_number=self.faker.phone_number(),
                 created_by=random.choice(salespersons),
                 satisfaction=random.choice(['neutral', 'satisfied', 'unsatisfied']),
-                status=random.choice(['new', 'clear', 'bad_debt'])
+                status='new'  # Start with 'new' status, will be updated by deal verification
             )
             
             self.stdout.write(f"  - Created client: {client.client_name}")
@@ -90,7 +90,7 @@ class Command(BaseCommand):
         for i in range(count):
             project = Project.objects.create(
                 name=self.faker.catch_phrase(),
-                description=self.faker.text(),
+                description=f"{self.faker.catch_phrase()}. {self.faker.text(max_nb_chars=200)}",
                 created_by=random.choice(salespersons)
             )
             
@@ -104,7 +104,8 @@ class Command(BaseCommand):
         
         scenarios = [
             'verified_full', 'verified_partial', 'multi_partial', 
-            'rejected', 'refunded', 'bad_debt', 'pending_verification'
+            'rejected', 'refunded', 'bad_debt', 'pending_verification',
+            'verified_full', 'verified_partial'  # Higher weight for verified scenarios
         ]
         
         for i in range(count):
@@ -116,7 +117,7 @@ class Command(BaseCommand):
                 client=random.choice(clients),
                 project=random.choice(projects) if projects and random.random() > 0.3 else None,
                 deal_name=self.faker.bs().title(),
-                deal_value=Decimal(random.randint(1000, 25000)),
+                deal_value=Decimal(random.randint(500, 50000)),
                 deal_date=deal_date,
                 payment_method=random.choice([c[0] for c in Deal.PAYMENT_METHOD_CHOICES]),
                 source_type=random.choice([c[0] for c in Deal.SOURCE_TYPES]),
@@ -126,7 +127,7 @@ class Command(BaseCommand):
             # Create activity log
             ActivityLog.objects.create(
                 deal=deal, 
-                message=f"Deal created by {deal.created_by.username}."
+                message=f"Deal '{deal.deal_name}' created by {deal.created_by.username} for {deal.client.client_name}."
             )
             
             # Process payment and verification if verifiers exist
@@ -152,7 +153,7 @@ class Command(BaseCommand):
                 client=random.choice(clients),
                 project=random.choice(projects) if projects and random.random() > 0.5 else None,
                 deal_name=f"Recent Deal Day {i+1}",
-                deal_value=Decimal(random.randint(500, 2000)),
+                deal_value=Decimal(random.randint(200, 5000)),
                 deal_date=deal_date,
                 payment_method='bank',
                 source_type='referral',
@@ -163,7 +164,7 @@ class Command(BaseCommand):
             # Create activity log
             ActivityLog.objects.create(
                 deal=deal, 
-                message=f"Recent deal created by {deal.created_by.username}."
+                message=f"Recent deal '{deal.deal_name}' created by {deal.created_by.username} for {deal.client.client_name}."
             )
             
             # Process payment if verifiers exist
