@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+import mimetypes
 from organization.models import Organization
 from clients.models import Client
 from django.conf import settings
@@ -259,7 +260,7 @@ class PaymentInvoice(models.Model):
     
     class Meta:
         ordering = ['-invoice_date']
-
+#added image compression for invoice file
 class PaymentApproval(models.Model):
     FAILURE_REMARKS = [
         ('insufficient_funds', 'Insufficient Funds'),
@@ -268,14 +269,14 @@ class PaymentApproval(models.Model):
         ('cheque_bounce', 'Cheque Bounce'),
         ('payment_received_not_reflected', 'Payment Received but not Reflected'),
     ]
+
     invoice_file = models.FileField(
         upload_to='invoices/',
         blank=True,
         null=True,
         validators=[validate_file_security]
     )
-
-    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='approvals',blank=True,null=True)
+    deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='approvals', blank=True, null=True)
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='approvals')
     invoice = models.ForeignKey(PaymentInvoice, on_delete=models.CASCADE, related_name='approvals', blank=True, null=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='payment_approvals')
@@ -283,13 +284,89 @@ class PaymentApproval(models.Model):
     approved_remarks = models.TextField(blank=True, null=True)
     failure_remarks = models.CharField(max_length=50, choices=FAILURE_REMARKS, blank=True, null=True)
     amount_in_invoice = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+
     def __str__(self):
         return f"Approval for {self.payment.deal.deal_id} - {self.approval_date}"
+
     def save(self, *args, **kwargs):
         if not self.deal and self.payment:
             self.deal = self.payment.deal
-        
+
+        # Image compression with file-type check
+        if self.invoice_file and hasattr(self.invoice_file, 'size') and self.invoice_file.size > 1024 * 1024:
+            try:
+                # Early check for file type
+                mime_type, _ = mimetypes.guess_type(self.invoice_file.name)
+                if mime_type not in ['image/jpeg', 'image/png']:
+                    # Not an image — skip compression, just save as-is
+                    super().save(*args, **kwargs)
+                    return
+
+                # Open image safely
+                img = Image.open(self.invoice_file)
+
+                if img.format.lower() in ['jpeg', 'jpg', 'png']:
+                    buffer = io.BytesIO()
+
+                    if img.mode in ['RGBA', 'P'] and img.format.lower() in ['jpeg', 'jpg']:
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                        img = background
+
+                    quality = 85
+                    if self.invoice_file.size > 5 * 1024 * 1024:
+                        quality = 70
+
+                    img.save(buffer, format=img.format, optimize=True, quality=quality)
+                    buffer.seek(0)
+
+                    new_file = ContentFile(buffer.read())
+                    file_name, file_ext = os.path.splitext(self.invoice_file.name)
+                    self.invoice_file.save(f"{file_name}_compressed{file_ext}", new_file, save=False)
+
+            except Exception as e:
+                import logging
+                logger = logging.getLogger('security')
+                logger.warning(f"Error compressing invoice file for PaymentApproval ID {self.id}: {str(e)}")
+                # Save original file if error occurs
+                pass
+
         super().save(*args, **kwargs)
+
+
+# class PaymentApproval(models.Model):
+#     FAILURE_REMARKS = [
+#         ('insufficient_funds', 'Insufficient Funds'),
+#         ('bank_decline', 'Bank Decline'),
+#         ('technical_error', 'Technical Error'),
+#         ('cheque_bounce', 'Cheque Bounce'),
+#         ('payment_received_not_reflected', 'Payment Received but not Reflected'),
+#     ]
+#     invoice_file = models.FileField(
+#         upload_to='invoices/',
+#         blank=True,
+#         null=True,
+#         validators=[validate_file_security]
+#     )
+
+#     deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='approvals',blank=True,null=True)
+#     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='approvals')
+#     invoice = models.ForeignKey(PaymentInvoice, on_delete=models.CASCADE, related_name='approvals', blank=True, null=True)
+#     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='payment_approvals')
+#     approval_date = models.DateField(auto_now_add=True)
+#     approved_remarks = models.TextField(blank=True, null=True)
+#     failure_remarks = models.CharField(max_length=50, choices=FAILURE_REMARKS, blank=True, null=True)
+#     amount_in_invoice = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+#     def __str__(self):
+#         return f"Approval for {self.payment.deal.deal_id} - {self.approval_date}"
+#     def save(self, *args, **kwargs):
+#         if not self.deal and self.payment:
+#             self.deal = self.payment.deal
+        
+        
+#         super().save(*args, **kwargs)
 
 
 
