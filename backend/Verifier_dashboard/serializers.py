@@ -78,11 +78,11 @@ class InvoiceStatusSerializer(serializers.Serializer):
     """
     Serializer for invoice status.
     """
-    pending_invoices = serializers.FloatField()
-    paid_invoices = serializers.FloatField()
-    rejected_invoices = serializers.FloatField()
-    refunded_invoices = serializers.FloatField()
-    bad_debt_invoices = serializers.FloatField()
+    pending_invoices = serializers.DecimalField(max_digits=15, decimal_places=2)
+    paid_invoices = serializers.DecimalField(max_digits=15, decimal_places=2)
+    rejected_invoices = serializers.DecimalField(max_digits=15, decimal_places=2)
+    refunded_invoices = serializers.DecimalField(max_digits=15, decimal_places=2)
+    bad_debt_invoices = serializers.DecimalField(max_digits=15, decimal_places=2)
 
     
 class AuditLogSerializer(serializers.ModelSerializer):
