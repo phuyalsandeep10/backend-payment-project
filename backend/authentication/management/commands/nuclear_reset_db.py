@@ -134,6 +134,19 @@ class Command(BaseCommand):
             # Get database connection info
             db_info = self.get_database_info()
             
+            # Check if pg_dump is available
+            import subprocess
+            try:
+                subprocess.run(['pg_dump', '--version'], capture_output=True, check=True)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                self.stdout.write(
+                    self.style.WARNING(
+                        '⚠️  pg_dump not available. Skipping backup creation. '
+                        'This is normal on managed platforms like Render.'
+                    )
+                )
+                return
+            
             # Create backup using pg_dump
             backup_command = f'pg_dump -h {db_info["host"]} -p {db_info["port"]} -U {db_info["user"]} -d {db_info["name"]} -f {backup_file}'
             
@@ -141,7 +154,6 @@ class Command(BaseCommand):
             env = os.environ.copy()
             env['PGPASSWORD'] = db_info['password']
             
-            import subprocess
             result = subprocess.run(
                 backup_command,
                 shell=True,
@@ -193,14 +205,28 @@ class Command(BaseCommand):
             conn.autocommit = True
             cursor = conn.cursor()
             
-            # Terminate all connections to the target database
-            self.stdout.write('🔌 Terminating existing connections...')
-            cursor.execute(f"""
-                SELECT pg_terminate_backend(pid)
-                FROM pg_stat_activity
-                WHERE datname = '{db_info['name']}'
-                AND pid <> pg_backend_pid();
-            """)
+            # Try to terminate connections, but handle permission errors gracefully
+            self.stdout.write('🔌 Attempting to terminate existing connections...')
+            try:
+                cursor.execute(f"""
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity
+                    WHERE datname = '{db_info['name']}'
+                    AND pid <> pg_backend_pid();
+                """)
+                self.stdout.write('✅ Successfully terminated existing connections')
+            except Exception as term_error:
+                if 'permission denied' in str(term_error).lower() or 'insufficientprivilege' in str(term_error).lower():
+                    self.stdout.write(
+                        self.style.WARNING(
+                            '⚠️  Cannot terminate connections (insufficient privileges). '
+                            'This is normal on managed databases like Render. '
+                            'Proceeding with database recreation...'
+                        )
+                    )
+                else:
+                    # Re-raise if it's not a permission error
+                    raise term_error
             
             # Drop the database
             self.stdout.write(f'🗑️  Dropping database: {db_info["name"]}')
