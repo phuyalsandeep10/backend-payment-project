@@ -2,6 +2,7 @@
 venv/
 .venv/
 receipts/
+media/
 
 # Python cache
 __pycache__/
