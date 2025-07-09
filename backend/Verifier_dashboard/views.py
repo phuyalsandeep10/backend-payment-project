@@ -276,21 +276,17 @@ def verifier_invoice(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-import datetime
 @api_view(['DELETE'])
 @permission_classes([HasVerifierPermission])
 def verifier_invoice_delete(request, invoice_id):
-    now = datetime.datetime.now().isoformat()
-    logger.info(f"[{now}] DELETE attempt by User {request.user.id} for Invoice {invoice_id}")
     try:
         invoice = PaymentInvoice.objects.get(
             invoice_id=invoice_id,
             deal__organization=request.user.organization
         )
-        print(f"Invoice found: {invoice}")
+        
         invoice.delete()
-        print(f"Invoice {invoice_id} deleted successfully.")
-        logger.info(f"[{now}] Invoice {invoice_id} deleted successfully by User {request.user.id}")
+        logger.info(f"User {request.user.id} deleted invoice {invoice_id} from organization {request.user.organization.id}")
         return Response({"detail": "Invoice deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
     except PaymentInvoice.DoesNotExist:
         logger.warning(f"User {request.user.id} attempted to delete non-existent invoice {invoice_id}")
@@ -298,7 +294,7 @@ def verifier_invoice_delete(request, invoice_id):
     except Exception as e:
         logger.exception(f"Error deleting invoice {invoice_id} by user {request.user.id}: {e}")
         return Response(
-            {f'error': 'An internal server error occurred. : {e}'},
+            {'error': 'An internal server error occurred.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -431,7 +427,7 @@ def recent_refund_or_bad_debt(request):
         recent_refunds = PaymentApproval.objects.filter(
     payment__invoice__invoice_status__in=['refunded', 'bad_debt'],
     deal__organization=request.user.organization
-).order_by('-approval_date')
+).order_by('-approval_date')[:5]# Get the 5 most recent refunds or bad debts
         
         serializer = PaymentApprovalSerializer(recent_refunds, many=True)
         return Response(serializer.data)
@@ -469,7 +465,33 @@ def verification_queue(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
-    
+@api_view(['GET'])
+@permission_classes([HasVerifierPermission])
+def audit_logs(request):
+    """
+    Retrieve audit logs for the user's organization with pagination.
+    Supports filtering by user, action, and a date range.
+    """
+    try:
+        organization = request.user.organization
+        if not organization:
+            return Response(
+                {'error': 'User must belong to an organization'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        queryset = AuditLogs.objects.filter(organization=organization).order_by('-timestamp')
+        # Pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Default page size
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = AuditLogSerializer(paginated_queryset, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    except Exception as e:
+        logger.exception(f"Error retrieving audit logs for organization {request.user.organization.id if request.user.organization else 'N/A'}: {e}")
+        return Response(
+            {'error': 'An internal server error occurred.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
     
 @api_view(['GET'])
 @permission_classes([HasVerifierPermission])
@@ -527,12 +549,12 @@ def payment_status_distribution(request):
         invoices = PaymentInvoice.objects.filter(deal__organization=request.user.organization)
         invoices_count = invoices.count()
         
-        paid_invoices = round((invoices.filter(invoice_status='verified').count() / invoices_count) * 100, 2) if invoices_count else 0
-        pending_invoices = round((invoices.filter(invoice_status='pending').count() / invoices_count) * 100, 2) if invoices_count else 0
-        rejected_invoices = round((invoices.filter(invoice_status='rejected').count() / invoices_count) * 100, 2) if invoices_count else 0
-        refunded_invoices = round((invoices.filter(invoice_status='refunded').count() / invoices_count) * 100, 2) if invoices_count else 0
-        bad_debt_invoices = round((invoices.filter(invoice_status='bad_debt').count() / invoices_count) * 100, 2) if invoices_count else 0
-        # Create a data dictionary for the serializer
+        paid_invoices = (invoices.filter(invoice_status='verified').count()/invoices_count) * 100 if invoices_count else 0
+        pending_invoices = (invoices.filter(invoice_status='pending').count()/invoices_count) * 100 if invoices_count else 0
+        rejected_invoices = (invoices.filter(invoice_status='rejected').count()/invoices_count) * 100 if invoices_count else 0
+        refunded_invoices = (invoices.filter(invoice_status='refunded').count()/invoices_count) * 100 if invoices_count else 0
+        bad_debt_invoices = (invoices.filter(invoice_status='bad_debt').count()/invoices_count) * 100 if invoices_count else 0  
+        
         data = {
             'paid_invoices': paid_invoices,
             'pending_invoices': pending_invoices,
@@ -549,58 +571,6 @@ def payment_status_distribution(request):
             {'error': 'An internal server error occurred.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
-    
-@swagger_auto_schema(
-    method='get',
-    operation_description="Retrieve audit logs with pagination.",
-    manual_parameters=[
-        openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER),
-        openapi.Parameter('page_size', openapi.IN_QUERY, description="Number of results per page", type=openapi.TYPE_INTEGER),
-    ],
-    responses={
-        200: AuditLogSerializer(many=True),
-        400: "Bad Request",
-        401: "Unauthorized",
-        403: "Forbidden"
-    },
-    tags=['Audit Logs']
-)
-@api_view(['GET'])
-@permission_classes([HasVerifierPermission])
-def audit_logs(request):
-    """
-    Retrieve audit logs for the user's organization with pagination.
-    Supports filtering by user, action, and a date range.
-    """
-    try:
-        organization = request.user.organization
-        if not organization:
-            return Response(
-                {'error': 'User must belong to an organization'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        queryset = AuditLogs.objects.filter(organization=organization).order_by('-timestamp')
-        
-        # Pagination
-        paginator = PageNumberPagination()
-        paginator.page_size = 10  # Default page size
-        paginated_queryset = paginator.paginate_queryset(queryset, request)
-        
-        serializer = AuditLogSerializer(paginated_queryset, many=True)
-        return paginator.get_paginated_response(serializer.data)
-    
-    except Exception as e:
-        logger.exception(f"Error retrieving audit logs for organization {request.user.organization.id if request.user.organization else 'N/A'}: {e}")
-        return Response(
-            {'error': 'An internal server error occurred.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
-
-
 @swagger_auto_schema(
     method='get',
     operation_description="Get payment details for verification form",
@@ -644,7 +614,7 @@ def audit_logs(request):
 )
 @api_view(['GET', 'POST'])
 @permission_classes([HasVerifierPermission])
-@parser_classes([MultiPartParser, FormParser])  
+@parser_classes([MultiPartParser, FormParser])
 def payment_verifier_form(request, payment_id):
     try:
         # Retrieve the payment and its associated invoice, ensuring it belongs to the user's organization
@@ -659,7 +629,6 @@ def payment_verifier_form(request, payment_id):
     except PaymentInvoice.DoesNotExist:
         logger.error(f"Data integrity issue: Invoice not found for payment {payment_id}")
         return Response({'status': 'error', 'message': 'Invoice not found for the given payment.'}, status=status.HTTP_404_NOT_FOUND)
-
     if request.method == 'GET':
         try:
             deal_serializer = DealSerializer(payment.deal)
@@ -671,18 +640,15 @@ def payment_verifier_form(request, payment_id):
         except Exception as e:
             logger.exception(f"Error serializing data for payment_verifier_form (GET) for payment {payment_id}: {e}")
             return Response({'status': 'error', 'message': 'An error occurred while retrieving form data.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     elif request.method == 'POST':
         try:
             approval_status = request.data.get('approved_remarks')
             remarks = request.data.get('failure_remarks', '')
             uploaded_file = request.FILES.get('invoice_file')
-
             # Validate approval_status
             valid_statuses = ['approved', 'rejected', 'bad_debt']
             if approval_status not in valid_statuses:
                 return Response({'status': 'error', 'message': f'Invalid approval status. Must be one of {valid_statuses}.'}, status=status.HTTP_400_BAD_REQUEST)
-
             # Update the invoice status based on the approval_status
             status_map = {
                 'approved': 'verified',
@@ -691,7 +657,6 @@ def payment_verifier_form(request, payment_id):
             }
             invoice.invoice_status = status_map[approval_status]
             invoice.save()
-
             # Log the audit trail
             AuditLogs.objects.create(
                 user=request.user,
@@ -699,27 +664,24 @@ def payment_verifier_form(request, payment_id):
                 details=f"Invoice {invoice.invoice_id} for Deal {invoice.deal.deal_id} status was changed to {invoice.invoice_status} by {request.user.username}. Remarks: {remarks}",
                 organization=request.user.organization
             )
-            
             # Create the PaymentApproval entry directly
             approval = PaymentApproval.objects.create(
                 payment=payment,
                 approved_by=request.user,
                 approved_remarks=remarks,
                 amount_in_invoice=payment.received_amount,
-                invoice_file=uploaded_file 
+                invoice_file=uploaded_file
             )
-            
             # Set failure remarks if the status is not approved
             if approval_status != 'approved':
                 approval.failure_remarks = 'payment_received_not_reflected'  # Default failure reason
                 approval.save()
-            
             logger.info(f"User {request.user.id} successfully processed payment {payment_id} with status '{approval_status}'")
             return Response({
                 'status': 'success',
                 'message': 'Invoice status successfully updated.',
             }, status=status.HTTP_200_OK)
-
         except Exception as e:
             logger.exception(f"Error processing payment verification (POST) for payment {payment_id} by user {request.user.id}: {e}")
             return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
