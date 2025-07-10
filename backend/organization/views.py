@@ -112,7 +112,8 @@ class OrganizationWithAdminCreateView(APIView):
             result = serializer.save()
             org = result['organization']
             admin_user = result['admin_user']
-            return Response({
+            from django.conf import settings
+            resp_data = {
                 'organization': OrganizationSerializer(org).data,
                 'admin_user': {
                     'id': admin_user.id,
@@ -120,5 +121,56 @@ class OrganizationWithAdminCreateView(APIView):
                     'first_name': admin_user.first_name,
                     'last_name': admin_user.last_name,
                 }
-            }, status=status.HTTP_201_CREATED)
+            }
+
+            # In development/testing surface the password so the frontend can display it
+            if getattr(settings, 'DEBUG', False):
+                resp_data['admin_credentials'] = {
+                    'email': admin_user.email,
+                    'password': serializer.validated_data.get('admin_password')
+                }
+                import logging
+                logging.getLogger('security').info(
+                    f"[DEV] Created Org Admin creds -> Email: {admin_user.email} Password: {serializer.validated_data.get('admin_password')}"
+                )
+
+            return Response(resp_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# ==================== Frontend top-level alias ====================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsSuperAdmin])
+def organizations_alias(request):
+    """Compatibility endpoint for /api/organizations/
+
+    GET -> delegates to OrganizationViewSet.list (list all orgs)
+    POST -> delegates to OrganizationWithAdminCreateView (create org + admin)
+    """
+    if request.method == 'GET':
+        list_view = OrganizationViewSet.as_view({'get': 'list'})
+        return list_view(request._request)
+
+    # Decide which creation flow based on payload keys
+    data_keys = set(request.data.keys())
+    if {'admin_email', 'admin_first_name', 'admin_password'} & data_keys:
+        # Full create with admin
+        create_view = OrganizationWithAdminCreateView.as_view()
+        return create_view(request._request)
+
+    # Simple organization create (name, is_active)
+    name = request.data.get('name')
+    if not name:
+        return Response({'name': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    is_active = bool(request.data.get('is_active', True))
+    description = request.data.get('description', '')
+
+    org = Organization.objects.create(
+        name=name,
+        description=description,
+        is_active=is_active,
+        created_by=request.user if request.user.is_authenticated else None
+    )
+
+    return Response(OrganizationSerializer(org).data, status=status.HTTP_201_CREATED)

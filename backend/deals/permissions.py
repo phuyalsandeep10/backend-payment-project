@@ -36,12 +36,13 @@ class HasPermission(BasePermission):
             }
         elif viewset_name == 'PaymentViewSet':
             required_perms_map = {
-                'list': ['verify_deal_payment', 'view_all_deals'],
-                'create': ['verify_deal_payment'],
-                'retrieve': ['verify_deal_payment', 'view_all_deals'],
+                'list': ['verify_deal_payment', 'view_all_deals', 'create_deal_payment'],
+                'create': ['verify_deal_payment', 'create_deal_payment'],
+                'retrieve': ['verify_deal_payment', 'view_all_deals', 'create_deal_payment'],
                 'update': ['verify_deal_payment'],
                 'partial_update': ['verify_deal_payment'],
                 'destroy': ['verify_deal_payment'],
+                'verify': ['verify_deal_payment'],
             }
         elif viewset_name == 'ActivityLogViewSet':
             # For ReadOnlyModelViewSet, allow all HTTP methods through to the viewset level
@@ -49,10 +50,10 @@ class HasPermission(BasePermission):
             required_perms_map = {
                 'list': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
                 'retrieve': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
-                'create': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],  # Allow through for proper 405
-                'update': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],  # Allow through for proper 405
-                'partial_update': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],  # Allow through for proper 405
-                'destroy': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],  # Allow through for proper 405
+                'create': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
+                'update': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
+                'partial_update': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
+                'destroy': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
             }
         elif viewset_name == 'PaymentInvoiceViewSet':
             required_perms_map = {
@@ -103,7 +104,7 @@ class HasPermission(BasePermission):
             # Deal objects have direct organization attribute
             obj_organization = obj.organization
         elif hasattr(obj, 'deal') and hasattr(obj.deal, 'organization'):
-            # PaymentInvoice and PaymentApproval objects have organization through deal
+            # Payment, PaymentInvoice and PaymentApproval objects have organization through deal
             obj_organization = obj.deal.organization
         else:
             # For other objects, deny access
@@ -119,7 +120,7 @@ class HasPermission(BasePermission):
             # For Deal objects, check created_by
             if hasattr(obj, 'created_by'):
                 return obj.created_by == request.user
-            # For PaymentInvoice and PaymentApproval, check the deal's created_by
+            # For related objects, check the deal's created_by
             elif hasattr(obj, 'deal') and hasattr(obj.deal, 'created_by'):
                 return obj.deal.created_by == request.user
             else:

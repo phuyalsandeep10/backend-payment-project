@@ -9,7 +9,7 @@ class HasTeamPermission(BasePermission):
         if request.user and request.user.is_superuser:
             return True
 
-        if not request.user or not request.user.role:
+        if not request.user or not request.user.is_authenticated or not getattr(request.user, 'role', None):
             return False
 
         required_perms_map = {
@@ -31,7 +31,7 @@ class HasTeamPermission(BasePermission):
         if request.user and request.user.is_superuser:
             return True
 
-        if not request.user or not request.user.role:
+        if not request.user or not request.user.is_authenticated or not getattr(request.user, 'role', None):
             return False
 
         # All team members must belong to the same organization.

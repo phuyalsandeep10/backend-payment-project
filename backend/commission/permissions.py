@@ -8,7 +8,7 @@ class HasCommissionPermission(BasePermission):
         if request.user and request.user.is_superuser:
             return True
 
-        if not request.user or not request.user.role:
+        if not request.user or not request.user.is_authenticated or not getattr(request.user, 'role', None):
             return False
 
         required_perms_map = {
@@ -30,7 +30,7 @@ class HasCommissionPermission(BasePermission):
         if request.user and request.user.is_superuser:
             return True
 
-        if not request.user or not request.user.role:
+        if not request.user or not request.user.is_authenticated or not getattr(request.user, 'role', None):
             return False
 
         if obj.organization != request.user.organization:
