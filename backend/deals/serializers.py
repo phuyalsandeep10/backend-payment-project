@@ -16,13 +16,37 @@ class PaymentSerializer(serializers.ModelSerializer):
     """
     Serializer for the Payment model.
     """
+    deal_id = serializers.CharField(source='deal.deal_id')
     class Meta:
         model = Payment
         fields = [
-            'id', 'deal', 'payment_date', 'receipt_file', 'payment_remarks',
+            'id', 'deal','deal_id', 'payment_date', 'receipt_file', 'payment_remarks',
             'received_amount', 'cheque_number', 'payment_type'
         ]
         read_only_fields = ['deal']
+
+    def create(self, validated_data):
+        deal_info = validated_data.pop('deal', {})
+        deal_id = deal_info.get('deal_id')
+        
+        if not deal_id:
+            raise serializers.ValidationError("deal_id is required.")
+
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user'):
+             raise serializers.ValidationError("Request context is missing or user is not available.")
+
+        organization = request.user.organization
+        if not organization:
+            raise serializers.ValidationError("User is not associated with an organization.")
+
+        try:
+            deal = Deal.objects.get(deal_id=deal_id, organization=organization)
+        except Deal.DoesNotExist:
+            raise serializers.ValidationError(f"Deal with deal_id {deal_id} not found in your organization.")
+        
+        payment = Payment.objects.create(deal=deal, **validated_data)
+        return payment
 
 class DealSerializer(serializers.ModelSerializer):
     """

@@ -10,7 +10,7 @@ class colors:
     ENDC = '\033[0m'
     OKBLUE = '\033[94m'
 
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "https://backend-prs.onrender.com/api/v1"
 ORG_ADMIN_EMAIL = "orgadmin@innovate.com"
 ORG_ADMIN_PASSWORD = "password123"
 

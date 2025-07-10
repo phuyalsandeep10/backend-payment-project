@@ -511,7 +511,9 @@ class Command(BaseCommand):
                 'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
                 'view_all_projects', 'view_own_projects', 'create_project', 'edit_project', 'delete_project',
                 'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
-                'view_all_commissions', 'create_commission', 'edit_commission'
+                'view_all_commissions', 'create_commission', 'edit_commission',
+                'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
+                'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval',
             ],
             'Verifier': [
                 'view_payment_verification_dashboard', 'view_payment_analytics', 'view_audit_logs',

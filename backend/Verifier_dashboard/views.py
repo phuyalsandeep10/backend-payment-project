@@ -641,15 +641,16 @@ def payment_verifier_form(request, payment_id):
                 approval_status_from_form = serializer.validated_data.get('approved_remarks')
                 
                 status_map = {
-                    'approved': 'verified',
+                    'verified': 'verified',
                     'rejected': 'rejected',
-                    'bad_debt': 'bad_debt'
+                    'bad_debt': 'bad_debt',
+                    'refunded': 'refunded'
                 }
 
                 invoice_status = status_map.get(approval_status_from_form)
                 
                 if not invoice_status:
-                     return Response({'status': 'error', 'message': "The 'approved_remarks' must be one of 'approved', 'rejected', or 'bad_debt'."}, status=status.HTTP_400_BAD_REQUEST)
+                     return Response({'status': 'error', 'message': "The 'approved_remarks' must be one of 'verified', 'rejected', 'bad_debt', or 'refunded'."}, status=status.HTTP_400_BAD_REQUEST)
 
                 # Update the related invoice
                 invoice = payment.invoice

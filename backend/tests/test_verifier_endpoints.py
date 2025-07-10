@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 # --- Configuration ---
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "https://backend-prs.onrender.com/api/v1"
 VERIFIER_EMAIL = "verifier@innovate.com"
 PASSWORD = "password123"
 

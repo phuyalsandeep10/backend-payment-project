@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 # --- Configuration ---
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "https://backend-prs.onrender.com/api/v1"
 SALESPERSON_EMAIL = "sales@innovate.com"
 PASSWORD = "password123"
 

@@ -30,7 +30,7 @@ class Deal(models.Model):
     ]
     DEAL_STATUS = [
         ('verified', 'Verified'),
-        ('pending', 'Pending_Verification'),
+        ('pending', 'Pending'),
         ('rejected', 'Rejected'),
     ]
     
