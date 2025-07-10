@@ -10,7 +10,7 @@ class UserLiteSerializer(serializers.ModelSerializer):
     """A lightweight serializer for User model, showing only essential info."""
     class Meta:
         model = User
-        fields = ['id', 'username']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for the UserProfile model."""
@@ -274,10 +274,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class AuthSuccessResponseSerializer(serializers.Serializer):
     """Generic response for successful authentication."""
     token = serializers.CharField(read_only=True)
-    user = UserDetailSerializer(read_only=True)
-
-class UserProfileResponseSerializer(serializers.Serializer):
-    """Generic response for user profile requests."""
     user = UserDetailSerializer(read_only=True)
 
 class MessageResponseSerializer(serializers.Serializer):

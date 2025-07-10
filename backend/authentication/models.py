@@ -83,7 +83,7 @@ class User(AbstractUser):
     must_change_password = models.BooleanField(default=False, help_text="Require user to change password at next login")
 
     # Advanced features
-    sales_target = models.DecimalField(max_digits=15, decimal_places=2, null=True, default=None)
+    sales_target = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
     streak = models.FloatField(default=5.0, validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
     objects = CustomUserManager()

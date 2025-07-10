@@ -160,7 +160,7 @@ class PaymentInvoiceSerializer(serializers.ModelSerializer):
 class PaymentApprovalSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source='payment.invoice.deal.client.client_name', read_only=True)
     deal_id = serializers.CharField(source='payment.invoice.deal.deal_id', read_only=True)
-    invoice_status = serializers.CharField(source='payment.invoice.invoice_status', read_only=True)
+    invoice_status = serializers.CharField(source='payment.invoice.invoice_status')
     payment_amount = serializers.DecimalField(source='payment.received_amount', max_digits=15, decimal_places=2, read_only=True)
     invoice_file = serializers.FileField(required=False, allow_null=True)
     invoice_id = serializers.CharField(source = 'payment.invoice.invoice_id', read_only=True)
@@ -181,7 +181,7 @@ class PaymentApprovalSerializer(serializers.ModelSerializer):
             'invoice_file',
             'approved_by',
             'approval_date',
-            'approved_remarks',
+            'verifier_remarks',
             'failure_remarks',
             'amount_in_invoice',
             'transaction_id',
@@ -192,6 +192,7 @@ class PaymentApprovalSerializer(serializers.ModelSerializer):
             'deal_id',
             'client_name',
             'invoice_status',
+            'payment',
             'payment_amount',
             'approval_date',
             'approved_by',

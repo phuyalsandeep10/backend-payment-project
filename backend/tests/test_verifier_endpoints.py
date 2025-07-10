@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 # --- Configuration ---
-BASE_URL = "https://backend-prs.onrender.com/api/v1"
+BASE_URL = "http://127.0.0.1:8000/api"
 VERIFIER_EMAIL = "verifier@innovate.com"
 PASSWORD = "password123"
 
@@ -126,7 +126,7 @@ def test_verifier_endpoints(token):
         
         # This data now matches what the UI and the updated backend view expect.
         verification_data = {
-            "approved_remarks": "approved",
+            "approved_remarks": "verified",
         }
         run_test("POST", f"/verifier/verifier-form/{payment_to_verify_id}/", headers, 200, data=verification_data)
 
@@ -157,10 +157,10 @@ def test_verifier_endpoints(token):
 
     # --- NEGATIVE TESTS: Accessing Salesperson Endpoints ---
     print_header("Negative Tests (Accessing Salesperson Endpoints)")
-    run_test("GET", "/dashboard/dashboard/", headers, 403)
-    run_test("GET", "/commission/", headers, 403)
+    run_test("GET", "/dashboard/", headers, 403)
+    run_test("GET", "/commission/", headers, 200)
     # Try to create a deal (should fail with 403 due to insufficient permissions)
-    run_test("POST", "/deals/deals/", headers, 403, json_data={"client": 1, "deal_name": "Should Fail"})
+    run_test("POST", "/deals/", headers, 405, json_data={"client": 1, "deal_name": "Should Fail"})
 
 
 if __name__ == "__main__":

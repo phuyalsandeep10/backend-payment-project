@@ -32,8 +32,8 @@ class OrganizationEndpointTests(APITestCase):
             role=self.role
         )
 
-        self.list_create_url = reverse('organization-list')
-        self.detail_url = reverse('organization-detail', kwargs={'pk': self.organization.pk})
+        self.list_create_url = reverse('organizations-list')
+        self.detail_url = reverse('organizations-detail', kwargs={'pk': self.organization.pk})
 
     def test_list_organizations_as_admin(self):
         """
@@ -110,7 +110,7 @@ class OrganizationEndpointTests(APITestCase):
             role=role_to_delete
         )
         
-        detail_url = reverse('organization-detail', kwargs={'pk': org_to_delete.pk})
+        detail_url = reverse('organizations-detail', kwargs={'pk': org_to_delete.pk})
 
         # First, delete the user that depends on the role
         user_to_delete.delete()

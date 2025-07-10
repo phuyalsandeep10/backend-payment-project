@@ -8,15 +8,15 @@ Authentication Views
 """
 from django.contrib.auth import authenticate
 from .models import User, UserSession, UserProfile
+from django.core import mail
+
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserSessionSerializer,
     UserLoginSerializer, UserRegistrationSerializer,
     PasswordChangeSerializer, UserDetailSerializer,
     UserUpdateSerializer,
     AuthSuccessResponseSerializer,
-    UserProfileResponseSerializer,
     ErrorResponseSerializer,
-    UserProfileSerializer,
     MessageResponseSerializer
 )
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -135,6 +135,25 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
         security_logger.info(f"Session revoked by user {request.user.email}")
         return Response({"message": "Session successfully revoked."}, status=status.HTTP_204_NO_CONTENT)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_email_outbox_view(request):
+    if not settings.DEBUG:
+        return Response({'error': 'Not allowed'}, status=403)
+    
+    # mail.outbox only exists during Django tests with locmem backend
+    if hasattr(mail, 'outbox'):
+        emails = []
+        for email in mail.outbox:
+            emails.append({
+                'subject': email.subject,
+                'body': email.body,
+                'to': email.to,
+                'from_email': email.from_email,
+            })
+        return Response({'outbox': emails})
+    else:
+        return Response({'error': 'mail.outbox is only available during Django tests with locmem email backend'}, status=400)
 @swagger_auto_schema(method='post', request_body=UserRegistrationSerializer, responses={201: AuthSuccessResponseSerializer, 400: ErrorResponseSerializer}, tags=['Authentication'])
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -350,21 +369,6 @@ def password_change_with_token_view(request):
     return Response({'token': token.key, 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
 
 # ===================== MISC & HEALTH CHECK =====================
-
-class UserProfileViewSet(viewsets.ModelViewSet):
-    """API endpoint for users to view and edit their own profile."""
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return UserProfile.objects.none()
-        return UserProfile.objects.filter(user=self.request.user)
-
-    def get_object(self):
-        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-        return profile
 
 @swagger_auto_schema(method='get', responses={200: "Healthy"}, tags=['System'])
 @api_view(['GET'])

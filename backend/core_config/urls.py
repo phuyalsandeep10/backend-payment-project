@@ -35,20 +35,17 @@ schema_view = get_schema_view(
     authentication_classes=[],  # Remove authentication for schema view
 )
 
-# API URL patterns matching frontend expectations
+# API URL patterns for business logic
 api_urlpatterns = [
-    # Authentication & User Management
-    path('auth/', include('authentication.urls')),
+    # Core Business Logic
+    path('clients/', include('clients.urls')),
+    path('deals/', include('deals.urls')),
+    path('commission/', include('commission.urls')),
     path('organizations/', include('organization.urls')),
     
-    # Core Business Logic
-    path('clients/', include('clients.urls')),  # Includes nested deals
-    path('deals/', include('deals.urls')),      # Standalone deals access
-    path('commission/', include('commission.urls')),
-    
     # Team & Project Management  
-    path('teams/', include('team.urls')),
-    path('projects/', include('project.urls')),
+    path('team/', include('team.urls')),
+    path('project/', include('project.urls')),
     
     # System Management
     path('permissions/', include('permissions.urls')),
@@ -59,14 +56,15 @@ api_urlpatterns = [
     path('verifier/', include('Verifier_dashboard.urls')),
 ]
 
-# All endpoints are now organized through app-specific URL includes
-
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Direct /api/ routes to match frontend expectations
+    
+    # Authentication endpoints
+    path('api/auth/', include('authentication.urls', namespace='authentication')),
+    
+    # Main API endpoints
     path('api/', include((api_urlpatterns, 'api'))),
-    # Keep v1 for backward compatibility if needed
-    path('api/v1/', include((api_urlpatterns, 'api-v1'))),
+    # path('api/v1/', include((api_urlpatterns, 'api-v1'))),
 
     # API documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

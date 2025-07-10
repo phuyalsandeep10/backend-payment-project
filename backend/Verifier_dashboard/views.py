@@ -620,7 +620,6 @@ def payment_verifier_form(request, payment_id):
         payment = Payment.objects.get(pk=payment_id)
     except Payment.DoesNotExist:
         return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
-
     if request.method == 'GET':
         deal_serializer = DealSerializer(payment.deal)
         payment_serializer = PaymentSerializer(payment)
@@ -628,35 +627,24 @@ def payment_verifier_form(request, payment_id):
             'deal': deal_serializer.data,
             'payment': payment_serializer.data
         })
-
     elif request.method == 'POST':
-        # Use the serializer to handle validation and saving
+         # Use the serializer to handle validation and saving
+        invoice_status = request.data.get('invoice_status')
         serializer = PaymentApprovalSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             try:
                 # Manually set the payment and verifier before saving
+                # print("VALIDATED DATA:", serializer.validated_data)
                 approval_instance = serializer.save(payment=payment, approved_by=request.user)
-                
                 # Determine the invoice status from the form's remarks
-                approval_status_from_form = serializer.validated_data.get('approved_remarks')
-                
-                status_map = {
-                    'verified': 'verified',
-                    'rejected': 'rejected',
-                    'bad_debt': 'bad_debt',
-                    'refunded': 'refunded'
-                }
-
-                invoice_status = status_map.get(approval_status_from_form)
-                
+                # invoice_status = serializer.validated_data.get('invoice_status')
+                # print(invoice_status)
                 if not invoice_status:
-                     return Response({'status': 'error', 'message': "The 'approved_remarks' must be one of 'verified', 'rejected', 'bad_debt', or 'refunded'."}, status=status.HTTP_400_BAD_REQUEST)
-
+                     return Response({'status': 'error', 'message': "The 'invoice_status' must be one of 'verified', 'rejected','refunded' or 'bad_debt'."}, status=status.HTTP_400_BAD_REQUEST)
                 # Update the related invoice
                 invoice = payment.invoice
                 invoice.invoice_status = invoice_status
                 invoice.save()
-
                 # Log the audit trail
                 AuditLogs.objects.create(
                     user=request.user,
@@ -664,9 +652,8 @@ def payment_verifier_form(request, payment_id):
                     details=f"Invoice {invoice.invoice_id} was {invoice_status} by {request.user.email}.",
                     organization=request.user.organization
                 )
-                
-                return Response({'message': f'Payment successfully marked as {invoice_status}.'}, status=status.HTTP_200_OK)
-
+                # print(f"approval id = {approval_instance.id}")
+                return Response({'message': f'Payment successfully marked as {invoice_status}. New Approval ID: {approval_instance.id}'}, status=status.HTTP_200_OK)
             except PaymentInvoice.DoesNotExist:
                 return Response({'error': 'Invoice not found for this payment.'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
@@ -675,8 +662,73 @@ def payment_verifier_form(request, payment_id):
         else:
             # If the serializer is not valid, return its errors
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
     return Response({'error': 'Invalid request method.'}, status=status.HTTP_405_METHOD_NOT_SUPPORTED)
+
+# @api_view(['GET', 'POST'])
+# @permission_classes([HasVerifierPermission])
+# @parser_classes([MultiPartParser, FormParser])
+# def payment_verifier_form(request, payment_id):
+#     try:
+#         payment = Payment.objects.get(pk=payment_id)
+#     except Payment.DoesNotExist:
+#         return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+#     if request.method == 'GET':
+#         deal_serializer = DealSerializer(payment.deal)
+#         payment_serializer = PaymentSerializer(payment)
+#         return Response({
+#             'deal': deal_serializer.data,
+#             'payment': payment_serializer.data
+#         })
+
+#     elif request.method == 'POST':
+#         # Use the serializer to handle validation and saving
+#         serializer = PaymentApprovalSerializer(data=request.data, context={'request': request})
+#         if serializer.is_valid():
+#             try:
+#                 # Manually set the payment and verifier before saving
+#                 approval_instance = serializer.save(payment=payment, approved_by=request.user)
+                
+#                 # Determine the invoice status from the form's remarks
+#                 approval_status_from_form = serializer.validated_data.get('approved_remarks')
+                
+#                 status_map = {
+#                     'verified': 'verified',
+#                     'rejected': 'rejected',
+#                     'bad_debt': 'bad_debt',
+#                     'refunded': 'refunded'
+#                 }
+
+#                 invoice_status = status_map.get(approval_status_from_form)
+                
+#                 if not invoice_status:
+#                      return Response({'status': 'error', 'message': "The 'approved_remarks' must be one of 'verified', 'rejected', 'bad_debt', or 'refunded'."}, status=status.HTTP_400_BAD_REQUEST)
+
+#                 # Update the related invoice
+#                 invoice = payment.invoice
+#                 invoice.invoice_status = invoice_status
+#                 invoice.save()
+
+#                 # Log the audit trail
+#                 AuditLogs.objects.create(
+#                     user=request.user,
+#                     action=f"Invoice {invoice_status.capitalize()}",
+#                     details=f"Invoice {invoice.invoice_id} was {invoice_status} by {request.user.email}.",
+#                     organization=request.user.organization
+#                 )
+                
+#                 return Response({'message': f'Payment successfully marked as {invoice_status}.'}, status=status.HTTP_200_OK)
+
+#             except PaymentInvoice.DoesNotExist:
+#                 return Response({'error': 'Invoice not found for this payment.'}, status=status.HTTP_404_NOT_FOUND)
+#             except Exception as e:
+#                 logger.error(f"Error during payment verification for payment {payment_id}: {e}", exc_info=True)
+#                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         else:
+#             # If the serializer is not valid, return its errors
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#     return Response({'error': 'Invalid request method.'}, status=status.HTTP_405_METHOD_NOT_SUPPORTED)
 
 # ==================== Frontend payments alias ====================
 

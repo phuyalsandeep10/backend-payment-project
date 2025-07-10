@@ -281,7 +281,7 @@ class PaymentApproval(models.Model):
     invoice = models.ForeignKey(PaymentInvoice, on_delete=models.CASCADE, related_name='approvals', blank=True, null=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='payment_approvals')
     approval_date = models.DateField(auto_now_add=True)
-    approved_remarks = models.TextField(blank=True, null=True)
+    verifier_remarks = models.TextField(blank=True, null=True)
     failure_remarks = models.CharField(max_length=50, choices=FAILURE_REMARKS, blank=True, null=True)
     amount_in_invoice = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
 

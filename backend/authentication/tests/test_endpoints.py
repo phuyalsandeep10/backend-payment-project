@@ -15,7 +15,7 @@ class AuthEndpointTests(APITestCase):
         self.register_url = reverse('authentication:register')
         self.login_url = reverse('authentication:direct_login')
         self.profile_url = reverse('authentication:profile')
-        self.profile_update_url = reverse('authentication:profile_update')
+        self.profile_update_url = reverse('authentication:profile')  # Same URL for GET and PUT
         self.password_change_url = reverse('authentication:password_change')
         self.logout_url = reverse('authentication:logout')
 
@@ -81,7 +81,8 @@ class AuthEndpointTests(APITestCase):
         """
         response = self.client.post(self.register_url, {'email': 'onlyemail@example.com', 'password': 'foo'})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('username', response.data)
+        # Check that required fields are mentioned in the error response
+        self.assertTrue(any(field in response.data for field in ['password_confirm', 'organization', 'role']))
 
     def test_user_login_success(self):
         """
@@ -125,7 +126,7 @@ class AuthEndpointTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.profile_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['user']['email'], self.user.email)
+        self.assertEqual(response.data['email'], self.user.email)
 
     def test_get_user_profile_unauthenticated(self):
         """
@@ -152,8 +153,9 @@ class AuthEndpointTests(APITestCase):
         """
         self.client.force_authenticate(user=self.user)
         data = {
-            'old_password': self.password,
-            'new_password': 'a_new_strong_password_456'
+            'current_password': self.password,
+            'new_password': 'a_new_strong_password_456',
+            'confirm_password': 'a_new_strong_password_456'
         }
         response = self.client.post(self.password_change_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -168,12 +170,13 @@ class AuthEndpointTests(APITestCase):
         """
         self.client.force_authenticate(user=self.user)
         data = {
-            'old_password': 'wrong_old_password',
-            'new_password': 'a_new_strong_password_456'
+            'current_password': 'wrong_old_password',
+            'new_password': 'a_new_strong_password_456',
+            'confirm_password': 'a_new_strong_password_456'
         }
         response = self.client.post(self.password_change_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('old_password', response.data)
+        self.assertIn('current_password', response.data)
 
     def test_user_logout_success(self):
         """

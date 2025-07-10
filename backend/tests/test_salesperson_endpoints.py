@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 # --- Configuration ---
-BASE_URL = "https://backend-prs.onrender.com/api/v1"
+BASE_URL = "http://127.0.0.1:8000/api"
 SALESPERSON_EMAIL = "sales@innovate.com"
 PASSWORD = "password123"
 
@@ -87,7 +87,7 @@ def test_salesperson_endpoints(token):
 
     # --- Dashboard ---
     print_header("Sales Dashboard")
-    run_test("GET", "/dashboard/dashboard/", headers, 200)
+    run_test("GET", "/dashboard/", headers, 200)
 
     # --- Clients CRUD ---
     print_header("Clients (CRUD)")
@@ -134,10 +134,12 @@ def test_salesperson_endpoints(token):
                 assert updated_deal.get('deal_value') == '5500.00'
                 print(f"{colors.OKGREEN}      -> Deal update confirmed.{colors.ENDC}")
 
+            # run_test("GET", f"/deals/{deal_id}/expand/", headers, 200)
+            # run_test("GET", f"/deals/{deal_id}/log-activity/", headers, 200)
             run_test("GET", f"/deals/deals/{deal_id}/expand/", headers, 200)
             run_test("GET", f"/deals/deals/{deal_id}/log-activity/", headers, 200)
     
-    run_test("GET", "/deals/deals/", headers, 200)
+    run_test("GET", "/deals/", headers, 200)
 
     # --- Commission ---
     print_header("Commission")
@@ -145,11 +147,11 @@ def test_salesperson_endpoints(token):
 
     # --- Team ---
     print_header("Team")
-    run_test("GET", "/teams/", headers, 200)
+    run_test("GET", "/team/teams/", headers, 200)
 
     # --- Project ---
     print_header("Project")
-    run_test("GET", "/projects/", headers, 200)
+    run_test("GET", "/project/projects/", headers, 200)
 
     # --- Notifications ---
     print_header("Notifications")

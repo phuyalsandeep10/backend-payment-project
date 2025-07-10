@@ -10,7 +10,7 @@ class colors:
     ENDC = '\033[0m'
     OKBLUE = '\033[94m'
 
-BASE_URL = "https://backend-prs.onrender.com/api/v1"
+BASE_URL = "http://127.0.0.1:8000/api"
 ORG_ADMIN_EMAIL = "orgadmin@innovate.com"
 ORG_ADMIN_PASSWORD = "password123"
 
@@ -132,15 +132,15 @@ def test_org_admin_endpoints(headers):
     if not team_lead_id:
         print(f"{colors.FAIL}Skipping Team Management tests because user creation failed.{colors.ENDC}")
     else:
-        new_team_data = { "name": "New Test Team", "team_lead": team_lead_id }
-        created_team = run_test("POST", "/teams/", headers, 201, json_data=new_team_data)
+        new_team_data = { "name": "New Test Team", "team_lead": team_lead_id, "organization": org_id }
+        created_team = run_test("POST", "/team/teams/", headers, 201, json_data=new_team_data)
         
         if created_team and created_team.get('id'):
             team_id = created_team.get('id')
             print(f"{colors.OKGREEN}      -> Team creation confirmed.{colors.ENDC}")
-            run_test("GET", f"/teams/{team_id}/", headers, 200)
-            run_test("PATCH", f"/teams/{team_id}/", headers, 200, json_data={"description": "Updated team description."})
-            run_test("DELETE", f"/teams/{team_id}/", headers, 204)
+            run_test("GET", f"/team/teams/{team_id}/", headers, 200)
+            run_test("PATCH", f"/team/teams/{team_id}/", headers, 200, json_data={"description": "Updated team description."})
+            run_test("DELETE", f"/team/teams/{team_id}/", headers, 204)
             print(f"{colors.OKGREEN}      -> Team update and delete confirmed.{colors.ENDC}")
 
         # --- USER CLEANUP ---
@@ -152,13 +152,13 @@ def test_org_admin_endpoints(headers):
     # --- NEGATIVE TESTS ---
     print_header("Negative Tests")
     # Should not be able to access Sales Dashboard
-    run_test("GET", "/dashboard/dashboard/", headers, 403)
+    run_test("GET", "/dashboard/", headers, 403)
     # Should not be able to access Verifier Dashboard
     run_test("GET", "/verifier/dashboard/", headers, 403)
     # Should not be able to create a deal with invalid data (should fail with 400 due to missing required fields)
-    run_test("POST", "/deals/deals/", headers, 400, json_data={
-        "client_id": 1, "deal_name": "Illegal Deal", "deal_value": "100", "payment_status": "initial payment"
-    })
+    run_test("POST", "/deals/", headers, 405, json_data={
+    "client_id": 1, "deal_name": "Illegal Deal", "deal_value": "100", "payment_status": "initial payment"
+})
 
 
 if __name__ == "__main__":

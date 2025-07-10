@@ -1,7 +1,7 @@
 from django.test import TestCase
 from unittest import mock
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .models import User, UserProfile
+from authentication.models import User, UserProfile
 from permissions.models import Role  # Import the Role model
 from PIL import Image
 import io

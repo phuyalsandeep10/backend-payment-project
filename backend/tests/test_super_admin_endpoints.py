@@ -10,7 +10,7 @@ class colors:
     ENDC = '\033[0m'
     OKBLUE = '\033[94m'
 
-BASE_URL = "https://backend-prs.onrender.com/api/v1"
+BASE_URL = "http://127.0.0.1:8000/api"
 SUPER_ADMIN_EMAIL = "super@innovate.com"
 SUPER_ADMIN_PASSWORD = "password123"
 
@@ -151,7 +151,7 @@ def test_super_admin_endpoints(headers):
 
     # --- POSITIVE ACCESS TESTS ---
     print_header("Positive Access Tests")
-    run_test("GET", "/dashboard/dashboard/", headers, 200)
+    run_test("GET", "/dashboard/", headers, 200)
     run_test("GET", "/verifier/dashboard/", headers, 200)
 
 

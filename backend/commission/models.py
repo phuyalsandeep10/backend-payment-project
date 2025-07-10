@@ -41,6 +41,9 @@ class Commission(models.Model):
     total_receivable = models.DecimalField(
         max_digits=12, decimal_places=2, blank=True, default=Decimal('0.00')
     )
+    converted_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=True, default=Decimal('0.00')
+    )
     
     # Audit fields
     created_by = models.ForeignKey(
@@ -80,6 +83,9 @@ class Commission(models.Model):
 
         penalty = self.penalty or Decimal("0")
         self.total_receivable = self.total_commission - penalty
+        
+        # Calculate converted amount (total_sales * exchange_rate)
+        self.converted_amount = total_sales * exchange_rate
 
     def save(self, *args, **kwargs):
         if not self.organization_id:
