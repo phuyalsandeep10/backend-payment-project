@@ -64,9 +64,9 @@ api_urlpatterns = [
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Direct /api/ routes to match frontend expectations
-    path('api/', include(api_urlpatterns)),
+    path('api/', include((api_urlpatterns, 'api'))),
     # Keep v1 for backward compatibility if needed
-    path('api/v1/', include(api_urlpatterns)),
+    path('api/v1/', include((api_urlpatterns, 'api-v1'))),
 
     # API documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

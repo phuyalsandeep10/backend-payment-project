@@ -1,4 +1,4 @@
-from django.urls import path, re_path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from . import views
 from .views import (
@@ -35,15 +35,19 @@ urlpatterns = [
     # ==================== AUTHENTICATION ENDPOINTS ====================
     # Legacy direct login (development)
     re_path(r'^login/?$', views.direct_login_view, name='direct_login'),
-    # OTP-based login for Super Admin and Org Admin
-    re_path(r'^super-admin/login/?$', views.super_admin_login_view, name='super_admin_login'),
-    re_path(r'^super-admin/verify/?$', views.super_admin_verify_view, name='super_admin_verify'),
-    re_path(r'^org-admin/login/?$', views.org_admin_login_view, name='org_admin_login'),
-    re_path(r'^org-admin/verify/?$', views.org_admin_verify_view, name='org_admin_verify'),
-    re_path(r'^change-password/?$', views.password_change_with_token, name='change_password_temp'),
+    # OTP Login
+    re_path(r'^login/super_admin/?$', views.super_admin_login_view, name='super_admin_login'),
+    re_path(r'^login/super_admin/verify/?$', views.super_admin_verify_view, name='super_admin_verify'),
+    re_path(r'^login/org_admin/?$', views.org_admin_login_view, name='org_admin_login'),
+    re_path(r'^login/org_admin/verify/?$', views.org_admin_verify_view, name='org_admin_verify'),
+    
+    # Registration & Logout
     re_path(r'^register/?$', views.register_view, name='register'),
     re_path(r'^logout/?$', views.logout_view, name='logout'),
     
+    # Password change with temporary token
+    re_path(r'^change-password/?$', views.password_change_with_token, name='change_password_temp'),
+    
     # ==================== HEALTH CHECK ====================
-    path('health/', health_check, name='health_check'),
+    path('health-check/', health_check, name='health_check'),
 ]
