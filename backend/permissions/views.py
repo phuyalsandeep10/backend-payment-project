@@ -9,15 +9,19 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
+from django.db import IntegrityError
 
 # Create your views here.
 
 class PermissionListView(generics.ListAPIView):
     """
-    A read-only endpoint to list all available permissions.
+    List all available permissions.  
+    Accessible to superusers **or** any user whose role has the `can_manage_roles` permission (i.e., Org-Admins).
     """
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
+
+    # Any authenticated user can read the list (harmless metadata)
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
@@ -52,10 +56,45 @@ class RoleViewSet(viewsets.ModelViewSet):
         return Role.objects.none()
 
     def perform_create(self, serializer):
-        """
-        When creating a role, it must be associated with the user's organization.
-        """
-        serializer.save(organization=self.request.user.organization)
+        user = self.request.user
+        if user.is_superuser:
+            # Super admins can create roles for any organization or system-wide
+            # The organization ID can be passed in the request data
+            org_id = self.request.data.get('organization')
+            organization = None
+            if org_id:
+                try:
+                    organization = Organization.objects.get(id=org_id)
+                except Organization.DoesNotExist:
+                    raise serializers.ValidationError({'organization': 'Organization not found.'})
+            
+            # Handle potential duplicate role creation
+            try:
+                serializer.save(organization=organization)
+            except IntegrityError:
+                # If role already exists, fetch and return the existing one
+                role_name = serializer.validated_data.get('name')
+                existing_role = Role.objects.get(name=role_name, organization=organization)
+                # Update the serializer instance to return the existing role
+                serializer.instance = existing_role
+                
+        else:
+            # Org Admins can only create roles for their own organization.
+            # Fail if they try to specify a different one.
+            if 'organization' in self.request.data and self.request.data['organization'] is not None:
+                raise serializers.ValidationError({
+                    'organization': 'You do not have permission to create roles for other organizations.'
+                })
+            
+            # Handle potential duplicate role creation
+            try:
+                serializer.save(organization=user.organization)
+            except IntegrityError:
+                # If role already exists, fetch and return the existing one
+                role_name = serializer.validated_data.get('name')
+                existing_role = Role.objects.get(name=role_name, organization=user.organization)
+                # Update the serializer instance to return the existing role
+                serializer.instance = existing_role
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])

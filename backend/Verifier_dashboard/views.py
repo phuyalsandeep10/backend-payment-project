@@ -678,3 +678,36 @@ def payment_verifier_form(request, payment_id):
 
     return Response({'error': 'Invalid request method.'}, status=status.HTTP_405_METHOD_NOT_SUPPORTED)
 
+# ==================== Frontend payments alias ====================
+
+@api_view(['GET'])
+@permission_classes([HasVerifierPermission])
+def payments_view(request):
+    """
+    Alias endpoint that lists invoices filtered by status for verifier dashboard.
+    Accepts optional ?status=pending|verified|rejected. Defaults to all.
+    Limiting to 100 latest for performance.
+    """
+    try:
+        organization = request.user.organization
+        if not organization:
+            return Response({'error': 'User must belong to an organization'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = PaymentInvoice.objects.filter(deal__organization=organization)
+
+        status_param = request.GET.get('status')
+        if status_param in ['pending', 'verified', 'rejected']:
+            # Map to invoice_status values
+            invoice_status_map = {
+                'pending': 'pending',
+                'verified': 'verified',
+                'rejected': 'rejected',
+            }
+            qs = qs.filter(invoice_status=invoice_status_map[status_param])
+
+        qs = qs.order_by('-invoice_date')[:100]
+        data = PaymentInvoiceSerializer(qs, many=True).data
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception(f"Error in payments_view for user {request.user.id}: {e}")
+        return Response({'error': 'An internal server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

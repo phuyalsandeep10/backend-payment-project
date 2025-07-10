@@ -4,22 +4,29 @@ from django.conf import settings
 from organization.models import Organization
 
 class Commission(models.Model):
+    CURRENCY_CHOICES = [
+        ('NPR', 'Nepalese Rupee'),
+        ('AUD', 'Australian Dollar'),
+        ('USD', 'US Dollar'),
+    ]
+    
     organization = models.ForeignKey(
         Organization, on_delete=models.PROTECT, related_name='commissions'
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='commissions'
     )
-    # This will be calculated by the backend based on deals
+    
+    # Core sales data
     total_sales = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal('0.00'))
     start_date = models.DateField()
     end_date = models.DateField()
 
-    # Fields from frontend
+    # Commission calculation inputs
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
     commission_rate = models.DecimalField(
         "Commission Rate (%)", max_digits=5, decimal_places=2, default=Decimal("5.00")
     )
-    currency = models.CharField(max_length=10, default="NPR")
     exchange_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('1.00'))
     bonus = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal('0.00'))
     penalty = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
@@ -34,8 +41,8 @@ class Commission(models.Model):
     total_receivable = models.DecimalField(
         max_digits=12, decimal_places=2, blank=True, default=Decimal('0.00')
     )
-    converted_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-
+    
+    # Audit fields
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -53,6 +60,11 @@ class Commission(models.Model):
 
     def __str__(self):
         return f"Commission for {self.user.username} from {self.start_date} to {self.end_date}"
+
+    # Frontend compatibility properties
+    @property
+    def full_name(self):
+        return f"{self.user.first_name} {self.user.last_name}".strip() or self.user.username
 
     def _calculate_amounts(self):
         """

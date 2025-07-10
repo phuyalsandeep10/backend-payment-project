@@ -1,45 +1,60 @@
 from rest_framework import serializers
 from .models import Commission
-from authentication.serializers import UserDetailSerializer
 from authentication.models import User
+from authentication.serializers import UserLiteSerializer
 
 
 class CommissionSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Commission model. Handles creation, listing, and updates.
+    Serializer for the Commission model.
+    Handles creation, listing, and updates of commissions.
+    The backend automatically calculates total_sales and commission amounts.
     """
-    user = UserDetailSerializer(read_only=True)
+    # Use a lightweight serializer for nested user objects for readability
+    user = UserLiteSerializer(read_only=True)
+    created_by = UserLiteSerializer(read_only=True)
+    updated_by = UserLiteSerializer(read_only=True)
+
+    # Use a write-only field to specify the user by ID during creation
     user_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='user', write_only=True
     )
-    created_by = UserDetailSerializer(read_only=True)
-    updated_by = UserDetailSerializer(read_only=True)
 
     class Meta:
         model = Commission
         fields = [
-            'id', 'user', 'user_id', 'organization', 'total_sales',
-            'commission_rate', 'converted_amount', 'currency', 'exchange_rate', 'bonus', 'penalty',
-            'commission_amount', 'total_commission', 'total_receivable',
-            'start_date', 'end_date', 'created_at', 'updated_at',
-            'created_by', 'updated_by'
+            'id', 
+            # Relational fields
+            'user', 'user_id', 'organization', 
+            # Input fields
+            'start_date', 'end_date', 'commission_rate', 'currency', 
+            'exchange_rate', 'bonus', 'penalty',
+            # Read-only calculated fields
+            'total_sales', 'commission_amount', 
+            'total_commission', 'total_receivable',
+            # Audit fields
+            'created_at', 'updated_at', 'created_by', 'updated_by'
         ]
         read_only_fields = [
-            'id', 'organization', 'total_sales', 'commission_amount',
-            'total_commission', 'total_receivable', 'created_at', 'updated_at',
-            'created_by', 'updated_by', 'user'
+            'organization', 
+            'total_sales', 'commission_amount', 'total_commission', 'total_receivable',
+            'created_at', 'updated_at', 'created_by', 'updated_by', 'user'
         ]
 
     def create(self, validated_data):
+        # Set created_by from the request context
         requesting_user = self.context['request'].user
         validated_data['created_by'] = requesting_user
 
-        # Organization is based on the user for whom the commission is created
-        validated_data['organization'] = validated_data['user'].organization
+        # Organization is set based on the user for whom the commission is created
+        user = validated_data.get('user')
+        if user and hasattr(user, 'organization') and user.organization:
+            validated_data['organization'] = user.organization
 
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        # Set updated_by from the request context
         requesting_user = self.context['request'].user
         validated_data['updated_by'] = requesting_user
         return super().update(instance, validated_data) 

@@ -95,6 +95,14 @@ class NotificationSettings(models.Model):
     enable_project_notifications = models.BooleanField(default=True)
     enable_commission_notifications = models.BooleanField(default=True)
     enable_system_notifications = models.BooleanField(default=True)
+
+    # --- UI-friendly fields (Settings Page v2) ---
+    desktop_notification = models.BooleanField(default=True)
+    unread_notification_badge = models.BooleanField(default=False)
+    push_notification_timeout = models.CharField(max_length=20, default="select")  # e.g. "15", "30", "never"
+    communication_emails = models.BooleanField(default=True)
+    announcements_updates = models.BooleanField(default=False)
+    all_notification_sounds = models.BooleanField(default=True)
     
     # Priority filter (minimum priority to show)
     min_priority = models.CharField(
