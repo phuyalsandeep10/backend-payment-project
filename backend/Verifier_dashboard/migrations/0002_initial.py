@@ -7,11 +7,9 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    initial = True
-
     dependencies = [
         ('Verifier_dashboard', '0001_initial'),
-        ('organization', '0001_initial'),
+        ("organization", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

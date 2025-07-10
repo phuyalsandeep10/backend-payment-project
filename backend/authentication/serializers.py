@@ -80,8 +80,30 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
         if not role and organization:
             # Fetch or create the default Org Admin role for this organisation
-            role, _ = Role.objects.get_or_create(name='Org Admin', organization=organization)
-            validated_data['role'] = role
+            role, created = Role.objects.get_or_create(name='Org Admin', organization=organization)
+
+            # Always ensure the Org Admin role has at least the default permission set.
+            # If the role is new or it is missing any of the defaults, add them.
+            if True:
+                from django.contrib.auth.models import Permission
+
+                DEFAULT_ORG_ADMIN_PERMS = [
+                    'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
+                    'view_all_clients', 'view_own_clients',
+                    'view_all_projects', 'view_own_projects',
+                    'view_all_deals', 'view_own_deals',
+                    'can_manage_roles',
+                    'view_all_commissions', 'view_commission', 'add_commission', 'edit_commission', 'delete_commission',
+                ]
+
+                perms = Permission.objects.filter(codename__in=DEFAULT_ORG_ADMIN_PERMS)
+                # Add any missing permissions (using set would wipe custom perms)
+                current_ids = set(role.permissions.values_list('id', flat=True))
+                to_add = [p for p in perms if p.id not in current_ids]
+                if to_add:
+                    role.permissions.add(*to_add)
+
+                validated_data['role'] = role
 
         # Default username to email if not supplied
         if 'username' not in validated_data:
@@ -172,14 +194,23 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class PasswordChangeSerializer(serializers.Serializer):
     """Serializer for changing a user's password."""
-    old_password = serializers.CharField(required=True, write_only=True)
+    current_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
+    confirm_password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
         user = self.context['request'].user
-        if not user.check_password(attrs['old_password']):
-            raise serializers.ValidationError({'old_password': 'Old password is not correct.'})
-        # Add password strength validation here if needed
+        
+        # Check if the current password is correct
+        if not user.check_password(attrs['current_password']):
+            raise serializers.ValidationError({'current_password': 'The current password is not correct.'})
+            
+        # Check if the new passwords match
+        if attrs['new_password'] != attrs.pop('confirm_password'):
+            raise serializers.ValidationError({"new_password": "The new passwords do not match."})
+            
+        # Add password strength validation here if needed (optional)
+        
         return attrs
 
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -210,10 +241,15 @@ class UserDetailSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user and their nested profile."""
     profile = UserProfileSerializer(required=False)
+    # Accept camelCase alias from frontend
+    phoneNumber = serializers.CharField(source='contact_number', required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'contact_number', 'sales_target', 'profile', 'address', 'status', 'avatar')
+        fields = (
+            'first_name', 'last_name', 'contact_number', 'phoneNumber',
+            'sales_target', 'profile', 'address', 'status', 'avatar'
+        )
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', None)

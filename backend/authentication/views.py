@@ -40,9 +40,22 @@ from decimal import Decimal
 import secrets
 
 from authentication.utils import generate_otp, send_otp_email
+from notifications.models import NotificationSettings
 
 # Security logger
 security_logger = logging.getLogger('security')
+
+def _create_user_session(request, user, token_key):
+    """Helper to create or update a UserSession record on login."""
+    # Use update_or_create to prevent IntegrityError on re-login
+    UserSession.objects.update_or_create(
+        session_key=token_key,
+        defaults={
+            'user': user,
+            'ip_address': get_client_ip(request),
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')
+        }
+    )
 
 class LoginRateThrottle(AnonRateThrottle):
     scope = 'login'
@@ -273,6 +286,9 @@ def direct_login_view(request):
         
         token, _ = Token.objects.get_or_create(user=user)
         
+        # Create a session record
+        _create_user_session(request, user, token.key)
+
         # Trigger streak calculation upon login
         try:
             calculate_streaks_for_user_login(user)
@@ -486,16 +502,110 @@ def password_change_with_token(request):
 
 # ===================== EXISTING VIEWS CONTINUE BELOW =====================
 
+# Health check for deployment services
+@swagger_auto_schema(
+    method='get',
+    operation_description="Health check endpoint for monitoring services.",
+    responses={200: "Healthy"},
+    tags=['System']
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
-    """
-    Simple health check endpoint for testing shared access
-    """
-    return Response({
+    """Simple health check endpoint"""
+    return JsonResponse({
         'status': 'healthy',
-        'message': 'API is accessible',
         'timestamp': timezone.now().isoformat(),
-        'debug': settings.DEBUG,
         'cors_enabled': getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False),
     })
+
+class UserNotificationPreferencesView(generics.RetrieveUpdateAPIView):
+    """
+    Retrieve or update the authenticated user's notification preferences.
+    This view uses separate serializers for reading and writing to ensure security
+    and clarity.
+    """
+    permission_classes = [IsAuthenticated]
+
+    # Serializer for GET requests (reading data)
+    class OutputSerializer(serializers.ModelSerializer):
+        # Map camelCase field names used by the frontend to model fields
+        desktopNotification = serializers.BooleanField(source='desktop_notification')
+        unreadNotificationBadge = serializers.BooleanField(source='unread_notification_badge')
+        pushNotificationTimeout = serializers.CharField(source='push_notification_timeout')
+        communicationEmails = serializers.BooleanField(source='communication_emails')
+        announcementsUpdates = serializers.BooleanField(source='announcements_updates')
+        allNotificationSounds = serializers.BooleanField(source='all_notification_sounds')
+
+        class Meta:
+            model = NotificationSettings
+            # Expose everything but keep camelCase aliases
+            exclude = ['id', 'user', 'created_at', 'updated_at',
+                       'desktop_notification', 'unread_notification_badge',
+                       'push_notification_timeout', 'communication_emails',
+                       'announcements_updates', 'all_notification_sounds']
+
+    # Serializer for PUT/PATCH requests (writing data)
+    class UpdateSerializer(serializers.ModelSerializer):
+        # Accept camelCase fields from frontend and map to model fields
+        desktopNotification = serializers.BooleanField(source='desktop_notification', required=False)
+        unreadNotificationBadge = serializers.BooleanField(source='unread_notification_badge', required=False)
+        pushNotificationTimeout = serializers.CharField(source='push_notification_timeout', required=False)
+        communicationEmails = serializers.BooleanField(source='communication_emails', required=False)
+        announcementsUpdates = serializers.BooleanField(source='announcements_updates', required=False)
+        allNotificationSounds = serializers.BooleanField(source='all_notification_sounds', required=False)
+
+        class Meta:
+            model = NotificationSettings
+            fields = [
+                # original snake_case backend fields
+                'enable_client_notifications', 'enable_deal_notifications',
+                'enable_user_management_notifications', 'enable_team_notifications',
+                'enable_project_notifications', 'enable_commission_notifications',
+                'enable_system_notifications', 'min_priority', 'auto_mark_read_days',
+                # camelCase aliases for UI
+                'desktopNotification', 'unreadNotificationBadge', 'pushNotificationTimeout',
+                'communicationEmails', 'announcementsUpdates', 'allNotificationSounds',
+            ]
+
+    def get_serializer_class(self):
+        """
+        Use the UpdateSerializer for write operations and OutputSerializer for reads.
+        """
+        if self.request.method in ['PUT', 'PATCH']:
+            return self.UpdateSerializer
+        return self.OutputSerializer
+
+    def get_object(self):
+        """
+        Fetch or create the notification settings for the current user.
+        """
+        settings_obj, _ = NotificationSettings.objects.get_or_create(user=self.request.user)
+        return settings_obj
+
+    def update(self, request, *args, **kwargs):
+        """
+        Handle PATCH/PUT requests to update notification settings.
+
+        This implementation ensures that:
+        1. The incoming data is validated against the UpdateSerializer.
+        2. The changes are saved to the database.
+        3. The full, updated settings object is returned in the response,
+           ensuring the frontend UI is correctly synchronized.
+        """
+        # Get the existing settings object
+        instance = self.get_object()
+        
+        # Determine if this is a partial update (PATCH)
+        partial = kwargs.pop('partial', False)
+        
+        # Validate incoming data with the serializer responsible for writes
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # serializer.save() performs the update and returns the updated instance
+        updated_instance = serializer.save()
+
+        # Return the complete, updated data using the read-only serializer
+        output_serializer = self.OutputSerializer(updated_instance)
+        return Response(output_serializer.data)

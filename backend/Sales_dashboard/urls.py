@@ -6,6 +6,8 @@ app_name = 'sales_dashboard'
 urlpatterns = [
     # Top-level dashboard endpoint at /api/dashboard/
     path('', views.dashboard_view, name='dashboard'),
+    # Backwards-compat: keep the old double-segment path used by frontend hook
+    path('dashboard/', views.dashboard_view, name='dashboard-legacy'),
     
     # ==================== STREAK MANAGEMENT ====================
     path('streak/', views.streak_view, name='streak'),

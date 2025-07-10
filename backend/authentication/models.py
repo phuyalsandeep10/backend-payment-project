@@ -56,6 +56,7 @@ class User(AbstractUser):
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
+        ('pending', 'Pending'),  # Frontend compatibility
         ('invited', 'Invited'),
         ('suspended', 'Suspended'),
     ]

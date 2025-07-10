@@ -5,7 +5,12 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import random
 
-from clients.models import Client, ClientActivity
+from clients.models import Client
+# ClientActivity model is optional – older schema versions may not have it
+try:
+    from clients.models import ClientActivity  # type: ignore
+except ImportError:
+    ClientActivity = None  # noqa: N816
 from organization.models import Organization
 from permissions.models import Role
 
@@ -149,28 +154,45 @@ class Command(BaseCommand):
                 # Contact details
                 primary_contact = name.split()[0] if not is_business else f"{random.choice(['Mr.', 'Ms.'])} {random.choice(['Manager', 'Director', 'Executive'])}"
                 
-                # Create client
-                client = Client.objects.create(
-                    client_name=name,
-                    email=email,
-                    phone_number=phone,
-                    category=category,
-                    salesperson=salesperson,
-                    last_contact=last_contact,
-                    expected_close=expected_close,
-                    value=value,
-                    status=status,
-                    satisfaction=satisfaction,
-                    primary_contact_name=primary_contact,
-                    primary_contact_phone=phone,
-                    nationality=nationality,
-                    remarks=random.choice(remarks_templates),
-                    organization=org,
-                    created_by=salesperson or User.objects.filter(organization=org).first()
-                )
+                # Build kwargs based on actual model fields to ensure compatibility
+                client_fields = {f.name for f in Client._meta.get_fields()}
+
+                kwargs = {
+                    'client_name': name,
+                    'email': email,
+                    'phone_number': phone,
+                    'organization': org,
+                    'created_by': salesperson or User.objects.filter(organization=org).first(),
+                }
+
+                # Optional fields guarded by presence in model
+                if 'status' in client_fields:
+                    kwargs['status'] = status
+                if 'satisfaction' in client_fields:
+                    kwargs['satisfaction'] = satisfaction
+                if 'nationality' in client_fields:
+                    kwargs['nationality'] = nationality
+                if 'remarks' in client_fields:
+                    kwargs['remarks'] = random.choice(remarks_templates)
+                if 'value' in client_fields:
+                    kwargs['value'] = value
+                if 'last_contact' in client_fields and last_contact:
+                    kwargs['last_contact'] = last_contact
+                if 'expected_close' in client_fields and expected_close:
+                    kwargs['expected_close'] = expected_close
+                if 'primary_contact_name' in client_fields:
+                    kwargs['primary_contact_name'] = primary_contact
+                if 'primary_contact_phone' in client_fields:
+                    kwargs['primary_contact_phone'] = phone
+                if 'category' in client_fields:
+                    kwargs['category'] = random.choice(categories)
+                if 'salesperson' in client_fields and salesperson:
+                    kwargs['salesperson'] = salesperson
+
+                client = Client.objects.create(**kwargs)
                 
                 # Create some activities for active clients
-                if status == 'active' and random.random() < 0.7:  # 70% chance
+                if ClientActivity and status == 'active' and random.random() < 0.7:  # 70% chance
                     activity_types = ['meeting', 'call', 'email', 'note']
                     activity_descriptions = [
                         "Initial consultation meeting completed",

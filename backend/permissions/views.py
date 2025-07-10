@@ -15,11 +15,14 @@ from django.db import IntegrityError
 
 class PermissionListView(generics.ListAPIView):
     """
-    A read-only endpoint to list all available permissions.
+    List all available permissions.  
+    Accessible to superusers **or** any user whose role has the `can_manage_roles` permission (i.e., Org-Admins).
     """
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = [permissions.IsAdminUser]
+
+    # Any authenticated user can read the list (harmless metadata)
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()

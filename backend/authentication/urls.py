@@ -4,17 +4,34 @@ from . import views
 from .views import (
     UserViewSet,
     UserProfileView,
-    health_check
+    UserNotificationPreferencesView,
+    health_check,
+    UserSessionViewSet,
+    password_change_view,
 )
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 # router.register(r'profile', UserProfileViewSet, basename='user-profile') # This is redundant and conflicts with the UserProfileView below
 
+session_router = DefaultRouter()
+session_router.register(r'sessions', UserSessionViewSet, basename='session')
+
 app_name = 'authentication'
 
 urlpatterns = [
+    # Specific user-related actions must come BEFORE the generic router
+    path('profile/', UserProfileView.as_view(), name='profile'),
+    path('users/profile/', UserProfileView.as_view(), name='profile_alias'),
+    path('password/change/', password_change_view, name='password_change'),
+    path('users/change_password/', password_change_view, name='password_change_alt'),
+    path('users/notification_preferences/', UserNotificationPreferencesView.as_view(), name='notification_prefs'),
+    path('user/set-sales-target/', views.set_sales_target_view, name='set_sales_target'),
+
+    # Routers for viewsets
     path('', include(router.urls)),
+    path('', include(session_router.urls)),
+    
     # ==================== AUTHENTICATION ENDPOINTS ====================
     # Legacy direct login (development)
     re_path(r'^login/?$', views.direct_login_view, name='direct_login'),
@@ -26,13 +43,6 @@ urlpatterns = [
     re_path(r'^change-password/?$', views.password_change_with_token, name='change_password_temp'),
     re_path(r'^register/?$', views.register_view, name='register'),
     re_path(r'^logout/?$', views.logout_view, name='logout'),
-    
-    # ==================== PASSWORD MANAGEMENT ====================
-    path('password/change/', views.password_change_view, name='password_change'),
-    
-    # ==================== USER PROFILE ====================
-    path('profile/', views.UserProfileView.as_view(), name='profile'),
-    path('user/set-sales-target/', views.set_sales_target_view, name='set_sales_target'),
     
     # ==================== HEALTH CHECK ====================
     path('health/', health_check, name='health_check'),

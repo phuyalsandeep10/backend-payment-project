@@ -9,7 +9,7 @@ class HasClientPermission(BasePermission):
         if request.user.is_superuser:
             return True
 
-        if not request.user.role:
+        if not request.user.is_authenticated or not getattr(request.user, 'role', None):
             return False
 
         required_perms_map = {
@@ -31,7 +31,7 @@ class HasClientPermission(BasePermission):
         if request.user.is_superuser:
             return True
 
-        if obj.organization != request.user.organization:
+        if not request.user.is_authenticated or obj.organization != request.user.organization:
             return False
 
         # If user can only see their own, check if they are the creator

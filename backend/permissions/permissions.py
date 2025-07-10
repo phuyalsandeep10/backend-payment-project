@@ -17,7 +17,9 @@ class IsOrgAdminOrSuperAdmin(BasePermission):
         def _norm(name: str) -> str:
             return name.lower().replace(' ', '').replace('-', '') if name else ''
 
-        return request.user.role and _norm(request.user.role.name) in ['orgadmin', 'admin', 'organizationadmin']
+        return request.user.role and _norm(request.user.role.name) in [
+            'orgadmin', 'admin', 'organizationadmin', 'superadmin'
+        ]
 
 class CanManageRoles(permissions.BasePermission):
     """

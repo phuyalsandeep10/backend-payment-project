@@ -442,3 +442,20 @@ LOGGING = {
 #             print(f"[WARNING] Could not get ngrok tunnel: {e}")
 #             print("[WARNING] If you are using ngrok, you may need to add your tunnel hostname to ALLOWED_HOSTS manually.")
 
+# -----------------------------------------------------------------------------
+# Email Configuration
+# -----------------------------------------------------------------------------
+# In development we don’t want to send real emails; instead print them to the
+# terminal so developers can see temporary passwords / activation links.
+# In production we fall back to the SMTP settings that can be provided via env.
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+    EMAIL_HOST = env('EMAIL_HOST', default='smtp.your-provider.com')
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+    EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+

@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from django.conf import settings
 from authentication.models import User
 from permissions.models import Role as OrgRole
+
+# Load variables from .env so os.environ is populated
 load_dotenv()
 
 User = get_user_model()
@@ -26,14 +28,19 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('A Super Admin user already exists.'))
             return
 
-        # Get credentials from settings
-        username = settings.ADMIN_USER
-        email = settings.ADMIN_EMAIL
-        password = settings.ADMIN_PASS
+        # ------------------------------------------------------------------
+        # Retrieve credentials from settings **or** environment variables.
+        # This prevents AttributeError when settings.py does not define them.
+        # ------------------------------------------------------------------
+
+        username = getattr(settings, 'ADMIN_USER', None) or os.getenv('ADMIN_USER')
+        email = getattr(settings, 'ADMIN_EMAIL', None) or os.getenv('ADMIN_EMAIL')
+        password = getattr(settings, 'ADMIN_PASS', None) or os.getenv('ADMIN_PASS')
 
         if not all([username, email, password]):
             self.stderr.write(self.style.ERROR(
-                'Please set ADMIN_USER, ADMIN_EMAIL, and ADMIN_PASS in your .env file.'
+                'Missing credentials. Provide ADMIN_USER, ADMIN_EMAIL, and ADMIN_PASS either in '
+                '.env, environment variables, or Django settings.'
             ))
             return
 
