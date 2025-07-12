@@ -66,12 +66,12 @@ class OrganizationWithAdminSerializer(serializers.Serializer):
         )
         
         # Create all default roles for this organization
-        default_roles = ['Organization Admin', 'Salesperson', 'Verifier']
+        default_roles = ['Org Admin', 'Salesperson', 'Verifier']
         for role_name in default_roles:
             Role.objects.get_or_create(name=role_name, organization=org)
         
-        # Get the Organization Admin role for this org
-        org_admin_role = Role.objects.get(name='Organization Admin', organization=org)
+        # Get the Org Admin role for this org
+        org_admin_role = Role.objects.get(name='Org Admin', organization=org)
         
         # Create the admin user
         admin_user = User.objects.create_user(

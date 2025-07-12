@@ -36,8 +36,13 @@ class DealViewSet(viewsets.ModelViewSet):
 
         org_queryset = queryset.filter(organization=user.organization)
 
-        if user.role and user.role.permissions.filter(codename='view_all_deals').exists():
-            return org_queryset
+        # Org Admins can see all deals in their organization by default
+        if hasattr(user, 'role') and user.role:
+            if user.role.name.lower() == 'org-admin':
+                return org_queryset
+
+            if user.role.permissions.filter(codename='view_all_deals').exists():
+                return org_queryset
         
         return org_queryset.filter(created_by=user)
 

@@ -59,9 +59,17 @@ class HasVerifierPermission(BasePermission):
             logger.debug("User is anonymous. Access denied.")
             return False
             
-        # Check if user has a role and if that role is 'Verifier'
-        if not hasattr(request.user, 'role') or not request.user.role or request.user.role.name != 'Verifier':
-            logger.debug(f"User {request.user.email} is not a Verifier. Access denied.")
+        # Check if user has a role and if that role is 'Verifier' (case-insensitive)
+        if not hasattr(request.user, 'role') or not request.user.role:
+            logger.debug(f"User {request.user.email} has no role. Access denied.")
+            return False
+
+        # Normalise role name: trim whitespace and compare case-insensitively
+        role_name_normalized = request.user.role.name.strip().lower()
+        if role_name_normalized != 'verifier':
+            logger.debug(
+                f"User {request.user.email} role '{request.user.role.name}' is not Verifier (normalised: '{role_name_normalized}'). Access denied."
+            )
             return False
         
         logger.debug(f"User: {request.user.email}, Role: {request.user.role.name}")

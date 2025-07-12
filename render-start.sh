@@ -5,14 +5,14 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
-# Step 1: Flush existing data and create base structure
+# Step 1: Run migrations FIRST to ensure the database schema is up to date
+echo "🔄 Running database migrations..."
+python manage.py migrate
+
+# Step 2: Flush existing data and create base structure
 echo "🔄 Flushing existing data and creating base structure..."
 python manage.py initialize_app --flush
 echo "✅ Base data structure created!"
-
-# Step 2: Run migrations (in case of any pending migrations)
-echo "🔄 Running database migrations..."
-python manage.py migrate
 
 # Step 3: Fix deployment permission issues comprehensively
 echo "🔧 Fixing deployment permissions..."
@@ -27,8 +27,8 @@ echo "📊 Generating additional rich test data..."
 python manage.py generate_rich_test_data --deals 30 --clients 5 --projects 3
 
 # Final verification - check if sales@innovate.com user has proper permissions
-echo "�� Final verification - checking sales user permissions..."
-python manage.py shell -c "
+echo "🧐 Final verification - checking sales user permissions..."
+python manage.py shell <<EOF
 from authentication.models import User
 from permissions.models import Role
 try:
@@ -49,7 +49,7 @@ except User.DoesNotExist:
     print('❌ Sales user not found!')
 except Exception as e:
     print(f'❌ Error: {e}')
-"
+EOF
 
 # Create the missing permission
 python manage.py create_all_permissions

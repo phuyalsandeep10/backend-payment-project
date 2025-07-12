@@ -253,7 +253,7 @@ class Command(BaseCommand):
         
         # Client permissions
         client_permissions = [
-            'view_all_clients', 'view_own_clients', 'create_new_client', 
+            'view_own_clients', 'create_new_client', 
             'edit_client_details', 'remove_client'
         ]
         
@@ -277,7 +277,7 @@ class Command(BaseCommand):
         
         # Commission permissions
         commission_permissions = [
-            'view_all_commissions', 'create_commission', 'edit_commission'
+            'view_commission', 'view_all_commissions', 'create_commission', 'edit_commission'
         ]
         
         # Combine all permissions

@@ -240,7 +240,7 @@ class Command(BaseCommand):
             deal=deal,
             payment=payment,
             approved_by=verifier,
-            approved_remarks=self.faker.sentence(),
+            verifier_remarks=self.faker.sentence(),
             failure_remarks=None if invoice.invoice_status == 'verified' else "Details did not match."
         )
         

@@ -5,12 +5,20 @@ from user_agents import parse
 from permissions.models import Role
 from permissions.serializers import RoleSerializer
 from organization.models import Organization
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from permissions.permissions import IsOrgAdminOrSuperAdmin
 
 class UserLiteSerializer(serializers.ModelSerializer):
-    """A lightweight serializer for User model, showing only essential info."""
+    """A lightweight serializer for User model, showing only essential info plus computed full_name."""
+
+    full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name']
+
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip() or obj.username
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for the UserProfile model."""
@@ -45,18 +53,15 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a new user (by an admin).
     If the caller does not provide a password, a random temporary password is generated.
-    If a role is not provided but an organisation **is**, the serializer automatically assigns / creates
-    the "Org Admin" role for that organisation so that super-admins can quickly add admins.
+    The view (`UserViewSet`) handles assigning the organization and, for super-admins, the role.
     """
-
-    # Allow role / password to be optional – we will fill them in the create() method.
-    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False, allow_null=True)
+    role = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'password', 'first_name', 'last_name', 'email',
-            'organization', 'role', 'contact_number', 'is_active',
+            'role', 'contact_number', 'is_active',
             'address', 'status', 'avatar'
         )
         read_only_fields = ('id',)
@@ -64,63 +69,54 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'password': {'write_only': True, 'required': False},
             'username': {'required': False, 'allow_blank': True}
         }
+    
+    def validate(self, data):
+        # For non-superusers (e.g., org admins), 'role' is required.
+        requesting_user = self.context['request'].user
+        if not requesting_user.is_superuser:
+            if not data.get('role'):
+                raise serializers.ValidationError({'role': 'This field is required.'})
+        return data
 
     def create(self, validated_data):
         from django.utils.crypto import get_random_string
 
-        # ---- Ensure password ----
-        password = validated_data.pop('password', None)
-        if not password:
-            # Generate a secure 12-char temporary password
-            password = get_random_string(length=12)
-
-        # ---- Ensure role ----
-        role = validated_data.get('role')
+        role_data = validated_data.pop('role', None)
+        
+        # The 'organization' is injected by the view's perform_create method.
         organization = validated_data.get('organization')
 
-        if not role and organization:
-            # Fetch or create the default Org Admin role for this organisation
-            role, created = Role.objects.get_or_create(name='Org Admin', organization=organization)
+        # The role can be a Role object (from super-admin) or a role name string (from org-admin).
+        if isinstance(role_data, Role):
+            validated_data['role'] = role_data
+        elif role_data:
+            # Look for an organization-specific role first, then a global one.
+            try:
+                role = Role.objects.get(name__iexact=role_data, organization=organization)
+            except Role.DoesNotExist:
+                try:
+                    role = Role.objects.get(name__iexact=role_data, organization__isnull=True)
+                except Role.DoesNotExist:
+                    raise serializers.ValidationError({'role': f"Role '{role_data}' not found."})
+            validated_data['role'] = role
+        
+        # If role_data is None, it's because a super-admin is creating a user,
+        # and the view has already injected the correct Role object into validated_data.
 
-            # Always ensure the Org Admin role has at least the default permission set.
-            # If the role is new or it is missing any of the defaults, add them.
-            if True:
-                from django.contrib.auth.models import Permission
+        password = validated_data.pop('password', None) or get_random_string(length=12)
 
-                DEFAULT_ORG_ADMIN_PERMS = [
-                    'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
-                    'view_all_clients', 'view_own_clients',
-                    'view_all_projects', 'view_own_projects',
-                    'view_all_deals', 'view_own_deals',
-                    'can_manage_roles',
-                    'view_all_commissions', 'view_commission', 'add_commission', 'edit_commission', 'delete_commission',
-                ]
-
-                perms = Permission.objects.filter(codename__in=DEFAULT_ORG_ADMIN_PERMS)
-                # Add any missing permissions (using set would wipe custom perms)
-                current_ids = set(role.permissions.values_list('id', flat=True))
-                to_add = [p for p in perms if p.id not in current_ids]
-                if to_add:
-                    role.permissions.add(*to_add)
-
-                validated_data['role'] = role
-
-        # Default username to email if not supplied
-        if 'username' not in validated_data:
+        if not validated_data.get('username'):
             validated_data['username'] = validated_data['email']
 
         user = User.objects.create_user(password=password, **validated_data)
 
-        # Force password change at first login
         user.must_change_password = True
         user.save(update_fields=['must_change_password'])
 
-        # Send the temporary password to user's email address
         try:
             from authentication.utils import send_temporary_password_email
             send_temporary_password_email(user.email, password)
         except Exception as e:
-            # Fail silently; log in production
             import logging
             logging.getLogger('security').warning(f'Failed to send temp password email: {e}')
 
@@ -214,12 +210,12 @@ class PasswordChangeSerializer(serializers.Serializer):
         return attrs
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    """A detailed serializer for the User model, including nested profile and team info."""
+    """Serializer for comprehensive user details."""
     profile = UserProfileSerializer()
     phoneNumber = serializers.CharField(source='contact_number', read_only=True)
     teams = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    role = serializers.CharField(source='role.name', read_only=True)  # Role name as string for frontend compatibility
+    role = serializers.StringRelatedField()
 
     class Meta:
         model = User
@@ -276,8 +272,56 @@ class AuthSuccessResponseSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
     user = UserDetailSerializer(read_only=True)
 
+class OTPSerializer(serializers.Serializer):
+    """Serializer for OTP verification."""
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+class PasswordResetSerializer(serializers.Serializer):
+    """Serializer for resetting password with a token."""
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs.pop('confirm_password'):
+            raise serializers.ValidationError({"new_password": "The new passwords do not match."})
+        return attrs
+
+class SuperUserLoginSerializer(serializers.Serializer):
+    """
+    Serializer for Super Admin login. Validates credentials and ensures the user is a superuser.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if not email or not password:
+            raise serializers.ValidationError("Email and password are required.", code='authorization')
+
+        user = authenticate(request=self.context.get('request'), email=email, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Invalid credentials.", code='authorization')
+
+        if not user.is_superuser:
+            raise serializers.ValidationError("You do not have permission to perform this action.", code='authorization')
+
+        attrs['user'] = user
+        return attrs
+
+# ===================== AUXILIARY SERIALIZERS =====================
+
+class RoleSerializer(serializers.ModelSerializer):
+    """A simple serializer for the Role model to show its name."""
+    class Meta:
+        model = Role
+        fields = ['id', 'name']
+
 class MessageResponseSerializer(serializers.Serializer):
-    """Generic response for simple messages (e.g., logout)."""
     message = serializers.CharField()
 
 class ErrorResponseSerializer(serializers.Serializer):

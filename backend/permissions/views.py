@@ -45,6 +45,7 @@ class RoleViewSet(viewsets.ModelViewSet):
     """
     serializer_class = RoleSerializer
     permission_classes = [permissions.IsAuthenticated, CanManageRoles]
+    pagination_class = None
 
     def get_queryset(self):
         """

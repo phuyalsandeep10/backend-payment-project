@@ -14,16 +14,30 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 
 class PaymentSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Payment model.
+    Serializer for the Payment model – adds frontend-friendly aliases.
     """
-    deal_id = serializers.CharField(source='deal.deal_id')
+
+    deal_id = serializers.CharField(source='deal.deal_id', read_only=True)
+
+    # Alias: expose `payment_type` as `payment_method` expected by FE
+    payment_method = serializers.CharField(source='payment_type', read_only=True)
+
+    # Derive simple status for FE: fall back to deal.verification_status
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = Payment
         fields = [
-            'id', 'deal','deal_id', 'payment_date', 'receipt_file', 'payment_remarks',
-            'received_amount', 'cheque_number', 'payment_type'
+            'id', 'deal', 'deal_id',
+            'payment_date', 'receipt_file', 'payment_remarks',
+            'received_amount', 'cheque_number', 'payment_method',
+            'status',
         ]
         read_only_fields = ['deal']
+
+    def get_status(self, obj):
+        # If payment model gains a status field later, return it; otherwise derive from deal
+        return getattr(obj, 'status', None) or getattr(obj.deal, 'verification_status', 'pending')
 
     def create(self, validated_data):
         deal_info = validated_data.pop('deal', {})
@@ -61,13 +75,19 @@ class DealSerializer(serializers.ModelSerializer):
     payments = PaymentSerializer(many=True, read_only=True)
     activity_logs = ActivityLogSerializer(many=True, read_only=True)
 
+    # Aliases expected by FE table
+    client_name = serializers.CharField(source='client.client_name', read_only=True)
+    pay_status = serializers.CharField(source='payment_status', read_only=True)
+
     class Meta:
         model = Deal
         fields = [
             'id', 'deal_id', 'organization', 'client', 'client_id', 'created_by', 
             'updated_by', 'payment_status', 'verification_status', 'client_status', 'source_type', 
             'deal_value', 'deal_date', 'due_date', 'payment_method', 'deal_remarks', 
-            'payments', 'activity_logs', 'version', 'deal_name', 'currency', 'created_at', 'updated_at'
+            'payments', 'activity_logs', 'version', 'deal_name', 'currency', 'created_at', 'updated_at',
+            # Aliases
+            'client_name', 'pay_status'
         ]
         read_only_fields = [
             'organization', 'deal_id', 'created_by', 'updated_by'

@@ -49,6 +49,9 @@ import secrets
 
 from authentication.utils import generate_otp, send_otp_email
 from notifications.models import NotificationSettings
+from .serializers import UserCreateSerializer, UserDetailSerializer, OTPSerializer, PasswordResetSerializer,SuperUserLoginSerializer
+from rest_framework.decorators import action
+from django.db import transaction
 
 # Security logger
 security_logger = logging.getLogger('security')
@@ -109,6 +112,24 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return UserCreateSerializer
         return UserSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.is_superuser:
+            organization_name = self.request.data.get('organization')
+            with transaction.atomic():
+                organization, created = Organization.objects.get_or_create(
+                    name=organization_name,
+                    defaults={'created_by': user}
+                )
+                
+                role = Role.objects.get(name='org-admin')
+                
+                serializer.save(organization=organization, role=role)
+        else:
+            # For non-superusers (like org admins), the organization is derived from their profile
+            # and the role is taken from the request data.
+            serializer.save(organization=user.organization)
 
 class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
     """

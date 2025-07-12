@@ -58,11 +58,11 @@ class OrganizationRegistrationView(APIView):
         validated_data = serializer.validated_data
         
         try:
-            # Step 1: Get the system-wide 'Org_admin' role.
-            org_admin_role = Role.objects.get(name='Org_admin', organization__isnull=True)
+            # Step 1: Get the system-wide 'Org Admin' role.
+            org_admin_role = Role.objects.get(name='Org Admin', organization__isnull=True)
         except Role.DoesNotExist:
             return Response(
-                {"error": "The default 'Org_admin' role has not been created. Please run migrations."},
+                {"error": "The default 'Org Admin' role has not been created. Please run migrations."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

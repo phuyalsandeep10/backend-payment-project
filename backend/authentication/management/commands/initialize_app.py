@@ -403,8 +403,9 @@ class Command(BaseCommand):
             deal=deal,
             payment=payment,
             approved_by=verifier,
-            approved_remarks=fake.sentence(),
-            failure_remarks=None if invoice.invoice_status == 'verified' else "Details did not match."
+            verifier_remarks=f"Test data: {final_status}",
+            failure_remarks=fake.random_element(elements=PaymentApproval.FAILURE_REMARKS)[0] if final_status == 'rejected' else None,
+            amount_in_invoice=amount
         )
         
         # Save changes

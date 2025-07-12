@@ -61,11 +61,15 @@ class Command(BaseCommand):
                 project=None,
                 created_by=created_by,
                 updated_by=created_by,
-                payment_status='initial payment',
+                # Variant pay status
+                payment_status=random.choice([c[0] for c in Deal.PAYMENT_STATUS_CHOICES]),
+                # Variant verification status
+                verification_status=random.choice([c[0] for c in Deal.DEAL_STATUS]),
                 source_type=random.choice([c[0] for c in Deal.SOURCE_TYPES]),
                 deal_name=f"Auto-deal for {client.client_name}",
                 deal_value=deal_value,
                 payment_method=random.choice(payment_methods),
+                due_date=timezone.now() + timedelta(days=random.randint(10, 120)),
             )
 
             # Create one or more payments linked to this deal

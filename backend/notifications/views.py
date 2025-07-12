@@ -138,6 +138,18 @@ class NotificationSettingsViewSet(viewsets.ModelViewSet):
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
+class NotificationPreferencesView(generics.RetrieveUpdateAPIView):
+    """
+    Get or update notification preferences for the current user.
+    """
+    serializer_class = NotificationSettingsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        # get_or_create ensures we always have a settings object for the user
+        settings, _ = NotificationSettings.objects.get_or_create(user=self.request.user)
+        return settings
+
 @swagger_auto_schema(tags=['Notifications'])
 class NotificationAdminViewSet(viewsets.GenericViewSet):
     """

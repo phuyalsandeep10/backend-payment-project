@@ -15,6 +15,4 @@ class Role(models.Model):
         unique_together = ('name', 'organization')
 
     def __str__(self):
-        if self.organization:
-            return f"{self.name} ({self.organization.name})"
-        return f"{self.name} (System Role)"
+        return self.name

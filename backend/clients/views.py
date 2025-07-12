@@ -16,7 +16,9 @@ class ClientViewSet(viewsets.ModelViewSet):
         """
         This view should return a list of all the clients
         for the currently authenticated user's organization.
-        Superusers can see all clients.
+        - Superusers can see all clients.
+        - Users with 'view_all_clients' can see all clients in their organization.
+        - Users with 'view_own_clients' can see only clients they created.
         """
         # Handle schema generation when user is anonymous
         if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
@@ -24,23 +26,34 @@ class ClientViewSet(viewsets.ModelViewSet):
             
         user = self.request.user
         
-        # Base queryset
-        base_queryset = Client.objects.all()
-
         if user.is_superuser:
-            return base_queryset
+            return Client.objects.all()
         
         if not hasattr(user, 'organization') or not user.organization:
             return Client.objects.none()
 
-        organization_queryset = base_queryset.filter(organization=user.organization)
+        # Start with clients from the user's organization
+        queryset = Client.objects.filter(organization=user.organization)
 
-        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_all_clients').exists():
-            return organization_queryset
+        # Check for role and permissions
+        if hasattr(user, 'role') and user.role:
+            has_view_all = user.role.permissions.filter(codename='view_all_clients').exists()
+            has_view_own = user.role.permissions.filter(codename='view_own_clients').exists()
 
-        if hasattr(user, 'role') and user.role and user.role.permissions.filter(codename='view_own_clients').exists():
-            return organization_queryset.filter(created_by=user)
+            if user.role.name == 'Salesperson':
+                # Salespeople should ONLY ever see their own clients.
+                # This check is explicit and overrides any other permissions.
+                return queryset.filter(created_by=user)
             
+            if has_view_all:
+                # For other roles, if they have view_all, show all clients in the org.
+                return queryset
+            
+            if has_view_own:
+                # If they only have view_own, filter to their own clients.
+                return queryset.filter(created_by=user)
+        
+        # Default to deny: if no relevant permissions, return nothing.
         return Client.objects.none()
 
     def perform_create(self, serializer):
