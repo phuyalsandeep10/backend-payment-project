@@ -645,6 +645,20 @@ def payment_verifier_form(request, payment_id):
                 invoice = payment.invoice
                 invoice.invoice_status = invoice_status
                 invoice.save()
+                
+                # Update the deal verification status based on invoice status
+                deal = payment.deal
+                if invoice_status == 'verified':
+                    deal.verification_status = 'verified'
+                    # Update payment status to full_payment if amount matches deal value
+                    if payment.received_amount >= deal.deal_value:
+                        deal.payment_status = 'full_payment'
+                    else:
+                        deal.payment_status = 'partial_payment'
+                elif invoice_status == 'rejected':
+                    deal.verification_status = 'rejected'
+                deal.save()
+                
                 # Log the audit trail
                 AuditLogs.objects.create(
                     user=request.user,

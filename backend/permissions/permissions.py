@@ -13,13 +13,7 @@ class IsOrgAdminOrSuperAdmin(BasePermission):
         if request.user.is_superuser:
             return True
             
-        # Normalize role name to handle case, spaces, and hyphens variations
-        def _norm(name: str) -> str:
-            return name.lower().replace(' ', '').replace('-', '') if name else ''
-
-        return request.user.role and _norm(request.user.role.name) in [
-            'orgadmin', 'admin', 'organizationadmin', 'superadmin'
-        ]
+        return request.user.role and request.user.role.name == 'Organization Admin'
 
 class CanManageRoles(permissions.BasePermission):
     """

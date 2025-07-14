@@ -7,6 +7,7 @@ from permissions.serializers import RoleSerializer
 from organization.models import Organization
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from permissions.permissions import IsOrgAdminOrSuperAdmin
+import logging
 
 class UserLiteSerializer(serializers.ModelSerializer):
     """A lightweight serializer for User model, showing only essential info plus computed full_name."""
@@ -30,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
     """A detailed serializer for the User model."""
     phoneNumber = serializers.CharField(source='contact_number', read_only=True)
     teams = serializers.SerializerMethodField()
-    role = RoleSerializer(read_only=True)
+    role = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     profile = UserProfileSerializer(required=False)
 
@@ -50,12 +51,29 @@ class UserSerializer(serializers.ModelSerializer):
             return TeamSerializer(obj.teams.all(), many=True).data
         return []
 
+    def get_role(self, obj):
+        if obj.role:
+            name = obj.role.name
+            if name == 'Organization Admin':
+                return 'org-admin'
+            return name
+        return None
+
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a new user (by an admin).
     If the caller does not provide a password, a random temporary password is generated.
     The view (`UserViewSet`) handles assigning the organization and, for super-admins, the role.
     """
     role = serializers.CharField(write_only=True, required=False)
+
+    ROLE_INPUT_MAP = {
+        'salesperson': 'Salesperson',
+        'verifier': 'Verifier',
+        'supervisor': 'Supervisor',
+        'team-member': 'Team Member',
+        'organization admin': 'Organization Admin',
+        'org-admin': 'Organization Admin',
+    }
 
     class Meta:
         model = User
@@ -73,54 +91,70 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         # For non-superusers (e.g., org admins), 'role' is required.
         requesting_user = self.context['request'].user
-        if not requesting_user.is_superuser:
-            if not data.get('role'):
-                raise serializers.ValidationError({'role': 'This field is required.'})
-        return data
+        logger = logging.getLogger('django')
+        logger.info(f"[UserCreateSerializer] Incoming data: {data}")
+        try:
+            if not requesting_user.is_superuser:
+                if not data.get('role'):
+                    logger.error('[UserCreateSerializer] Validation error: role is required')
+                    raise serializers.ValidationError({'role': 'This field is required.'})
+            return data
+        except Exception as e:
+            logger.error(f"[UserCreateSerializer] Validation error: {e}")
+            raise
 
     def create(self, validated_data):
         from django.utils.crypto import get_random_string
-
-        role_data = validated_data.pop('role', None)
-        
-        # The 'organization' is injected by the view's perform_create method.
-        organization = validated_data.get('organization')
-
-        # The role can be a Role object (from super-admin) or a role name string (from org-admin).
-        if isinstance(role_data, Role):
-            validated_data['role'] = role_data
-        elif role_data:
-            # Look for an organization-specific role first, then a global one.
-            try:
-                role = Role.objects.get(name__iexact=role_data, organization=organization)
-            except Role.DoesNotExist:
-                try:
-                    role = Role.objects.get(name__iexact=role_data, organization__isnull=True)
-                except Role.DoesNotExist:
-                    raise serializers.ValidationError({'role': f"Role '{role_data}' not found."})
-            validated_data['role'] = role
-        
-        # If role_data is None, it's because a super-admin is creating a user,
-        # and the view has already injected the correct Role object into validated_data.
-
-        password = validated_data.pop('password', None) or get_random_string(length=12)
-
-        if not validated_data.get('username'):
-            validated_data['username'] = validated_data['email']
-
-        user = User.objects.create_user(password=password, **validated_data)
-
-        user.must_change_password = True
-        user.save(update_fields=['must_change_password'])
-
+        logger = logging.getLogger('django')
+        logger.info(f"[UserCreateSerializer] Creating user with data: {validated_data}")
         try:
-            from authentication.utils import send_temporary_password_email
-            send_temporary_password_email(user.email, password)
-        except Exception as e:
-            import logging
-            logging.getLogger('security').warning(f'Failed to send temp password email: {e}')
+            role_data = validated_data.pop('role', None)
+            organization = validated_data.get('organization')
 
-        return user
+            # Normalize role input
+            if isinstance(role_data, str):
+                role_key = role_data.strip().lower()
+                role_name = self.ROLE_INPUT_MAP.get(role_key, role_data)
+            else:
+                role_name = role_data
+
+            # The role can be a Role object (from super-admin) or a role name string (from org-admin).
+            if isinstance(role_name, Role):
+                validated_data['role'] = role_name
+            elif role_name:
+                # Look for an organization-specific role first, then a global one.
+                try:
+                    role = Role.objects.get(name__iexact=role_name, organization=organization)
+                except Role.DoesNotExist:
+                    try:
+                        role = Role.objects.get(name__iexact=role_name, organization__isnull=True)
+                    except Role.DoesNotExist:
+                        logger.error(f"[UserCreateSerializer] Validation error: Role '{role_name}' not found.")
+                        raise serializers.ValidationError({'role': f"Role '{role_name}' not found."})
+                validated_data['role'] = role
+            # If role_data is None, it's because a super-admin is creating a user,
+            # and the view has already injected the correct Role object into validated_data.
+
+            password = validated_data.pop('password', None) or get_random_string(length=12)
+
+            if not validated_data.get('username'):
+                validated_data['username'] = validated_data['email']
+
+            user = User.objects.create_user(password=password, **validated_data)
+
+            user.must_change_password = True
+            user.save(update_fields=['must_change_password'])
+
+            try:
+                from authentication.utils import send_temporary_password_email
+                send_temporary_password_email(user.email, password)
+            except Exception as e:
+                logger.warning(f'Failed to send temp password email: {e}')
+            logger.info(f"[UserCreateSerializer] User created successfully: {user.email}")
+            return user
+        except Exception as e:
+            logger.error(f"[UserCreateSerializer] Exception during user creation: {e}")
+            raise
 
 class UserSessionSerializer(serializers.ModelSerializer):
     """Serializer for the UserSession model."""
@@ -215,7 +249,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     phoneNumber = serializers.CharField(source='contact_number', read_only=True)
     teams = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    role = serializers.StringRelatedField()
+    role = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -233,6 +267,14 @@ class UserDetailSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'teams'):
             return TeamSerializer(obj.teams.all(), many=True).data
         return "No Teams"
+
+    def get_role(self, obj):
+        if obj.role:
+            name = obj.role.name
+            if name == 'Organization Admin':
+                return 'org-admin'
+            return name
+        return None
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user and their nested profile."""

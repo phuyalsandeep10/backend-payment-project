@@ -133,8 +133,12 @@ class Payment(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    
+
+    class Meta:
+        permissions = [
+            ("create_deal_payment", "Can create deal payment"),
+        ]
+
     def __str__(self):
         return f"payment for {self.deal.deal_id} on {self.payment_date}"
     

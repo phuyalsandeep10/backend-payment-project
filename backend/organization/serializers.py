@@ -65,24 +65,29 @@ class OrganizationWithAdminSerializer(serializers.Serializer):
             description=validated_data.get('description', '')
         )
         
-        # Create all default roles for this organization
-        default_roles = ['Org Admin', 'Salesperson', 'Verifier']
+        # Always create the default roles for this org
+        default_roles = [
+            'Organization Admin',
+            'Salesperson',
+            'Verifier',
+            'Team Member',
+            'Supervisor',
+        ]
         for role_name in default_roles:
             Role.objects.get_or_create(name=role_name, organization=org)
         
         # Get the Org Admin role for this org
-        org_admin_role = Role.objects.get(name='Org Admin', organization=org)
+        org_admin_role = Role.objects.get(name='Organization Admin', organization=org)
         
-        # Create the admin user
+        # Create the admin user for the organization
         admin_user = User.objects.create_user(
+            username=validated_data['admin_username'],
             email=validated_data['admin_email'],
-            username=validated_data['admin_email'],
-            first_name=validated_data['admin_first_name'],
-            last_name=validated_data['admin_last_name'],
             password=validated_data['admin_password'],
+            first_name=validated_data.get('admin_first_name', ''),
+            last_name=validated_data.get('admin_last_name', ''),
             organization=org,
-            role=org_admin_role
+            role=org_admin_role,
+            is_active=True
         )
-        admin_user.is_active = True
-        admin_user.save()
-        return {'organization': org, 'admin_user': admin_user}
+        return org

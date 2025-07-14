@@ -29,9 +29,9 @@ class HasPermission(BasePermission):
                 'retrieve': ['view_all_deals', 'view_own_deals'],
                 'expand': ['view_all_deals', 'view_own_deals'],
                 'list_invoices': ['view_all_deals', 'view_own_deals'],
-                'update': ['edit_deal'],
-                'partial_update': ['edit_deal'],
-                'destroy': ['delete_deal'],
+                'update': ['edit_deal', 'change_payment'],
+                'partial_update': ['edit_deal', 'change_payment'],
+                'destroy': ['delete_deal', 'delete_payment'],
                 'log_activity': ['log_deal_activity'],
             }
         elif viewset_name == 'PaymentViewSet':
@@ -55,6 +55,16 @@ class HasPermission(BasePermission):
                 'partial_update': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
                 'destroy': ['view_all_deals', 'view_own_deals', 'log_deal_activity'],
             }
+        elif viewset_name == 'PaymentViewSet':
+            required_perms_map = {
+                'list': ['view_paymentinvoice'],
+                'create': ['create_paymentinvoice'],
+                'retrieve': ['view_paymentinvoice'],
+                'update': ['edit_paymentinvoice'],
+                'partial_update': ['edit_paymentinvoice'],
+                'destroy': ['delete_paymentinvoice'],
+            }
+            
         elif viewset_name == 'PaymentInvoiceViewSet':
             required_perms_map = {
                 'list': ['view_paymentinvoice', 'view_all_deals'],

@@ -159,3 +159,74 @@ class UserCommissionView(APIView):
         commissions = Commission.objects.filter(user_id=user_id)
         serializer = CommissionSerializer(commissions, many=True, context={'request': request})
         return Response(serializer.data)
+
+
+class OrgAdminCommissionView(APIView):
+    """Get commission data for all salespeople in the organization for org-admin."""
+    permission_classes = [IsOrgAdminOrSuperAdmin]
+
+    def get(self, request):
+        """Get aggregated commission data for all salespeople in the organization."""
+        try:
+            user = request.user
+            organization = user.organization
+            
+            if not organization:
+                return Response({'error': 'User must belong to an organization'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get all salespeople in the organization
+            salespeople = User.objects.filter(
+                organization=organization,
+                role__name__in=['Salesperson', 'Senior Salesperson']
+            ).select_related('role')
+
+            commission_data = []
+            
+            for salesperson in salespeople:
+                # Calculate total sales for this salesperson
+                total_sales = Deal.objects.filter(
+                    created_by=salesperson,
+                    verification_status__in=['verified', 'partial']
+                ).aggregate(Sum('deal_value'))['deal_value__sum'] or Decimal('0.00')
+                
+                # Get existing commission record or create default values
+                commission_record = Commission.objects.filter(
+                    user=salesperson,
+                    organization=organization
+                ).first()
+                
+                if commission_record:
+                    # Use existing commission settings
+                    commission_data.append({
+                        'id': commission_record.id,
+                        'fullName': f"{salesperson.first_name} {salesperson.last_name}".strip() or salesperson.username,
+                        'totalSales': float(total_sales),
+                        'currency': commission_record.currency,
+                        'rate': float(commission_record.exchange_rate),
+                        'percentage': float(commission_record.commission_rate),
+                        'bonus': float(commission_record.bonus),
+                        'penalty': float(commission_record.penalty),
+                        'convertedAmt': float(commission_record.commission_amount),
+                        'total': float(commission_record.total_commission),
+                        'totalReceivable': float(commission_record.total_receivable),
+                    })
+                else:
+                    # Create default commission data
+                    commission_data.append({
+                        'id': None,
+                        'fullName': f"{salesperson.first_name} {salesperson.last_name}".strip() or salesperson.username,
+                        'totalSales': float(total_sales),
+                        'currency': 'USD',
+                        'rate': 1.0,
+                        'percentage': 5.0,  # Default 5% commission
+                        'bonus': 0.0,
+                        'penalty': 0.0,
+                        'convertedAmt': float(total_sales * Decimal('0.05')),  # 5% of total sales
+                        'total': float(total_sales * Decimal('0.05')),
+                        'totalReceivable': float(total_sales * Decimal('0.05')),
+                    })
+            
+            return Response(commission_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

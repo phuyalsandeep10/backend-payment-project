@@ -123,7 +123,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     defaults={'created_by': user}
                 )
                 
-                role = Role.objects.get(name='org-admin')
+                role, _ = Role.objects.get_or_create(name="Organization Admin", organization=organization)
                 
                 serializer.save(organization=organization, role=role)
         else:

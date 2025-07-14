@@ -42,7 +42,9 @@ class TeamViewSet(viewsets.ModelViewSet):
         organization_queryset = base_queryset.filter(organization=user.organization)
 
         if hasattr(user, 'role') and user.role:
-            if user.role.name.lower() == 'org-admin':
+            if user.role.name.strip().replace('-', ' ').lower() in [
+                'organization admin', 'org admin'
+            ]:
                 return organization_queryset
             if user.role.permissions.filter(codename='view_all_teams').exists():
                 return organization_queryset

@@ -1,5 +1,6 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
 from .serializers import (
     DealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer,
@@ -16,6 +17,11 @@ class DealViewSet(viewsets.ModelViewSet):
     serializer_class = DealSerializer
     permission_classes = [HasPermission]
     lookup_field = 'deal_id'
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['client', 'payment_status', 'verification_status', 'source_type', 'payment_method']
+    search_fields = ['deal_id', 'deal_name', 'client__client_name']
+    ordering_fields = ['deal_date', 'due_date', 'deal_value', 'created_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
@@ -36,14 +42,17 @@ class DealViewSet(viewsets.ModelViewSet):
 
         org_queryset = queryset.filter(organization=user.organization)
 
-        # Org Admins can see all deals in their organization by default
+        # Org Admins and users with view_all_deals permission can see all deals in their organization
         if hasattr(user, 'role') and user.role:
-            if user.role.name.lower() == 'org-admin':
+            if user.role.name.strip().replace('-', ' ').lower() in [
+                'organization admin', 'org admin'
+            ]:
                 return org_queryset
 
             if user.role.permissions.filter(codename='view_all_deals').exists():
                 return org_queryset
         
+        # Other users can only see deals they created
         return org_queryset.filter(created_by=user)
 
     def perform_create(self, serializer):

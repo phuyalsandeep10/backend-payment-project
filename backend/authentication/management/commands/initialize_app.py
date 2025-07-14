@@ -4,20 +4,30 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import transaction, connection
 from django.utils import timezone
 from faker import Faker
+from django.db.models.signals import post_save, post_delete
+from deals.models import Deal, Payment, PaymentApproval, PaymentInvoice, ActivityLog
+from Sales_dashboard.signals import update_streak_on_deal_delete
+from notifications.signals import (
+    notify_new_organization, notify_new_role, notify_new_user,
+    notify_new_team, notify_new_client, notify_new_project,
+    notify_payment_received, notify_deal_changes, notify_new_commission
+)
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 
 from authentication.models import User
 from clients.models import Client
 from commission.models import Commission
-from deals.models import Deal, Payment, PaymentApproval, PaymentInvoice, ActivityLog
-from notifications.models import Notification, NotificationSettings
+from notifications.models import Notification, NotificationSettings, NotificationTemplate
 from organization.models import Organization
 from permissions.models import Role
 from project.models import Project
 from team.models import Team
 from Verifier_dashboard.models import AuditLogs
+from Sales_dashboard.models import DailyStreakRecord
 
 fake = Faker()
 
@@ -31,44 +41,57 @@ class Command(BaseCommand):
             help='Flush all existing data before initializing (use with caution!)',
         )
 
-    @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
         
-        # Flush existing data if requested
-        if options['flush']:
-            self.flush_existing_data()
+        # Clean up duplicate permissions first
+        self.cleanup_duplicate_permissions()
+        
+        # --- Disconnect all signals to prevent premature queries ---
+        signals_to_disconnect = {
+            post_save: [
+                (notify_new_organization, Organization),
+                (notify_new_role, Role),
+                (notify_new_user, User),
+                (notify_new_team, Team),
+                (notify_new_client, Client),
+                (notify_new_project, Project),
+                (notify_payment_received, Payment),
+                (notify_deal_changes, Deal),
+                (notify_new_commission, Commission),
+            ],
+            post_delete: [
+                # This signal was causing issues with raw TRUNCATE, but should be safe
+                # with ORM-based deletion. Re-enabling it.
+            ]
+        }
+        
+        for signal, receivers in signals_to_disconnect.items():
+            for receiver, sender in receivers:
+                signal.disconnect(receiver, sender=sender)
+        self.stdout.write(self.style.HTTP_INFO("  - All notification signals disconnected to prevent errors."))
         
         try:
-            # Create organization
+            # Flush existing data if requested
+            if options['flush']:
+                self.flush_existing_data()
+            
+            # Each of these methods will now manage its own transaction.
             organization = self.create_organization()
-            
-            # Create roles (without assigning permissions - let Django handle this)
-            roles = self.create_roles(organization)
-            
-            # Create users
+            self.create_notification_templates()
+            roles = self.create_roles_and_assign_permissions(organization)
             users = self.create_users(organization, roles)
-            
-            # Assign permissions to roles
-            self.assign_permissions_to_roles(organization, roles)
-            
-            # Create teams
             self.create_teams(organization, users)
-            
-            # Create clients
             clients = self.create_clients(organization, users)
-            
-            # Create projects
             projects = self.create_projects(users)
-            
-            # Create deals
             self.create_deals_for_period(users, clients, projects, "historical", 60)
             self.create_deals_for_period(users, clients, projects, "recent", 25)
             
             # Create streak building deals
-            if 'salestest' in users and any(u.role.name == 'Verifier' for u in users.values()):
-                verifiers = [u for u in users.values() if u.role.name == 'Verifier']
-                self.create_streak_building_deals(users['salestest'], clients, projects, verifiers)
+            salesperson = next((u for u in users.values() if u.username == 'salestest'), None)
+            verifiers = [u for u in users.values() if u.role.name == 'Verifier']
+            if salesperson and verifiers:
+                self.create_streak_building_deals(salesperson, clients, projects, verifiers)
 
             self.stdout.write(self.style.SUCCESS("✅ Application initialization completed successfully!"))
             
@@ -76,74 +99,60 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"❌ An error occurred during initialization: {e}"))
             import traceback
             self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
+        finally:
+            # --- Reconnect all signals ---
+            for signal, receivers in signals_to_disconnect.items():
+                for receiver, sender in receivers:
+                    signal.connect(receiver, sender=sender)
+            self.stdout.write(self.style.HTTP_INFO("  - All notification signals reconnected."))
 
     def flush_existing_data(self):
-        """Flush all existing data from the database."""
-        self.stdout.write(self.style.WARNING("🗑️  Flushing existing data..."))
-        
+        """
+        Flush all existing data from the database using the Django ORM to ensure
+        all relations and signals are handled correctly.
+        """
+        self.stdout.write(self.style.WARNING("🗑️  Flushing existing data using Django's ORM..."))
+        self.fallback_delete()
+        self.stdout.write(self.style.SUCCESS("✅ Data flush completed."))
+
+    def fallback_delete(self):
+        """Deletes objects one by one to ensure signals and dependencies are handled."""
         try:
-            # Import all models that need to be flushed
-            from authentication.models import User
-            from clients.models import Client
-            from commission.models import Commission
-            from deals.models import Deal, Payment, PaymentApproval, PaymentInvoice, ActivityLog
-            from notifications.models import Notification, NotificationSettings
-            from organization.models import Organization
-            from permissions.models import Role
-            from project.models import Project
-            from team.models import Team
-            from Verifier_dashboard.models import AuditLogs
-            
-            # Delete data in reverse dependency order
-            self.stdout.write("  - Deleting notifications...")
+            # Start from objects that have the fewest dependencies
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Notifications & Settings..."))
             Notification.objects.all().delete()
             NotificationSettings.objects.all().delete()
-            
-            self.stdout.write("  - Deleting audit logs...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Dashboards & Logs..."))
             AuditLogs.objects.all().delete()
-            
-            self.stdout.write("  - Deleting activity logs...")
             ActivityLog.objects.all().delete()
-            
-            self.stdout.write("  - Deleting payment approvals...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Payments & Invoices..."))
             PaymentApproval.objects.all().delete()
-            
-            self.stdout.write("  - Deleting payment invoices...")
             PaymentInvoice.objects.all().delete()
-            
-            self.stdout.write("  - Deleting payments...")
             Payment.objects.all().delete()
-            
-            self.stdout.write("  - Deleting commissions...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Commissions..."))
             Commission.objects.all().delete()
-            
-            self.stdout.write("  - Deleting deals...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Deals..."))
             Deal.objects.all().delete()
-            
-            self.stdout.write("  - Deleting projects...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Projects..."))
             Project.objects.all().delete()
-            
-            self.stdout.write("  - Deleting clients...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Clients..."))
             Client.objects.all().delete()
-            
-            self.stdout.write("  - Deleting teams...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Teams..."))
             Team.objects.all().delete()
-            
-            self.stdout.write("  - Deleting users...")
+            # Users and Roles have dependencies from many other models
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Users & Roles..."))
             User.objects.all().delete()
-            
-            self.stdout.write("  - Deleting roles...")
             Role.objects.all().delete()
-            
-            self.stdout.write("  - Deleting organizations...")
+            self.stdout.write(self.style.HTTP_INFO("  - Deleting Organizations..."))
             Organization.objects.all().delete()
-            
-            self.stdout.write(self.style.SUCCESS("✅ All existing data flushed successfully!"))
-            
+            self.stdout.write(self.style.SUCCESS("✅ ORM-based deletion completed successfully."))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"❌ Error flushing data: {e}"))
+            self.stdout.write(self.style.ERROR(f"❌ ORM-based deletion failed: {e}"))
+            import traceback
+            self.stdout.write(self.style.ERROR(f"Traceback: {traceback.format_exc()}"))
             raise
 
+    @transaction.atomic
     def create_organization(self):
         """Create the main organization."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Organization ---"))
@@ -154,35 +163,182 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created."))
         return organization
 
-    def create_roles(self, organization):
-        """Create roles without assigning permissions."""
-        self.stdout.write(self.style.HTTP_INFO("--- Creating Roles ---"))
+    @transaction.atomic
+    def create_notification_templates(self):
+        """Create default notification templates."""
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Notification Templates ---"))
+        
+        templates = {
+            'new_organization': {
+                'title_template': "Welcome to the Platform!",
+                'message_template': "A new organization, '{org_name}', has been registered.",
+            },
+            'role_created': {
+                'title_template': "New Role Created: {role_name}",
+                'message_template': "A new role named '{role_name}' has been created in your organization.",
+            },
+            'user_created': {
+                'title_template': "Welcome, {user_name}!",
+                'message_template': "A new user account has been created for you.",
+            },
+            'team_created': {
+                'title_template': "New Team: {team_name}",
+                'message_template': "A new team, '{team_name}', has been formed.",
+            },
+            'client_created': {
+                'title_template': "New Client Added: {client_name}",
+                'message_template': "A new client, {client_name}, has been added to the system.",
+            },
+            'project_created': {
+                'title_template': "New Project Started: {project_name}",
+                'message_template': "A new project, '{project_name}', has been initiated.",
+            },
+            'payment_received': {
+                'title_template': "Payment Received for Deal: {deal_name}",
+                'message_template': "A payment of {amount} has been received for the deal '{deal_name}'.",
+            },
+            'deal_status_changed': {
+                'title_template': "Deal Status Updated: {deal_name}",
+                'message_template': "The status of the deal '{deal_name}' has been updated to {status}.",
+            },
+            'commission_created': {
+                'title_template': "You've Earned a Commission!",
+                'message_template': "Congratulations! A commission of {amount} has been generated for you.",
+            }
+        }
+        
+        for notification_type, defaults in templates.items():
+            template, created = NotificationTemplate.objects.get_or_create(
+                notification_type=notification_type,
+                defaults=defaults
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"  - Created template for '{notification_type}'"))
+        
+        self.stdout.write(self.style.SUCCESS("✅ Notification templates created."))
+
+    @transaction.atomic
+    def create_roles_and_assign_permissions(self, organization):
+        """Create roles and assign all necessary permissions in one go."""
+        self.stdout.write(self.style.HTTP_INFO("--- Creating Roles & Assigning Permissions ---"))
         
         roles = {}
-        role_names = ["Super Admin", "Organization Admin", "Salesperson", "Verifier"]
-        
-        for role_name in role_names:
-            # Create template role (no organization)
-            template_role, _ = Role.objects.get_or_create(
+        role_permissions = {
+            "Super Admin": [
+                # Super admin gets all permissions implicitly
+            ],
+            "Organization Admin": [
+                # Full permissions across all key areas
+                "add_deal", "view_deal", "change_deal", "delete_deal", "manage_invoices",
+                "access_verification_queue", "verify_deal_payment", "manage_refunds", "verify_payments",
+                "add_client", "view_client", "change_client", "delete_client",
+                "add_user", "view_user", "change_user", "delete_user",
+                "add_role", "view_role", "change_role", "delete_role",
+                "change_organization", "view_organization",
+                "add_project", "view_project", "change_project", "delete_project",
+                "add_team", "view_team", "change_team", "delete_team",
+                "add_commission", "view_commission", "change_commission", "delete_commission",
+            ],
+            "Salesperson": [
+                # Deals
+                "add_deal", "view_deal", "view_own_deals", "change_deal", "delete_deal",
+                "add_payment", "view_payment", "change_payment", "delete_payment",
+                "view_team_deals", "view_project_deals",
+                # Clients
+                "add_client", "view_client", "change_client", "delete_client",
+                "create_new_client", "view_own_clients", "edit_client_details", "remove_client",
+                # Teams
+                "add_team", "view_team", "change_team", "delete_team", "view_own_teams",
+                # Projects
+                "add_project", "view_project", "change_project", "delete_project",
+                # Approvals
+                "view_paymentapproval", "create_paymentapproval", "edit_paymentapproval", "delete_paymentapproval",
+                # Invoices
+                "view_paymentinvoice", "create_paymentinvoice", "edit_paymentinvoice", "delete_paymentinvoice",
+                # Dashboards
+                "add_dailystreakrecord", "view_dailystreakrecord", "change_dailystreakrecord", "delete_dailystreakrecord",
+                # Commissions
+                "view_commission",
+            ],
+            "Verifier": [
+                # Deals
+                "add_deal", "view_deal", "change_deal", "delete_deal",
+                "access_verification_queue", "verify_deal_payment", "verify_payments",
+                # Payments
+                "add_payment", "view_payment", "change_payment", "delete_payment",
+                # Approvals
+                "view_paymentapproval", "create_paymentapproval", "edit_paymentapproval", "delete_paymentapproval",
+                # Invoices
+                "view_paymentinvoice", "create_paymentinvoice", "edit_paymentinvoice", "delete_paymentinvoice",
+                # Clients
+                "add_client", "view_client", "change_client", "delete_client",
+                # Projects
+                "add_project", "view_project", "change_project", "delete_project",
+                # Dashboards
+                "view_payment_verification_dashboard", "view_payment_analytics", "view_audit_logs",
+            ],
+        }
+
+        content_types = {
+            "deal": ContentType.objects.get_for_model(Deal),
+            "payment": ContentType.objects.get_for_model(Payment),
+            "client": ContentType.objects.get_for_model(Client),
+            "user": ContentType.objects.get_for_model(User),
+            "role": ContentType.objects.get_for_model(Role),
+            "organization": ContentType.objects.get_for_model(Organization),
+            "project": ContentType.objects.get_for_model(Project),
+            "team": ContentType.objects.get_for_model(Team),
+            "commission": ContentType.objects.get_for_model(Commission),
+            "dailystreakrecord": ContentType.objects.get_for_model(DailyStreakRecord),
+            "auditlogs": ContentType.objects.get_for_model(AuditLogs),
+        }
+
+        # Define all org admin name variants
+        org_admin_variants = [
+            "Organization Admin", "Org Admin", "org-admin", "org admin", "orgadmin"
+        ]
+
+        for role_name, codenames in role_permissions.items():
+            org_role, created = Role.objects.get_or_create(
                 name=role_name, 
-                organization=None
+                organization=organization if role_name != "Super Admin" else None
             )
             
-            # Create organization-specific role
-            org_role, _ = Role.objects.get_or_create(
-                name=role_name, 
-                organization=organization
-            )
+            if not created:
+                org_role.permissions.clear()
+
+            permissions_to_add = []
+            for codename in codenames:
+                try:
+                    # Handle duplicate permissions by getting the first one
+                    perm = Permission.objects.filter(codename=codename).first()
+                    if perm:
+                        permissions_to_add.append(perm)
+                    else:
+                        self.stdout.write(self.style.WARNING(f"  - WARNING: Permission '{codename}' not found. Skipping."))
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"  - WARNING: Error getting permission '{codename}': {e}. Skipping."))
+
+            if permissions_to_add:
+                org_role.permissions.add(*permissions_to_add)
             
-            roles[role_name] = {
-                'template': template_role,
-                'organization': org_role
-            }
-        
-            self.stdout.write(self.style.SUCCESS(f"  - Created role: {role_name}"))
+            roles[role_name] = org_role
+            self.stdout.write(self.style.SUCCESS(f"  - Created role '{role_name}' and assigned {len(permissions_to_add)} permissions."))
+            # If this is the canonical org admin role, assign permissions to all variants
+            if role_name == "Organization Admin":
+                for variant in org_admin_variants:
+                    if variant == "Organization Admin":
+                        continue
+                    variant_role, _ = Role.objects.get_or_create(
+                        name=variant,
+                        organization=organization
+                    )
+                    variant_role.permissions.set(permissions_to_add)
+                    self.stdout.write(self.style.SUCCESS(f"  - Synced permissions to org admin variant role '{variant}'"))
         
         return roles
 
+    @transaction.atomic
     def create_users(self, organization, roles):
         """Create users with appropriate roles."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Users ---"))
@@ -196,7 +352,7 @@ class Command(BaseCommand):
         }
         
         for role_name, user_list in user_data.items():
-            org_role = roles[role_name]['organization']
+            org_role = roles[role_name]
             
             for username, email in user_list:
                 user, created = User.objects.get_or_create(
@@ -210,6 +366,11 @@ class Command(BaseCommand):
                         'sales_target': Decimal(random.randint(25000, 75000)) if role_name == "Salesperson" else Decimal('0.00')
                     }
                 )
+                
+                # Ensure role is assigned even for existing users
+                if not created and user.role != org_role:
+                    user.role = org_role
+                    user.save(update_fields=['role'])
                 
                 # Set password and permissions
                 user.set_password("password123")
@@ -232,40 +393,48 @@ class Command(BaseCommand):
         
         return users
 
+    @transaction.atomic
     def create_teams(self, organization, users):
         """Create sales teams."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Teams ---"))
         
-        salespersons = [u for u in users.values() if u.role.name == 'Salesperson']
+        salespersons = [u for u in users.values() if u.role and u.role.name == 'Salesperson']
         if not salespersons:
+            self.stdout.write(self.style.WARNING("  - No salespersons found, skipping team creation."))
+            return
+
+        org_admin = next((u for u in users.values() if u.role and u.role.name == 'Organization Admin'), None)
+        if not org_admin:
+            self.stdout.write(self.style.WARNING("  - Org Admin not found, cannot create teams."))
             return
 
         team1 = Team.objects.create(
             name="Alpha Team", 
             organization=organization, 
             team_lead=salespersons[0], 
-            created_by=users['orgadmin']
+            created_by=org_admin
         )
         team1.members.add(*salespersons[:len(salespersons)//2])
         
+        self.stdout.write(self.style.SUCCESS("  - Created team: Alpha Team"))
+
         if len(salespersons) > 1:
             team2 = Team.objects.create(
-                name="Bravo Team", 
-                organization=organization, 
-                team_lead=salespersons[-1], 
-                created_by=users['orgadmin']
+                name="Bravo Team",
+                organization=organization,
+                team_lead=salespersons[-1],
+                created_by=org_admin
             )
             team2.members.add(*salespersons[len(salespersons)//2:])
-            self.stdout.write(self.style.SUCCESS("✅ Created 2 sales teams."))
-        else:
-            self.stdout.write(self.style.SUCCESS("✅ Created 1 sales team."))
+            self.stdout.write(self.style.SUCCESS("  - Created team: Bravo Team"))
 
+    @transaction.atomic
     def create_clients(self, organization, users):
         """Create clients."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Clients ---"))
         
         clients = []
-        sales_users = [u for u in users.values() if u.role.name == 'Salesperson']
+        sales_users = [u for u in users.values() if u.role and u.role.name == 'Salesperson']
         
         for i in range(25):
             client = Client.objects.create(
@@ -280,12 +449,13 @@ class Command(BaseCommand):
             
             # Make first 3 clients "loyal"
             if i < 3:
-                client.status = 'clear'
+                client.status = 'loyal'
                 client.save()
         
         self.stdout.write(self.style.SUCCESS(f"👤 Created {len(clients)} clients."))
         return clients
 
+    @transaction.atomic
     def create_projects(self, users):
         """Create projects."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Projects ---"))
@@ -302,12 +472,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"🏗️ Created {len(projects)} projects."))
         return projects
 
+    @transaction.atomic
     def create_deals_for_period(self, users, clients, projects, period, count):
         """Create deals for a specific period."""
         self.stdout.write(self.style.HTTP_INFO(f"--- Creating {count} {period.capitalize()} Deals ---"))
         
-        salespersons = [u for u in users.values() if u.role.name == 'Salesperson']
-        verifiers = [u for u in users.values() if u.role.name == 'Verifier']
+        salespersons = [u for u in users.values() if u.role and u.role.name == 'Salesperson']
+        verifiers = [u for u in users.values() if u.role and u.role.name == 'Verifier']
         
         for i in range(count):
             # Determine deal date based on period
@@ -319,9 +490,13 @@ class Command(BaseCommand):
             else:
                 deal_date = fake.date_between(start_date='-2y', end_date='-1M')
             
+            sales_user = random.choice(salespersons) if salespersons else None
+            if not sales_user:
+                continue
+
             # Create deal
             deal = Deal.objects.create(
-                organization=users['orgadmin'].organization,
+                organization=sales_user.organization,
                 client=random.choice(clients),
                 project=random.choice(projects) if projects and random.random() > 0.5 else None,
                 deal_name=fake.bs().title(),
@@ -329,7 +504,7 @@ class Command(BaseCommand):
                 deal_date=deal_date,
                 payment_method=random.choice([c[0] for c in Deal.PAYMENT_METHOD_CHOICES]),
                 source_type=random.choice([c[0] for c in Deal.SOURCE_TYPES]),
-                created_by=random.choice(salespersons)
+                created_by=sales_user
             )
             
             # Create activity log
@@ -370,11 +545,11 @@ class Command(BaseCommand):
             deal=deal,
             received_amount=amount.quantize(Decimal('0.01')),
             payment_date=payment_date,
-            payment_type=deal.payment_method
+            payment_type=deal.payment_method  # Use the deal's payment method as payment type
         )
         
         # Get or create invoice
-        invoice = PaymentInvoice.objects.get(payment=payment)
+        invoice, _ = PaymentInvoice.objects.get_or_create(payment=payment, deal=deal)
         
         # Map status
         status_map = {
@@ -403,9 +578,8 @@ class Command(BaseCommand):
             deal=deal,
             payment=payment,
             approved_by=verifier,
-            verifier_remarks=f"Test data: {final_status}",
-            failure_remarks=fake.random_element(elements=PaymentApproval.FAILURE_REMARKS)[0] if final_status == 'rejected' else None,
-            amount_in_invoice=amount
+            verifier_remarks=fake.sentence(),
+            failure_remarks=None if invoice.invoice_status == 'verified' else "Details did not match."
         )
         
         # Save changes
@@ -458,6 +632,7 @@ class Command(BaseCommand):
                 notification_type='commission_created'
             )
 
+    @transaction.atomic
     def create_streak_building_deals(self, salesperson, clients, projects, verifiers):
         """Create streak building deals for a salesperson."""
         self.stdout.write(self.style.HTTP_INFO(f"--- Creating 5-day Deal Streak for {salesperson.username} ---"))
@@ -483,51 +658,52 @@ class Command(BaseCommand):
             # Create payment flow
             self.create_payment_flow(deal, deal.deal_value / 2, deal_date, random.choice(verifiers), 'verified')
 
-    def assign_permissions_to_roles(self, organization, roles):
-        """Assign proper permissions to roles based on their responsibilities."""
-        self.stdout.write(self.style.HTTP_INFO("--- Assigning Permissions to Roles ---"))
-        
-        # Import the assign_role_permissions command
-        from django.core.management import call_command
-        
-        try:
-            # Call the assign_role_permissions command for this organization
-            call_command('assign_role_permissions', organization=organization.name)
-            self.stdout.write(self.style.SUCCESS("✅ Permissions assigned successfully!"))
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"❌ Error assigning permissions: {e}"))
-            # Fallback: manually assign critical permissions
-            self.assign_critical_permissions_fallback(organization, roles)
-    
     def assign_critical_permissions_fallback(self, organization, roles):
-        """Fallback method to assign critical permissions if the main command fails."""
-        self.stdout.write(self.style.WARNING("⚠️  Using fallback permission assignment..."))
+        """A simplified fallback to ensure critical roles have basic permissions if the main method fails."""
+        self.stdout.write(self.style.HTTP_INFO("--- Assigning Critical Permissions (Fallback) ---"))
         
-        from django.contrib.auth.models import Permission
-        
-        # Critical permissions for each role
-        role_permissions = {
-            'Salesperson': [
-                'view_all_deals', 'view_own_deals', 'create_deal', 'edit_deal', 'delete_deal', 'log_deal_activity',
-                'view_all_clients', 'view_own_clients', 'create_new_client', 'edit_client_details', 'remove_client',
-                'view_all_projects', 'view_own_projects', 'create_project', 'edit_project', 'delete_project',
-                'view_all_teams', 'view_own_teams', 'create_new_team', 'edit_team_details', 'remove_team',
-                'view_all_commissions', 'create_commission', 'edit_commission',
-                'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
-                'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval',
-            ],
-            'Verifier': [
-                'view_payment_verification_dashboard', 'view_payment_analytics', 'view_audit_logs',
-                'verify_deal_payment', 'verify_payments', 'manage_invoices', 'access_verification_queue', 'manage_refunds',
-                'view_all_deals', 'view_own_deals', 'view_all_clients', 'view_own_clients',
-                'view_paymentinvoice', 'create_paymentinvoice', 'edit_paymentinvoice', 'delete_paymentinvoice',
-                'view_paymentapproval', 'create_paymentapproval', 'edit_paymentapproval', 'delete_paymentapproval'
-            ]
+        # Simplified permissions for fallback
+        fallback_perms = {
+            "Organization Admin": ["add_user", "add_role", "add_client", "add_deal"],
+            "Salesperson": ["add_deal", "add_payment", "add_client"],
+            "Verifier": ["view_deal", "verify_deal_payment"]
         }
         
-        for role_name, permission_codenames in role_permissions.items():
+        for role_name, codenames in fallback_perms.items():
             if role_name in roles:
-                org_role = roles[role_name]['organization']
-                permissions = Permission.objects.filter(codename__in=permission_codenames)
-                org_role.permissions.add(*permissions)
-                self.stdout.write(self.style.SUCCESS(f"  ✅ Assigned {permissions.count()} permissions to {role_name}"))
+                role = roles[role_name]
+                for codename in codenames:
+                    try:
+                        perm = Permission.objects.get(codename=codename)
+                        role.permissions.add(perm)
+                        self.stdout.write(self.style.SUCCESS(f"  - Fallback: Assigned '{codename}' to '{role_name}'"))
+                    except Permission.DoesNotExist:
+                        self.stdout.write(self.style.WARNING(f"  - Fallback WARNING: Permission '{codename}' not found. Skipping."))
+
+    def cleanup_duplicate_permissions(self):
+        """Clean up duplicate permissions before initialization."""
+        self.stdout.write(self.style.HTTP_INFO("--- Cleaning up duplicate permissions ---"))
+        
+        from django.db import connection
+        
+        try:
+            with connection.cursor() as cursor:
+                # Find and delete duplicate permissions, keeping the one with the lowest ID
+                cursor.execute("""
+                    DELETE FROM auth_permission 
+                    WHERE id NOT IN (
+                        SELECT MIN(id) 
+                        FROM auth_permission 
+                        GROUP BY codename, content_type_id
+                    )
+                """)
+                
+                deleted_count = cursor.rowcount
+                if deleted_count > 0:
+                    self.stdout.write(self.style.SUCCESS(f"  - Removed {deleted_count} duplicate permissions"))
+                else:
+                    self.stdout.write(self.style.SUCCESS("  - No duplicate permissions found"))
+                    
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"  - Warning: Could not clean up duplicate permissions: {e}"))
+            # Continue with initialization even if cleanup fails
