@@ -18,6 +18,7 @@ class HasCommissionPermission(BasePermission):
             'update': ['edit_commission'],
             'partial_update': ['edit_commission'],
             'destroy': ['delete_commission'],
+            'bulk_update': ['edit_commission'],
         }
         
         required_perms = required_perms_map.get(view.action, [])

@@ -280,10 +280,15 @@ class Command(BaseCommand):
             'view_commission', 'view_all_commissions', 'create_commission', 'edit_commission'
         ]
         
+        # Payment permissions (FIX: add create_deal_payment)
+        payment_permissions = [
+            'create_deal_payment',
+        ]
+        
         # Combine all permissions
         all_permission_codenames = (
             client_permissions + deal_permissions + project_permissions + 
-            team_permissions + commission_permissions
+            team_permissions + commission_permissions + payment_permissions
         )
         
         # Get actual permissions that exist safely

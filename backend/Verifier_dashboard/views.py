@@ -628,46 +628,40 @@ def payment_verifier_form(request, payment_id):
             'payment': payment_serializer.data
         })
     elif request.method == 'POST':
-         # Use the serializer to handle validation and saving
-        invoice_status = request.data.get('invoice_status')
+        # Use the serializer to handle validation and saving
         serializer = PaymentApprovalSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             try:
-                # Manually set the payment and verifier before saving
-                # print("VALIDATED DATA:", serializer.validated_data)
+                # Create the approval instance with payment and approved_by
                 approval_instance = serializer.save(payment=payment, approved_by=request.user)
-                # Determine the invoice status from the form's remarks
-                # invoice_status = serializer.validated_data.get('invoice_status')
-                # print(invoice_status)
-                if not invoice_status:
-                     return Response({'status': 'error', 'message': "The 'invoice_status' must be one of 'verified', 'rejected','refunded' or 'bad_debt'."}, status=status.HTTP_400_BAD_REQUEST)
-                # Update the related invoice
-                invoice = payment.invoice
-                invoice.invoice_status = invoice_status
-                invoice.save()
                 
-                # Update the deal verification status based on invoice status
-                deal = payment.deal
-                if invoice_status == 'verified':
-                    deal.verification_status = 'verified'
-                    # Update payment status to full_payment if amount matches deal value
-                    if payment.received_amount >= deal.deal_value:
-                        deal.payment_status = 'full_payment'
-                    else:
-                        deal.payment_status = 'partial_payment'
-                elif invoice_status == 'rejected':
-                    deal.verification_status = 'rejected'
-                deal.save()
+                # Get the invoice status from the created approval
+                invoice_status = request.data.get('invoice_status')
+                
+                print(f"🔍 [BACKEND_DEBUG] invoice_status from request: {invoice_status}")
+                print(f"🔍 [BACKEND_DEBUG] approval_instance.failure_remarks: {approval_instance.failure_remarks}")
+                
+                # Check the actual invoice status after processing
+                actual_invoice_status = None
+                if hasattr(approval_instance.payment, 'invoice'):
+                    actual_invoice_status = approval_instance.payment.invoice.invoice_status
+                    print(f"🔍 [BACKEND_DEBUG] actual invoice status: {actual_invoice_status}")
                 
                 # Log the audit trail
-                AuditLogs.objects.create(
-                    user=request.user,
-                    action=f"Invoice {invoice_status.capitalize()}",
-                    details=f"Invoice {invoice.invoice_id} was {invoice_status} by {request.user.email}.",
-                    organization=request.user.organization
-                )
-                # print(f"approval id = {approval_instance.id}")
-                return Response({'message': f'Payment successfully marked as {invoice_status}. New Approval ID: {approval_instance.id}'}, status=status.HTTP_200_OK)
+                if hasattr(approval_instance.payment, 'invoice'):
+                    invoice = approval_instance.payment.invoice
+                    AuditLogs.objects.create(
+                        user=request.user,
+                        action=f"Invoice {invoice_status.capitalize() if invoice_status else 'Processed'}",
+                        details=f"Invoice {invoice.invoice_id} was {invoice_status} by {request.user.email}.",
+                        organization=request.user.organization
+                    )
+                
+                return Response({
+                    'message': f'Payment successfully {invoice_status}. New Approval ID: {approval_instance.id}',
+                    'status': invoice_status,
+                    'actual_invoice_status': actual_invoice_status
+                }, status=status.HTTP_200_OK)
             except PaymentInvoice.DoesNotExist:
                 return Response({'error': 'Invoice not found for this payment.'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:

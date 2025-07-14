@@ -19,6 +19,26 @@ class CommissionSerializer(serializers.ModelSerializer):
     user_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='user', write_only=True
     )
+    
+    # Frontend compatibility fields
+    percentage = serializers.DecimalField(
+        source='commission_rate', 
+        max_digits=5, 
+        decimal_places=2, 
+        required=False
+    )
+    rate = serializers.DecimalField(
+        source='exchange_rate', 
+        max_digits=10, 
+        decimal_places=2, 
+        required=False
+    )
+    totalSales = serializers.DecimalField(
+        source='total_sales', 
+        max_digits=15, 
+        decimal_places=2, 
+        required=False
+    )
 
     class Meta:
         model = Commission
@@ -29,6 +49,8 @@ class CommissionSerializer(serializers.ModelSerializer):
             # Input fields
             'start_date', 'end_date', 'commission_rate', 'currency', 
             'exchange_rate', 'bonus', 'penalty',
+            # Frontend compatibility fields
+            'percentage', 'rate', 'totalSales',
             # Read-only calculated fields
             'total_sales', 'commission_amount', 
             'total_commission', 'total_receivable',

@@ -75,7 +75,7 @@ class Deal(models.Model):
     
     
     def __str__(self):
-        return f"{self.deal_id} - {self.client.name if self.client else ''}"
+        return f"{self.deal_id} - {self.client.client_name if self.client else ''}"
     
     class Meta:
         unique_together = ('organization','deal_id')
@@ -105,6 +105,34 @@ class Deal(models.Model):
             self.version = 'edited'
 
         super().save(*args,**kwargs)
+
+    def get_total_paid_amount(self):
+        """Calculate total amount paid for this deal (using verified amounts when available)"""
+        total_paid = 0
+        for payment in self.payments.all():
+            # Get the verified amount if available, otherwise use received amount
+            try:
+                latest_approval = payment.approvals.order_by('-approval_date').first()
+                if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
+                    total_paid += float(latest_approval.amount_in_invoice)
+                else:
+                    total_paid += float(payment.received_amount)
+            except:
+                total_paid += float(payment.received_amount)
+        return total_paid
+    
+    def get_remaining_balance(self):
+        """Calculate remaining balance for this deal"""
+        total_paid = self.get_total_paid_amount()
+        return float(self.deal_value) - float(total_paid)
+    
+    def get_payment_progress(self):
+        """Get payment progress as percentage"""
+        total_paid = self.get_total_paid_amount()
+        deal_value = float(self.deal_value)
+        if deal_value == 0:
+            return 0
+        return (float(total_paid) / deal_value) * 100
     
     
 ##
@@ -116,6 +144,13 @@ class Payment(models.Model):
         ('partial_payment','Partial Payment'),
         ('full_payment','Full Payment'),
     ]
+    
+    PAYMENT_CATEGORY_CHOICES = [
+        ('advance', 'Advance Payment'),
+        ('partial', 'Partial Payment'),
+        ('final', 'Final Payment'),
+    ]
+    
     transaction_id = models.CharField(max_length=100, unique=True, blank=True, null=True)
     deal = models.ForeignKey(Deal,on_delete=models.CASCADE,related_name = 'payments')
     payment_date = models.DateField()
@@ -130,6 +165,7 @@ class Payment(models.Model):
     received_amount = models.DecimalField(max_digits=15,decimal_places=2)
     cheque_number = models.CharField(max_length=50, blank=True, null=True)
     payment_type = models.CharField(max_length=50, choices=Deal.PAYMENT_METHOD_CHOICES)
+    payment_category = models.CharField(max_length=50, choices=PAYMENT_CATEGORY_CHOICES, default='partial')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

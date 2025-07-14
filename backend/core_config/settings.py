@@ -309,6 +309,7 @@ if DEBUG:
         'x-csrftoken',
         'x-requested-with',
         'cache-control',
+        'pragma',
         'x-api-key',
         'x-request-id',
         'x-forwarded-for',

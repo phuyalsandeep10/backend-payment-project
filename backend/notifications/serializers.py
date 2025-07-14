@@ -7,14 +7,24 @@ class NotificationSerializer(serializers.ModelSerializer):
     recipient_email = serializers.CharField(source='recipient.email', read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     
+    # Map backend snake_case to frontend camelCase
+    notificationType = serializers.CharField(source='notification_type', read_only=True)
+    relatedObjectType = serializers.CharField(source='related_object_type', read_only=True)
+    relatedObjectId = serializers.IntegerField(source='related_object_id', read_only=True)
+    actionUrl = serializers.URLField(source='action_url', read_only=True)
+    isRead = serializers.BooleanField(source='is_read', read_only=True)
+    readAt = serializers.DateTimeField(source='read_at', read_only=True)
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    
     class Meta:
         model = Notification
         fields = [
-            'id', 'title', 'message', 'notification_type', 'priority', 'category',
-            'recipient_email', 'organization_name', 'is_read', 'read_at',
-            'related_object_type', 'related_object_id', 'action_url', 'created_at'
+            'id', 'title', 'message', 'notificationType', 'priority', 'category',
+            'recipient_email', 'organization_name', 'isRead', 'readAt',
+            'relatedObjectType', 'relatedObjectId', 'actionUrl', 'createdAt', 'updatedAt'
         ]
-        read_only_fields = ['id', 'created_at', 'recipient_email', 'organization_name']
+        read_only_fields = ['id', 'createdAt', 'updatedAt', 'recipient_email', 'organization_name']
 
 class NotificationSettingsSerializer(serializers.ModelSerializer):
     """Serializer for NotificationSettings model."""
@@ -73,4 +83,11 @@ class NotificationStatsSerializer(serializers.Serializer):
     unread_count = serializers.IntegerField()
     by_type = serializers.DictField()
     by_priority = serializers.DictField()
-    recent_notifications = NotificationSerializer(many=True) 
+    recent_notifications = NotificationSerializer(many=True)
+    
+    # Map to frontend camelCase
+    totalNotifications = serializers.IntegerField(source='total_notifications', read_only=True)
+    unreadCount = serializers.IntegerField(source='unread_count', read_only=True)
+    byType = serializers.DictField(source='by_type', read_only=True)
+    byPriority = serializers.DictField(source='by_priority', read_only=True)
+    recentNotifications = NotificationSerializer(source='recent_notifications', many=True, read_only=True) 

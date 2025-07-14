@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count
 from authentication.models import User
 from permissions.models import Role
 from .models import Notification, NotificationSettings, NotificationTemplate
@@ -295,6 +295,60 @@ class NotificationService:
         Get the count of unread notifications for a user.
         """
         return Notification.objects.filter(recipient=user, is_read=False).count()
+
+    @staticmethod
+    def get_user_notification_stats(user):
+        """
+        Get comprehensive notification statistics for a user.
+        """
+        # Get all notifications for the user
+        notifications = Notification.objects.filter(recipient=user)
+        
+        # Calculate basic stats
+        total_notifications = notifications.count()
+        unread_count = notifications.filter(is_read=False).count()
+        
+        # Group by type
+        by_type = {}
+        type_counts = notifications.values('notification_type').annotate(count=Count('id'))
+        for item in type_counts:
+            by_type[item['notification_type']] = item['count']
+        
+        # Group by priority
+        by_priority = {}
+        priority_counts = notifications.values('priority').annotate(count=Count('id'))
+        for item in priority_counts:
+            by_priority[item['priority']] = item['count']
+        
+        # Get recent notifications (last 10)
+        recent_notifications = notifications.order_by('-created_at')[:10]
+        
+        return {
+            'total_notifications': total_notifications,
+            'unread_count': unread_count,
+            'by_type': by_type,
+            'by_priority': by_priority,
+            'recent_notifications': [
+                {
+                    'id': str(n.id),
+                    'title': n.title,
+                    'message': n.message,
+                    'notification_type': n.notification_type,
+                    'priority': n.priority,
+                    'category': n.category,
+                    'is_read': n.is_read,
+                    'read_at': n.read_at.isoformat() if n.read_at else None,
+                    'related_object_type': n.related_object_type,
+                    'related_object_id': n.related_object_id,
+                    'action_url': n.action_url,
+                    'recipient_email': n.recipient.email,
+                    'organization_name': n.organization.name if n.organization else None,
+                    'created_at': n.created_at.isoformat(),
+                    'updated_at': n.updated_at.isoformat()
+                }
+                for n in recent_notifications
+            ]
+        }
 
 
 class EmailNotificationService:

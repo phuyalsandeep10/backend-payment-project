@@ -2,13 +2,13 @@ from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from organization.models import Organization
+import pycountry
+
+def get_currency_choices():
+    return sorted([(c.alpha_3, f"{c.name} ({c.alpha_3})") for c in pycountry.currencies], key=lambda x: x[1])
 
 class Commission(models.Model):
-    CURRENCY_CHOICES = [
-        ('NPR', 'Nepalese Rupee'),
-        ('AUD', 'Australian Dollar'),
-        ('USD', 'US Dollar'),
-    ]
+    CURRENCY_CHOICES = get_currency_choices()
     
     organization = models.ForeignKey(
         Organization, on_delete=models.PROTECT, related_name='commissions'
