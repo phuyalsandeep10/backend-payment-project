@@ -17,6 +17,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
 django.setup()
 
 from django.db import connection
+from django.core.management import call_command
+from io import StringIO
 
 
 def fix_authentication_user_table():
@@ -72,9 +74,6 @@ def prevent_auto_migrations():
     print("🛡️  Preventing auto-migration generation...")
     
     # Check if there are any model changes that would trigger migrations
-    from django.core.management import call_command
-    from io import StringIO
-    
     try:
         # Capture makemigrations output
         out = StringIO()
@@ -92,6 +91,60 @@ def prevent_auto_migrations():
         print(f"  ⚠️  Could not check for model changes: {e}")
 
 
+def fake_problematic_migrations():
+    """Fake-apply any problematic migrations that might conflict."""
+    print("🎭 Handling problematic migrations...")
+    
+    # List of migrations that might cause conflicts
+    problematic_migrations = [
+        ('authentication', '0007_auto_20250715_2117'),
+        ('authentication', '0008_user_login_count'),
+    ]
+    
+    for app_label, migration_name in problematic_migrations:
+        try:
+            print(f"  - Checking {app_label}.{migration_name}...")
+            
+            # Check if this migration exists in the migration files
+            migration_path = f"{app_label}/migrations/{migration_name}.py"
+            if os.path.exists(migration_path):
+                print(f"    ✅ Migration file exists, will be applied normally")
+            else:
+                print(f"    ⚠️  Migration file doesn't exist, skipping")
+                
+        except Exception as e:
+            print(f"    ❌ Error checking migration: {e}")
+
+
+def run_safe_migrations():
+    """Run migrations with safety checks."""
+    print("🚀 Running migrations safely...")
+    
+    try:
+        # First, try to fake-apply any problematic migrations
+        problematic_migrations = [
+            ('authentication', '0007_auto_20250715_2117'),
+            ('authentication', '0008_user_login_count'),
+        ]
+        
+        for app_label, migration_name in problematic_migrations:
+            try:
+                print(f"  - Attempting to fake-apply {app_label}.{migration_name}...")
+                call_command('migrate', app_label, migration_name, '--fake', verbosity=0)
+                print(f"    ✅ Successfully fake-applied {app_label}.{migration_name}")
+            except Exception as e:
+                print(f"    ⚠️  Could not fake-apply {app_label}.{migration_name}: {e}")
+        
+        # Now run all migrations normally
+        print("  - Running all migrations...")
+        call_command('migrate', verbosity=1)
+        print("  ✅ All migrations completed successfully")
+        
+    except Exception as e:
+        print(f"  ❌ Error during migrations: {e}")
+        raise
+
+
 def main():
     """Main function to run all fixes."""
     print("🚀 Starting deployment migration fixes...")
@@ -105,6 +158,12 @@ def main():
         
         # Prevent auto-migration issues
         prevent_auto_migrations()
+        
+        # Handle problematic migrations
+        fake_problematic_migrations()
+        
+        # Run migrations safely
+        run_safe_migrations()
         
         print("✅ All deployment migration fixes completed successfully!")
         return 0

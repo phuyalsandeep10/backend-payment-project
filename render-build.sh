@@ -2,25 +2,27 @@
 # exit on error
 set -o errexit
 
-echo "🚀 Starting deployment build process..."
+echo "🚀 Starting Render deployment..."
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
-# Change to backend directory
-cd backend
+# Fix migration conflicts before running migrations
+echo "🔧 Fixing migration conflicts..."
+# python manage.py flush
 
+# Handle problematic migrations with fake
+# echo "🎭 Handling problematic migrations..."
+# python manage.py migrate authentication 0007_auto_20250715_2117 --fake || echo "Migration already applied or doesn't exist"
+# python manage.py migrate authentication 0008_user_login_count --fake || echo "Migration already applied or doesn't exist"
 
-
-echo "📁 Collecting static files..."
-python manage.py collectstatic --noinput
-python manage.py makemigrations
-
-echo "🎉 Fixing deployment migrations..."
-python scripts/fix_deployment_migrations.py
-python manage.py makemigrations
-python manage.py migrate authentication 0007_auto_20250715_2117 --fake
+# Run all migrations
+echo "🔄 Running all migrations..."
 python manage.py migrate
 
-echo "🎉 Build Complete!"
+# Collect static files
+echo "📁 Collecting static files..."
+python manage.py collectstatic --no-input
+
+echo "✅ Deployment completed successfully!"
