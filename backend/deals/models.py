@@ -72,6 +72,7 @@ class Deal(models.Model):
     version = models.CharField(max_length=10, choices=VERSION_CHOICES, default='original')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    payment_count = models.IntegerField(default=0, help_text="Number of payments made for this deal")
     
     
     def __str__(self):

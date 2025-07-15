@@ -367,7 +367,7 @@ SWAGGER_SETTINGS = {
 
 # Custom settings for management commands
 ADMIN_USER = env('ADMIN_USER', default='admin')
-ADMIN_PASS = env('ADMIN_PASS')
+ADMIN_PASS = env('ADMIN_PASS', default='Admin123')
 
 # Caching for better performance - using locmem for development
 CACHES = {
