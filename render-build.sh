@@ -20,6 +20,7 @@ python manage.py makemigrations
 echo "🎉 Fixing deployment migrations..."
 python scripts/fix_deployment_migrations.py
 python manage.py makemigrations
+python manage.py migrate authentication 0007_auto_20250715_2117 --fake
 python manage.py migrate
 
 echo "🎉 Build Complete!"
