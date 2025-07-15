@@ -1,70 +1,64 @@
 #!/bin/bash
-# exit on error
-set -o errexit
+# Safe startup script for Render deployment
+# Handles database connectivity issues gracefully
 
-# Install dependencies
+set -e  # Exit on any error
+
+echo "🚀 Starting PRS Backend on Render..."
+echo "=================================="
 
 cd backend
-# Collect static files
-# python manage.py collectstatic --no-input
+python debug_database.py
 
-# Function to check database connectivity
-check_database() {
-    echo "🔍 Checking database connectivity..."
-    python manage.py check --database default 2>/dev/null || {
-        echo "⚠️  Database not ready, waiting..."
-        return 1
-    }
-    echo "✅ Database is ready!"
-    return 0
+# Function to wait for database with timeout
+wait_for_database() {
+    echo "⏳ Waiting for database to be ready..."
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo "   Attempt $attempt/$max_attempts..."
+        
+        if test_db_connection; then
+            echo "✅ Database is ready!"
+            return 0
+        fi
+        
+        if [ $attempt -lt $max_attempts ]; then
+            echo "   Waiting 10 seconds before next attempt..."
+            sleep 10
+        fi
+        
+        ((attempt++))
+    done
+    
+    echo "❌ Database not ready after $max_attempts attempts"
+    return 1
 }
 
-# Wait for database to be ready (max 5 minutes)
-echo "🔄 Waiting for database to be ready..."
-for i in {1..30}; do
-    if check_database; then
-        break
-    fi
-    echo "⏳ Attempt $i/30 - Waiting 10 seconds..."
-    sleep 10
-done
 
-# Final database check
-if ! check_database; then
-    echo "❌ Database is not accessible after 5 minutes. Please check your database configuration."
-    echo "🔧 Make sure:"
-    echo "   - Database service is running"
-    echo "   - Environment variables are correct"
-    echo "   - Database and web service are properly linked"
-    exit 1
-fi
+python manage.py initialize_app --flush
+python manage.py generate_rich_test_data
+# Collect static files (doesn't require database)
+collect_static
 
-# Run database migrations
-echo "🔄 Running database migrations..."
-python manage.py migrate
-
-# Try to initialize app, but don't fail if it doesn't work
-echo "🚀 Attempting to initialize application..."
-if python manage.py initialize_app --flush 2>/dev/null; then
-    echo "✅ Application initialized successfully"
+# Run database operations
+if run_db_operations; then
+    echo "✅ Database operations completed successfully"
 else
-    echo "⚠️  Application initialization failed, continuing with basic setup..."
-    
-    # Try to create superuser
-    echo "👤 Setting up superuser..."
-    python manage.py setup_superadmin --noinput 2>/dev/null || echo "⚠️  Could not create superuser"
-    
-    # Try to setup permissions
-    echo "🔐 Setting up permissions..."
-    python manage.py setup_permissions 2>/dev/null || echo "⚠️  Could not setup permissions"
+    echo "❌ Database operations failed"
+    echo "🔧 Continuing anyway to allow manual setup..."
 fi
 
-# Generate test data only in development
-
-    
-python manage.py generate_rich_test_data 2>/dev/null || echo "⚠️  Could not generate test data"
-
+# Display final status
+echo ""
+echo "=================================="
+echo "🎉 Application startup completed!"
+echo "   Database type: $db_type"
+echo "   Debug mode: $DEBUG"
+echo "   Port: $PORT"
+echo "=================================="
 
 # Start the application
-echo "🚀 Starting the application..."
-gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT
+echo "🚀 Starting Gunicorn server..."
+exec gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 
