@@ -80,6 +80,7 @@ class User(AbstractUser):
     # Frontend compatibility fields
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     must_change_password = models.BooleanField(default=False, help_text="Require user to change password at next login")
+    login_count = models.IntegerField(default=0)
 
     # Advanced features
     sales_target = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)

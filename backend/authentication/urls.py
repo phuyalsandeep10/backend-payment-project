@@ -25,6 +25,7 @@ urlpatterns = [
     path('password/change/', password_change_view, name='password_change'),
     path('users/notification-preferences/', UserNotificationPreferencesView.as_view(), name='notification_prefs'),
     path('users/set-sales-target/', views.set_sales_target_view, name='set_sales_target'),
+    path('users/login-stats/', views.login_stats_view, name='login_stats'),
     path('test-email-outbox/', test_email_outbox_view, name='test_email_outbox'),
     # Routers for viewsets
     path('', include(router.urls)),
@@ -32,11 +33,8 @@ urlpatterns = [
     
     # ==================== AUTHENTICATION ENDPOINTS ====================
     # Login endpoints
-    re_path(r'^login/?$', views.direct_login_view, name='direct_login'),
-    re_path(r'^login/super-admin/?$', views.super_admin_login_view, name='super_admin_login'),
-    re_path(r'^login/super-admin/verify/?$', views.super_admin_verify_view, name='super_admin_verify'),
-    re_path(r'^login/org-admin/?$', views.org_admin_login_view, name='org_admin_login'),
-    re_path(r'^login/org-admin/verify/?$', views.org_admin_verify_view, name='org_admin_verify'),
+    re_path(r'^login/?$', views.login_view, name='login'),
+    re_path(r'^login/verify-otp/?$', views.verify_otp_view, name='verify_otp'),
     
     # Registration & Logout
     re_path(r'^register/?$', views.register_view, name='register'),

@@ -254,111 +254,124 @@ def logout_view(request):
 @permission_classes([AllowAny])
 @authentication_classes([])
 @csrf_exempt
-def direct_login_view(request):
-    """Logs in a user directly without OTP. For development/testing."""
+def login_view(request):
+    """
+    Unified login endpoint that handles different user roles:
+    - Super Admin & Organization Admin: Sends OTP for verification
+    - Other users (Salesperson, Verifier, etc.): Direct login with token
+    """
     serializer = UserLoginSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.validated_data['user']
-        user.last_login = timezone.now()
-        user.save(update_fields=['last_login'])
-        token, _ = Token.objects.get_or_create(user=user)
-        _create_user_session(request, user, token.key)
-        try:
-            calculate_streaks_for_user_login(user)
-        except Exception as e:
-            security_logger.error(f"Streak calculation failed for user {user.email}: {e}")
-        return Response(AuthSuccessResponseSerializer({'token': token.key, 'user': user}).data, status=status.HTTP_200_OK)
+        
+        # Check if user is Super Admin or Organization Admin
+        is_admin = (
+            user.is_superuser or 
+            (user.role and (
+                'super' in user.role.name.lower() or 
+                'admin' in user.role.name.lower()
+            ))
+        )
+        
+        if is_admin:
+            # Send OTP for admin users
+            otp = generate_otp()
+            cache.set(f'otp:{user.id}', otp, timeout=300)  # 5 minutes
+            send_otp_email(user.email, otp)
+            
+            user_type = 'super_admin' if user.is_superuser else 'org_admin'
+            return Response({
+                'message': 'OTP sent to your email',
+                'requires_otp': True, 
+                'user_type': user_type,
+                'email': user.email
+            }, status=status.HTTP_200_OK)
+        else:
+            # Direct login for non-admin users
+            user.last_login = timezone.now()
+            user.login_count += 1
+            user.save(update_fields=['last_login', 'login_count'])
+            token, _ = Token.objects.get_or_create(user=user)
+            _create_user_session(request, user, token.key)
+            
+            try:
+                calculate_streaks_for_user_login(user)
+            except Exception as e:
+                security_logger.error(f"Streak calculation failed for user {user.email}: {e}")
+            
+            return Response(AuthSuccessResponseSerializer({
+                'token': token.key, 
+                'user': user,
+                'requires_otp': False
+            }).data, status=status.HTTP_200_OK)
+    
     return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
 
+@swagger_auto_schema(method='post', request_body=OTPSerializer, responses={200: AuthSuccessResponseSerializer, 400: ErrorResponseSerializer}, tags=['Authentication'])
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
 @csrf_exempt
-def super_admin_login_view(request):
-    """Step 1: Super-admin submits email & password – system emails OTP."""
-    email = request.data.get('email')
-    password = request.data.get('password')
-    user = authenticate(request, username=email, password=password)
-    if not user or not user.is_active or not (user.is_superuser or (user.role and 'super' in user.role.name.lower())):
-        return Response({'error': 'Invalid credentials or not a super admin'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    otp = generate_otp()
-    cache.set(f'otp:{user.id}', otp, timeout=300)  # 5 minutes
-    send_otp_email(user.email, otp)
-    return Response({'message': 'OTP sent', 'requires_otp': True, 'user_type': 'super_admin'}, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@authentication_classes([])
-@csrf_exempt
-def super_admin_verify_view(request):
-    """Step 2: Super-admin submits OTP – system returns token or requests password change."""
+def verify_otp_view(request):
+    """
+    Verify OTP for admin users and complete login process
+    """
     email = request.data.get('email')
     otp = request.data.get('otp')
+    
     if not all([email, otp]):
         return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
+    
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Verify user is actually an admin
+    is_admin = (
+        user.is_superuser or 
+        (user.role and (
+            'super' in user.role.name.lower() or 
+            'admin' in user.role.name.lower()
+        ))
+    )
+    
+    if not is_admin:
+        return Response({'error': 'OTP verification is only for admin users'}, status=status.HTTP_400_BAD_REQUEST)
+
     if cache.get(f'otp:{user.id}') != otp:
         return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
+    
     cache.delete(f'otp:{user.id}')
 
     if user.must_change_password:
         tmp_token = secrets.token_urlsafe(32)
         cache.set(f'tmp:{user.id}', tmp_token, timeout=600)  # 10 minutes
-        return Response({'requires_password_change': True, 'temporary_token': tmp_token, 'user_type': 'super_admin'}, status=status.HTTP_200_OK)
+        user_type = 'super_admin' if user.is_superuser else 'org_admin'
+        return Response({
+            'requires_password_change': True, 
+            'temporary_token': tmp_token, 
+            'user_type': user_type,
+            'email': user.email
+        }, status=status.HTTP_200_OK)
 
+    # Complete login process
+    user.last_login = timezone.now()
+    user.login_count += 1
+    user.save(update_fields=['last_login', 'login_count'])
     token, _ = Token.objects.get_or_create(user=user)
     _create_user_session(request, user, token.key)
-    return Response({'token': token.key, 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@authentication_classes([])
-@csrf_exempt
-def org_admin_login_view(request):
-    """Step 1: Org Admin submits email & password – system emails OTP."""
-    email = request.data.get('email')
-    password = request.data.get('password')
-    user = authenticate(request, username=email, password=password)
-    if not user or not user.is_active or not (user.role and 'admin' in user.role.name.lower()):
-        return Response({'error': 'Invalid credentials or not an admin'}, status=status.HTTP_401_UNAUTHORIZED)
     
-    otp = generate_otp()
-    cache.set(f'otp:{user.id}', otp, timeout=300)
-    send_otp_email(user.email, otp)
-    return Response({'message': 'OTP sent', 'requires_otp': True, 'user_type': 'org_admin'}, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@authentication_classes([])
-@csrf_exempt
-def org_admin_verify_view(request):
-    """Step 2: Org Admin submits OTP – system returns token or requests password change."""
-    email = request.data.get('email')
-    otp = request.data.get('otp')
-    if not all([email, otp]):
-        return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
-        return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if cache.get(f'otp:{user.id}') != otp:
-        return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
-    cache.delete(f'otp:{user.id}')
-
-    if user.must_change_password:
-        tmp_token = secrets.token_urlsafe(32)
-        cache.set(f'tmp:{user.id}', tmp_token, timeout=600)
-        return Response({'requires_password_change': True, 'temporary_token': tmp_token, 'user_type': 'org_admin'}, status=status.HTTP_200_OK)
-
-    token, _ = Token.objects.get_or_create(user=user)
-    _create_user_session(request, user, token.key)
-    return Response({'token': token.key, 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
+        calculate_streaks_for_user_login(user)
+    except Exception as e:
+        security_logger.error(f"Streak calculation failed for user {user.email}: {e}")
+    
+    return Response(AuthSuccessResponseSerializer({
+        'token': token.key, 
+        'user': user,
+        'requires_otp': False
+    }).data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -382,7 +395,8 @@ def password_change_with_token_view(request):
 
     user.set_password(new_password)
     user.must_change_password = False
-    user.save(update_fields=['password', 'must_change_password'])
+    user.login_count += 1
+    user.save(update_fields=['password', 'must_change_password', 'login_count'])
     cache.delete(f'tmp:{user.id}')
     
     token, _ = Token.objects.get_or_create(user=user)
@@ -401,6 +415,16 @@ def health_check(request):
         'timestamp': timezone.now().isoformat(),
         'cors_enabled': getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False),
     })
+
+@swagger_auto_schema(method='get', responses={200: "Login Statistics"}, tags=['User Profile'])
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def login_stats_view(request):
+    """Get login statistics for the authenticated user."""
+    from authentication.utils import get_user_login_stats
+    
+    stats = get_user_login_stats(request.user)
+    return Response(stats, status=status.HTTP_200_OK)
 
 class UserNotificationPreferencesView(generics.RetrieveUpdateAPIView):
     """Retrieve or update the authenticated user's notification preferences."""

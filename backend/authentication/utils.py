@@ -2,6 +2,7 @@ import random
 
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils import timezone
 
 def generate_otp(length: int = 6) -> str:
     """Generate a numeric one-time password (OTP)."""
@@ -26,4 +27,25 @@ def send_temporary_password_email(email: str, temp_password: str) -> None:
         f'Temporary password: {temp_password}\n\n'
         'Use this password to log in and then change it immediately.'
     )
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=True) 
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=True)
+
+
+def get_user_login_stats(user):
+    """
+    Get login statistics for a user.
+    """
+    return {
+        'login_count': user.login_count,
+        'last_login': user.last_login,
+        'date_joined': user.date_joined,
+        'days_since_joined': (timezone.now() - user.date_joined).days if user.date_joined else 0,
+        'days_since_last_login': (timezone.now() - user.last_login).days if user.last_login else None,
+    }
+
+def increment_login_count(user):
+    """
+    Increment the login count for a user.
+    """
+    user.login_count += 1
+    user.save(update_fields=['login_count'])
+    return user.login_count 

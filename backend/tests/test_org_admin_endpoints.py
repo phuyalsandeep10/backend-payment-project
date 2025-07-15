@@ -61,16 +61,29 @@ def run_test(method, endpoint, headers, expected_status, json_data=None, params=
         return None
 
 def authenticate(email, password):
-    """Authenticates a user and returns the token."""
+    """Authenticates a user with email, password, and OTP, returning the token."""
     print_header("Authentication")
     auth_data = {"email": email, "password": password}
     response_data = run_test("POST", "/auth/login/", {}, 200, json_data=auth_data)
-    if response_data and response_data.get("token"):
-        print(f"{colors.OKGREEN}Successfully authenticated.{colors.ENDC}")
-        return {"Authorization": f"Token {response_data['token']}"}
+    
+    if response_data and response_data.get("requires_otp"):
+        print(f"{colors.OKBLUE}OTP sent to console or email. Please check and enter the OTP below.{colors.ENDC}")
+        otp = input("Enter OTP: ").strip()
+        
+        # Verify OTP
+        otp_data = {"email": email, "otp": otp}
+        otp_response = run_test("POST", "/auth/login/verify-otp/", {}, 200, json_data=otp_data)
+        
+        if otp_response and otp_response.get("token"):
+            print(f"{colors.OKGREEN}Successfully authenticated with OTP.{colors.ENDC}")
+            return {"Authorization": f"Token {otp_response['token']}"}
+        else:
+            print(f"{colors.FAIL}OTP verification failed.{colors.ENDC}")
+            exit(1)
     else:
-        print(f"{colors.FAIL}Authentication failed.{colors.ENDC}")
+        print(f"{colors.FAIL}Authentication failed: No OTP session received.{colors.ENDC}")
         exit(1)
+
 
 def get_organization_id(headers):
     """Fetches the ID for the 'Innovate Inc.' organization."""
@@ -156,9 +169,9 @@ def test_org_admin_endpoints(headers):
     # Should not be able to access Verifier Dashboard
     run_test("GET", "/verifier/dashboard/", headers, 403)
     # Should not be able to create a deal with invalid data (should fail with 400 due to missing required fields)
-    run_test("POST", "/deals/", headers, 405, json_data={
-    "client_id": 1, "deal_name": "Illegal Deal", "deal_value": "100", "payment_status": "initial payment"
-})
+    run_test("POST", "/deals/deals/", headers, 400, json_data={
+        "client_id": 1, "deal_name": "Illegal Deal", "deal_value": "100", "payment_status": "initial payment"
+    })
 
 
 if __name__ == "__main__":

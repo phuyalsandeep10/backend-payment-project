@@ -41,7 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'status', 'address', 'phoneNumber'
+            'status', 'address', 'phoneNumber', 'login_count'
         ]
         read_only_fields = ['organization_name']
 
@@ -257,7 +257,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'address', 'status', 'phoneNumber'
+            'address', 'status', 'phoneNumber', 'login_count'
         )
 
     def get_teams(self, obj):

@@ -5,24 +5,20 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
-# Step 1: Run migrations FIRST to ensure the database schema is up to date
-echo "🔄 Running database migrations..."
-python manage.py migrate
-
-# Step 2: Flush existing data and create base structure
+# Step 1: Flush existing data and create base structure
 echo "🔄 Flushing existing data and creating base structure..."
 python manage.py initialize_app --flush
 echo "✅ Base data structure created!"
 
-# Step 3: Fix deployment permission issues comprehensively
+# Step 2: Fix deployment permission issues comprehensively
 echo "🔧 Fixing deployment permissions..."
 python manage.py fix_deployment_permissions
 
-# Step 4: Verify that all users have proper permissions
+# Step 3: Verify that all users have proper permissions
 echo "🔍 Verifying user permissions..."
 python manage.py check_permissions
 
-# Step 5: Generate additional rich, varied data for comprehensive testing
+# Step 4: Generate additional rich, varied data for comprehensive testing
 echo "📊 Generating additional rich test data..."
 python manage.py generate_rich_test_data --deals 30 --clients 5 --projects 3
 

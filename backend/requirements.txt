@@ -58,6 +58,7 @@ charset-normalizer==3.4.2
 idna==3.10
 inflection==0.5.1
 packaging==25.0
+pycountry==24.6.1
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 pytz==2025.2

@@ -6,8 +6,8 @@ router = DefaultRouter()
 router.register(r'', OrganizationViewSet, basename='organization')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('register/', OrganizationRegistrationView.as_view(), name='organization-register'),
     path('create_with_admin/', OrganizationWithAdminCreateView.as_view(), name='organization-create-with-admin'),
     path('get-innovate-id/', get_innovate_organization_id, name='get-innovate-id'),
+    path('', include(router.urls)),
 ] 

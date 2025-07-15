@@ -65,7 +65,22 @@ def authenticate(email, password):
     print_header("Authentication")
     auth_data = {"email": email, "password": password}
     response_data = run_test("POST", "/auth/login/", {}, 200, json_data=auth_data)
-    if response_data and response_data.get("token"):
+    
+    if response_data and response_data.get("requires_otp"):
+        print(f"{colors.OKBLUE}OTP sent to console or email. Please check and enter the OTP below.{colors.ENDC}")
+        otp = input("Enter OTP: ").strip()
+        
+        # Verify OTP
+        otp_data = {"email": email, "otp": otp}
+        otp_response = run_test("POST", "/auth/login/verify-otp/", {}, 200, json_data=otp_data)
+        
+        if otp_response and otp_response.get("token"):
+            print(f"{colors.OKGREEN}Successfully authenticated with OTP.{colors.ENDC}")
+            return {"Authorization": f"Token {otp_response['token']}"}
+        else:
+            print(f"{colors.FAIL}OTP verification failed.{colors.ENDC}")
+            exit(1)
+    elif response_data and response_data.get("token"):
         print(f"{colors.OKGREEN}Successfully authenticated.{colors.ENDC}")
         return {"Authorization": f"Token {response_data['token']}"}
     else:
@@ -114,6 +129,7 @@ def test_super_admin_endpoints(headers):
         "name": f"New Org {timestamp}",
         "description": "A test org created by Super Admin",
         "admin_email": f"orgadmin_{timestamp}@example.com",
+        "admin_username": f"orgadmin_{timestamp}",
         "admin_first_name": "Org",
         "admin_last_name": "Admin",
         "admin_password": "password1234"

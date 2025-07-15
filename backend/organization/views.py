@@ -137,6 +137,10 @@ class OrganizationWithAdminCreateView(APIView):
             return Response(resp_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def get(self, request):
+        """Handle GET requests (for schema generation)"""
+        return Response({"detail": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 # ==================== Frontend top-level alias ====================
 
 @api_view(['GET', 'POST'])
