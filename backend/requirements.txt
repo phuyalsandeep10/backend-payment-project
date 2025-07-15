@@ -74,3 +74,5 @@ ua-parser-builtins==0.18.0.post1
 uritemplate==4.2.0
 urllib3==2.5.0
 user-agents==2.2.0
+channels==4.0.0
+daphne==4.0.0

@@ -9,8 +9,31 @@ from team.models import Team
 from project.models import Project
 from commission.models import Commission
 from .services import NotificationService
+from .serializers import NotificationSerializer
 from django.db.models import Q
 from notifications.models import Notification
+from asgiref.sync import async_to_sync
+
+@receiver(post_save, sender=Notification)
+def send_live_notification(sender, instance, created, **kwargs):
+    """Send live notification to the user via WebSocket when a notification is created."""
+    if created:
+        channel_layer = get_channel_layer()
+        group_name = f'notifications_{instance.recipient.id}'
+        
+        # Serialize the notification data
+        serializer = NotificationSerializer(instance)
+        notification_data = serializer.data
+        
+        # The event dictionary must have a 'type' key that corresponds to a method in the consumer
+        event = {
+            'type': 'send_notification',  # This will call the 'send_notification' method in the consumer
+            'notification': notification_data
+        }
+        
+        async_to_sync(channel_layer.group_send)(group_name, event)
+from channels.layers import get_channel_layer
+import json
 
 User = get_user_model()
 
@@ -231,3 +254,28 @@ def notify_new_organization(sender, instance, created, **kwargs):
             related_object_id=instance.id,
             send_email_to_superadmin=True
         ) 
+
+@receiver(post_save, sender=Notification)
+def send_notification_ws(sender, instance, created, **kwargs):
+    if created:
+        print(f"[DEBUG] Signal triggered for notification {instance.id}")
+        channel_layer = get_channel_layer()
+        group_name = f"notifications_{instance.recipient_id}"  # Per-user group
+        notification_data = {
+            "id": instance.id,
+            "title": instance.title,
+            "message": instance.message,
+            "notification_type": instance.notification_type,
+            "priority": instance.priority,
+            "category": instance.category,
+            "is_read": instance.is_read,
+            "created_at": instance.created_at.isoformat(),
+        }
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "send_notification",
+                "notification": notification_data,
+            }
+        )
+        print(f"[DEBUG] group_send called for notification {instance.id}") 

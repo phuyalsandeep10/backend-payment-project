@@ -33,7 +33,14 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         """List notifications with optional filtering."""
         queryset = self.get_queryset()
-        
+
+        # DEBUG: Print current user and queryset SQL
+        import logging
+        logger = logging.getLogger("notifications.debug")
+        logger.warning(f"[DEBUG] request.user: id={request.user.id}, email={request.user.email}")
+        logger.warning(f"[DEBUG] queryset SQL: {str(queryset.query)}")
+        logger.warning(f"[DEBUG] queryset count: {queryset.count()}")
+
         # Filter by read status
         unread_only = request.query_params.get('unread_only', 'false').lower() == 'true'
         if unread_only:

@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     # third party apps
     'rest_framework',
     'rest_framework.authtoken',
+    'channels',
     'corsheaders',
     'drf_yasg',
     'cloudinary',
@@ -197,6 +198,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "core_config.wsgi.application"
+ASGI_APPLICATION = 'core_config.asgi.application'
 
 
 # Database
@@ -299,7 +301,17 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Channels
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
@@ -473,4 +485,13 @@ else:
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
     EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
     EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
