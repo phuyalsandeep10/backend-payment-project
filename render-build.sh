@@ -6,7 +6,8 @@ echo "🚀 Starting deployment build process..."
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
+
 
 # Change to backend directory
 cd backend
