@@ -35,9 +35,31 @@ class VerifierInvoiceSerializer(serializers.ModelSerializer):
     
     
 class VerifierDealSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.client_name', read_only=True)
+    pay_status = serializers.CharField(source='payment_status', read_only=True)
+    payments_read = serializers.SerializerMethodField()
+    
     class Meta:
-        model = DealSerializer.Meta.model
-        fields = DealSerializer.Meta.fields
+        model = Deal
+        fields = [
+            'id', 'deal_id', 'organization', 'client', 'created_by', 
+            'updated_by', 'payment_status', 'verification_status', 'client_status', 'source_type', 
+            'deal_value', 'deal_date', 'due_date', 'payment_method', 'deal_remarks', 
+            'version', 'deal_name', 'currency', 'created_at', 'updated_at',
+            # Aliases
+            'client_name', 'pay_status',
+            # Payment details
+            'payments_read'
+        ]
+        read_only_fields = [
+            'id', 'deal_id', 'organization', 'created_by', 'updated_by', 
+            'payment_status', 'verification_status', 'client_status', 'created_at', 'updated_at',
+            'client_name', 'pay_status', 'payments_read'
+        ]
+    
+    def get_payments_read(self, obj):
+        from deals.serializers import PaymentSerializer
+        return PaymentSerializer(obj.payments.all(), many=True).data
     
     
 class PaymentFailureReasonSerializer(serializers.Serializer):

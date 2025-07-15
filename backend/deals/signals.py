@@ -35,28 +35,7 @@ def log_deal_activity(sender, instance, created, **kwargs):
     ActivityLog = apps.get_model('deals', 'ActivityLog')
     if created:
         ActivityLog.objects.create(deal=instance, message=f"Deal created for {instance.client.client_name}.")
-        
-        # Create initial payment record for the deal
-        Payment = apps.get_model('deals', 'Payment')
-        try:
-            # Create an initial payment record based on deal's payment status
-            initial_payment = Payment.objects.create(
-                deal=instance,
-                payment_date=instance.deal_date,  # Use deal date as payment date
-                received_amount=instance.deal_value,  # Use full deal value
-                payment_type=instance.payment_method,  # Use deal's payment method
-                payment_remarks=f"Initial payment for deal {instance.deal_id}",
-                cheque_number="",  # Empty for initial payment
-            )
-            # Log the initial payment creation
-            ActivityLog.objects.create(
-                deal=instance, 
-                message=f"Initial payment of {instance.deal_value} created for deal {instance.deal_id}."
-            )
-        except Exception as e:
-            # Log error but don't fail the deal creation
-            logging.error(f"Failed to create initial payment for deal {instance.deal_id}: {e}")
-            # Don't raise the exception to avoid breaking deal creation
+        # Removed auto-payment creation since payments are now handled by DealSerializer
     else:
         cached_state = _pre_save_deal_cache.get(instance.pk)
         if cached_state:
