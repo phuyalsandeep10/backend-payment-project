@@ -15,5 +15,11 @@ cd backend
 
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
+python manage.py makemigrations
+
+echo "🎉 Fixing deployment migrations..."
+python scripts/fix_deployment_migrations.py
+python manage.py makemigrations
+python manage.py migrate
 
 echo "🎉 Build Complete!"

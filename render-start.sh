@@ -5,10 +5,6 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
-echo "🔄 Running database migrations..."
-# python manage.py nuclear_reset_db --force
-python manage.py makemigrations
-python manage.py migrate
 
 echo "🧹 Cleaning up duplicate permissions (safe)..."
 python manage.py cleanup_permissions
