@@ -99,42 +99,42 @@ setup_sqlite_fallback() {
 run_db_operations() {
     echo "🔄 Running database operations..."
     
-    # Run migrations
-    echo "   Running migrations..."
-    if python manage.py migrate --noinput; then
-        echo "   ✅ Migrations completed"
+    # Step 1: Check and run migrations (critical!)
+    echo "   Step 1: Checking and running migrations..."
+    if python check_and_run_migrations.py; then
+        echo "   ✅ Migrations completed successfully"
     else
-        echo "   ❌ Migrations failed"
+        echo "   ❌ Migrations failed - this is critical!"
         return 1
     fi
     
-    # Setup superuser
-    echo "   Setting up superuser..."
+    # Step 2: Setup superuser
+    echo "   Step 2: Setting up superuser..."
     if python manage.py setup_superadmin --noinput; then
         echo "   ✅ Superuser setup completed"
     else
         echo "   ⚠️  Superuser setup failed (may already exist)"
     fi
     
-    # Setup permissions
-    echo "   Setting up permissions..."
+    # Step 3: Setup permissions
+    echo "   Step 3: Setting up permissions..."
     if python manage.py setup_permissions; then
         echo "   ✅ Permissions setup completed"
     else
         echo "   ⚠️  Permissions setup failed (may already exist)"
     fi
     
-    # Initialize app
-    echo "   Initializing application..."
+    # Step 4: Initialize app (only if tables exist)
+    echo "   Step 4: Initializing application..."
     if python manage.py initialize_app --flush; then
         echo "   ✅ Application initialization completed"
     else
         echo "   ⚠️  Application initialization failed (may already be initialized)"
     fi
     
-    # Generate test data only in development
+    # Step 5: Generate test data only in development
     if [ "$DEBUG" = "True" ]; then
-        echo "   Generating test data..."
+        echo "   Step 5: Generating test data..."
         if python manage.py generate_rich_test_data; then
             echo "   ✅ Test data generated"
         else

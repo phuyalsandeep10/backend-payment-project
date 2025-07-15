@@ -81,6 +81,31 @@ DEBUG=False
 ## 🎯 Most Likely Cause
 The database service is still initializing. PostgreSQL databases on Render take 2-5 minutes to be ready. The safe startup script handles this automatically.
 
+## 🆕 New Issue: Missing Database Tables
+If you see errors like `relation "notifications_notification" does not exist`, it means:
+- Database connection is working ✅
+- But database tables don't exist yet ❌
+- Migrations need to be run first
+
+### Quick Fix for Missing Tables:
+1. **Use the safe startup script** (recommended):
+   - Set Start Command to: `./render-start-safe.sh`
+   - This automatically runs migrations before other operations
+
+2. **Manual fix** (if needed):
+   ```bash
+   # Run migrations first
+   python manage.py migrate
+   
+   # Then run initialization
+   python manage.py initialize_app
+   ```
+
+3. **Fresh database reset** (if tables are corrupted):
+   ```bash
+   python backend/reset_database.py
+   ```
+
 ## 📞 Need Help?
 1. Run `python backend/debug_database.py` for detailed diagnostics
 2. Check the Render service logs
@@ -90,5 +115,7 @@ The database service is still initializing. PostgreSQL databases on Render take 
 ## 🚀 Files Created/Updated
 - `render-start-safe.sh` - New safe startup script
 - `backend/debug_database.py` - Comprehensive diagnostics
+- `backend/check_and_run_migrations.py` - Migration checker and runner
+- `backend/reset_database.py` - Database reset tool
 - `setup_render_env.py` - Environment setup helper
 - `DEPLOYMENT_TROUBLESHOOTING.md` - Updated troubleshooting guide 
