@@ -14,6 +14,7 @@ from .permissions import IsOrganizationMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from permissions.permissions import IsSuperAdmin
+from permissions.utils import assign_all_permissions_to_roles
 
 # Create your views here.
 
@@ -72,6 +73,9 @@ class OrganizationRegistrationView(APIView):
             description=validated_data.get('description', ''),
             created_by=None  # A super-admin can be assigned this later if needed
         )
+
+        # Assign all permissions to all roles for this org
+        assign_all_permissions_to_roles(organization)
 
         # Step 3: Create the admin User for the Organization.
         admin_user = User.objects.create_user(

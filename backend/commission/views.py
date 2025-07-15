@@ -327,7 +327,7 @@ class OrgAdminCommissionView(APIView):
 
 class CurrencyListView(APIView):
     """Get all supported currencies with their details."""
-    permission_classes = [IsOrgAdminOrSuperAdmin]
+    permission_classes = []  # No permissions required - accessible to all users
 
     def get(self, request):
         """Return top 50 most used currencies with their details."""

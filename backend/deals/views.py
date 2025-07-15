@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
 from .serializers import (
-    DealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer,
+    DealSerializer, SalespersonDealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer,
     PaymentInvoiceSerializer, PaymentApprovalSerializer
 )
 from .permissions import HasPermission
@@ -22,6 +22,17 @@ class DealViewSet(viewsets.ModelViewSet):
     search_fields = ['deal_id', 'deal_name', 'client__client_name']
     ordering_fields = ['deal_date', 'due_date', 'deal_value', 'created_at']
     ordering = ['-created_at']
+
+    def get_serializer_class(self):
+        """
+        Use SalespersonDealSerializer for salesperson users to include payments_read field.
+        """
+        user = self.request.user
+        if hasattr(user, 'role') and user.role:
+            role_name = user.role.name.strip().replace('-', ' ').lower()
+            if 'salesperson' in role_name or 'sales' in role_name:
+                return SalespersonDealSerializer
+        return DealSerializer
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
@@ -72,7 +83,7 @@ class DealViewSet(viewsets.ModelViewSet):
         verification information and a full payment history.
         """
         deal = self.get_object()
-        serializer = self.get_serializer(deal)
+        serializer = DealExpandedViewSerializer(deal)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path='log-activity', serializer_class=ActivityLogSerializer)

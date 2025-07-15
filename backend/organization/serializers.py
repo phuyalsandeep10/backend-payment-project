@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Organization
 from authentication.models import User
 from permissions.models import Role
+from permissions.utils import assign_all_permissions_to_roles
 
 class OrganizationSerializer(serializers.ModelSerializer):
     """
@@ -10,15 +11,24 @@ class OrganizationSerializer(serializers.ModelSerializer):
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
     user_count = serializers.IntegerField(source='users.count', read_only=True)
     role_count = serializers.IntegerField(source='roles.count', read_only=True)
+    admin_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = [
             'id', 'name', 'description', 'is_active', 
             'created_at', 'created_by', 'created_by_username',
-            'user_count', 'role_count'
+            'user_count', 'role_count', 'admin_email'
         ]
-        read_only_fields = ['created_by', 'created_by_username', 'user_count', 'role_count']
+        read_only_fields = ['created_by', 'created_by_username', 'user_count', 'role_count', 'admin_email']
+
+    def get_admin_email(self, obj):
+        """Get the email of the organization admin."""
+        try:
+            admin_user = obj.users.filter(role__name='Organization Admin').first()
+            return admin_user.email if admin_user else None
+        except:
+            return None
 
 class OrganizationRegistrationSerializer(serializers.Serializer):
     """
@@ -76,12 +86,15 @@ class OrganizationWithAdminSerializer(serializers.Serializer):
         for role_name in default_roles:
             Role.objects.get_or_create(name=role_name, organization=org)
         
+        # Assign all permissions to all roles for this org
+        assign_all_permissions_to_roles(org)
+        
         # Get the Org Admin role for this org
         org_admin_role = Role.objects.get(name='Organization Admin', organization=org)
         
         # Create the admin user for the organization
         admin_user = User.objects.create_user(
-            username=validated_data['admin_username'],
+            username=validated_data['admin_email'],  # Use email as username
             email=validated_data['admin_email'],
             password=validated_data['admin_password'],
             first_name=validated_data.get('admin_first_name', ''),
@@ -90,4 +103,4 @@ class OrganizationWithAdminSerializer(serializers.Serializer):
             role=org_admin_role,
             is_active=True
         )
-        return org
+        return {'organization': org, 'admin_user': admin_user}

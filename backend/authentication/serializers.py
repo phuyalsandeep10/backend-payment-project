@@ -41,7 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'status', 'address', 'phoneNumber', 'login_count'
+            'status', 'address', 'phoneNumber'
         ]
         read_only_fields = ['organization_name']
 
@@ -106,11 +106,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from django.utils.crypto import get_random_string
         logger = logging.getLogger('django')
-        logger.info(f"[UserCreateSerializer] Creating user with data: {validated_data}")
+        logger.info("[UserCreateSerializer] Creating user with data: %r", validated_data)
         try:
-            role_data = validated_data.pop('role', None)
+            # Convert organization id to Organization instance if needed
             organization = validated_data.get('organization')
+            if isinstance(organization, int):
+                organization = Organization.objects.get(pk=organization)
+                validated_data['organization'] = organization
 
+            role_data = validated_data.pop('role', None)
             # Normalize role input
             if isinstance(role_data, str):
                 role_key = role_data.strip().lower()
@@ -257,7 +261,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'address', 'status', 'phoneNumber', 'login_count'
+            'address', 'status', 'phoneNumber'
         )
 
     def get_teams(self, obj):

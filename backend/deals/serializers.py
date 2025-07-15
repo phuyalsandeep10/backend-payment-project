@@ -4,6 +4,8 @@ from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
 from authentication.serializers import UserLiteSerializer
 from clients.serializers import ClientLiteSerializer
 from clients.models import Client
+from django.apps import apps
+from django.core.exceptions import ValidationError
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     """
@@ -213,6 +215,34 @@ class PaymentSerializer(serializers.ModelSerializer):
             print("DEBUG: Full traceback:", traceback.format_exc())
             raise serializers.ValidationError(f"Unexpected error: {str(e)}")
 
+class NestedPaymentSerializer(serializers.ModelSerializer):
+    """Simplified payment serializer for nested use in DealSerializer"""
+    payment_method = serializers.CharField(source='payment_type', required=False)  # Make it optional
+    
+    class Meta:
+        model = Payment
+        fields = [
+            'payment_date', 'received_amount', 'cheque_number', 
+            'payment_method', 'payment_remarks'
+        ]
+    
+    def validate_cheque_number(self, value):
+        """Validate that cheque number is unique within the organization"""
+        if value:
+            # Get the organization from the context (set in DealSerializer)
+            organization = self.context.get('organization')
+            if organization:
+                # Check if this cheque number already exists in the organization
+                Payment = apps.get_model('deals', 'Payment')
+                if Payment.objects.filter(
+                    deal__organization=organization,
+                    cheque_number=value
+                ).exists():
+                    raise serializers.ValidationError(
+                        f"Cheque number '{value}' already exists in your organization. Please use a different cheque number."
+                    )
+        return value
+
 class DealSerializer(serializers.ModelSerializer):
     """
     Serializer for the Deal model, used for both read and write operations.
@@ -223,7 +253,7 @@ class DealSerializer(serializers.ModelSerializer):
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(), source='client', write_only=True
     )
-    payments = serializers.SerializerMethodField()
+    payments = NestedPaymentSerializer(many=True, required=False, write_only=True)
     activity_logs = ActivityLogSerializer(many=True, read_only=True)
 
     # Aliases expected by FE table
@@ -234,6 +264,9 @@ class DealSerializer(serializers.ModelSerializer):
     total_paid = serializers.SerializerMethodField()
     remaining_balance = serializers.SerializerMethodField()
     payment_progress = serializers.SerializerMethodField()
+    
+    # Add payments_read field for all users
+    payments_read = serializers.SerializerMethodField()
 
     class Meta:
         model = Deal
@@ -245,25 +278,87 @@ class DealSerializer(serializers.ModelSerializer):
             # Aliases
             'client_name', 'pay_status',
             # Payment tracking
-            'total_paid', 'remaining_balance', 'payment_progress'
+            'total_paid', 'remaining_balance', 'payment_progress',
+            # Payment details
+            'payments_read'
         ]
         read_only_fields = [
-            'organization', 'deal_id', 'created_by', 'updated_by'
+            'id', 'deal_id', 'organization', 'created_by', 'updated_by', 
+            'payment_status', 'verification_status', 'client_status', 'created_at', 'updated_at',
+            'client_name', 'pay_status', 'total_paid', 'remaining_balance', 'payment_progress', 'payments_read'
         ]
 
-    def get_payments(self, obj):
-        """Get payments ordered by creation date to ensure correct First/Second/Third order"""
-        payments = obj.payments.all().order_by('created_at')
-        return PaymentSerializer(payments, many=True, context=self.context).data
-    
+    def create(self, validated_data):
+        payments_data = validated_data.pop('payments', [])
+        deal = super().create(validated_data)
+        Payment = apps.get_model('deals', 'Payment')
+        ActivityLog = apps.get_model('deals', 'ActivityLog')
+        
+        # Validate payments with organization context
+        for payment_info in payments_data:
+            # Create a temporary serializer instance to validate the payment data
+            payment_serializer = NestedPaymentSerializer(
+                data=payment_info,
+                context={'organization': deal.organization}
+            )
+            if not payment_serializer.is_valid():
+                # If validation fails, delete the deal and return the error
+                deal.delete()
+                raise serializers.ValidationError({
+                    'payments': payment_serializer.errors
+                })
+        
+        # Create payments
+        for payment_info in payments_data:
+            try:
+                payment = Payment.objects.create(
+                    deal=deal,
+                    payment_date=payment_info.get('payment_date'),
+                    received_amount=payment_info.get('received_amount'),
+                    cheque_number=payment_info.get('cheque_number', ''),
+                    payment_type=payment_info.get('payment_method', deal.payment_method),  # Use deal's payment method if not specified
+                    payment_remarks=payment_info.get('payment_remarks', ''),
+                )
+                ActivityLog.objects.create(
+                    deal=deal, 
+                    message=f"Payment of {payment.received_amount} recorded."
+                )
+            except Exception as e:
+                # If payment creation fails, delete the deal and return the error
+                deal.delete()
+                raise serializers.ValidationError({
+                    'payments': f"Failed to create payment: {str(e)}"
+                })
+        
+        return deal
+
     def get_total_paid(self, obj):
-        return obj.get_total_paid_amount()
+        return sum(float(payment.received_amount) for payment in obj.payments.all())
     
     def get_remaining_balance(self, obj):
-        return obj.get_remaining_balance()
+        total_paid = self.get_total_paid(obj)
+        return float(obj.deal_value) - total_paid
     
     def get_payment_progress(self, obj):
-        return obj.get_payment_progress()
+        total_paid = self.get_total_paid(obj)
+        deal_value = float(obj.deal_value)
+        return (total_paid / deal_value * 100) if deal_value > 0 else 0
+    
+    def get_payments_read(self, obj):
+        return PaymentSerializer(obj.payments.all(), many=True).data
+
+
+class SalespersonDealSerializer(DealSerializer):
+    """
+    Extended DealSerializer for salesperson dashboard that includes payments_read field.
+    """
+    payments_read = serializers.SerializerMethodField()
+
+    class Meta(DealSerializer.Meta):
+        fields = DealSerializer.Meta.fields + ['payments_read']
+
+    def get_payments_read(self, obj):
+        return PaymentSerializer(obj.payments.all(), many=True).data
 
 class DealPaymentHistorySerializer(serializers.ModelSerializer):
     """

@@ -122,10 +122,23 @@ class UserViewSet(viewsets.ModelViewSet):
                     name=organization_name,
                     defaults={'created_by': user}
                 )
-                
+                # Create all required roles for the new organization
+                required_roles = [
+                    "Organization Admin",
+                    "Salesperson",
+                    "Verifier",
+                    "Supervisor",
+                    "Team Member"
+                ]
+                from permissions.models import Role
+                for role_name in required_roles:
+                    Role.objects.get_or_create(name=role_name, organization=organization)
+                # Assign the admin role to the new user
                 role, _ = Role.objects.get_or_create(name="Organization Admin", organization=organization)
-                
                 serializer.save(organization=organization, role=role)
+                # Automatically assign permissions to all roles for this organization
+                from django.core.management import call_command
+                call_command('assign_role_permissions', organization=organization.name)
         else:
             # For non-superusers (like org admins), the organization is derived from their profile
             # and the role is taken from the request data.
