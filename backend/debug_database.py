@@ -23,13 +23,13 @@ def check_environment_variables():
     print("=" * 50)
     
     db_vars = {
-        'DB_NAME': 'Database name',
-        'DB_HOST': 'Database host',
-        'DB_USER': 'Database user',
-        'DB_PASSWORD': 'Database password',
-        'DB_PORT': 'Database port',
-        'DB_ENGINE': 'Database engine',
-        'DATABASE_URL': 'Database URL (alternative)',
+        'DATABASE_URL': 'Database URL (recommended)',
+        'DB_NAME': 'Database name (legacy)',
+        'DB_HOST': 'Database host (legacy)',
+        'DB_USER': 'Database user (legacy)',
+        'DB_PASSWORD': 'Database password (legacy)',
+        'DB_PORT': 'Database port (legacy)',
+        'DB_ENGINE': 'Database engine (legacy)',
     }
     
     all_set = True
@@ -175,10 +175,12 @@ def check_render_environment():
         # Check for common Render database variables
         if os.getenv('DATABASE_URL'):
             print("✅ DATABASE_URL found (Render PostgreSQL)")
+            print("   - This is the recommended approach")
         else:
             print("⚠️  DATABASE_URL not found")
             print("   - Make sure you've created a PostgreSQL service")
             print("   - Link it to your web service")
+            print("   - Render should automatically provide DATABASE_URL")
         
         # Check if we're in a web service
         if os.getenv('RENDER_SERVICE_ID'):
@@ -201,12 +203,15 @@ def provide_troubleshooting_advice():
     print("   - Review environment variables")
     
     print("\n2. Environment Variables:")
-    print("   - DB_NAME: Your database name")
-    print("   - DB_HOST: Your database host (from Render)")
-    print("   - DB_USER: Your database username")
-    print("   - DB_PASSWORD: Your database password")
-    print("   - DB_PORT: Usually 5432")
-    print("   - DB_ENGINE: django.db.backends.postgresql")
+    print("   - DATABASE_URL: Your full database URL (recommended)")
+    print("     Format: postgresql://user:password@host:port/database")
+    print("   - Or individual variables (legacy):")
+    print("     - DB_NAME: Your database name")
+    print("     - DB_HOST: Your database host (from Render)")
+    print("     - DB_USER: Your database username")
+    print("     - DB_PASSWORD: Your database password")
+    print("     - DB_PORT: Usually 5432")
+    print("     - DB_ENGINE: django.db.backends.postgresql")
     
     print("\n3. Common Solutions:")
     print("   - Wait 2-5 minutes for database to initialize")

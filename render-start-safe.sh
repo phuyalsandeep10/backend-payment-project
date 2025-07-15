@@ -13,6 +13,13 @@ cd backend
 check_db_env_vars() {
     echo "🔍 Checking database environment variables..."
     
+    # Check for DATABASE_URL first (recommended approach)
+    if [ -n "$DATABASE_URL" ]; then
+        echo "✅ DATABASE_URL is set (recommended)"
+        return 0
+    fi
+    
+    # Fallback to individual variables
     local required_vars=("DB_NAME" "DB_HOST" "DB_USER" "DB_PASSWORD")
     local missing_vars=()
     
@@ -23,7 +30,7 @@ check_db_env_vars() {
     done
     
     if [ ${#missing_vars[@]} -eq 0 ]; then
-        echo "✅ All database environment variables are set"
+        echo "✅ All individual database environment variables are set"
         return 0
     else
         echo "⚠️  Missing database environment variables: ${missing_vars[*]}"
@@ -77,6 +84,7 @@ setup_sqlite_fallback() {
     echo "🔄 Setting up SQLite fallback..."
     
     # Temporarily unset database environment variables
+    export DATABASE_URL=""
     export DB_NAME=""
     export DB_HOST=""
     export DB_USER=""

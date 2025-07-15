@@ -38,13 +38,16 @@ def print_render_setup_instructions():
     print("   - Render will automatically add environment variables")
     
     print("\n4. Required Environment Variables:")
-    print("   The following variables should be automatically set by Render:")
-    print("   - DB_NAME (from linked database)")
-    print("   - DB_HOST (from linked database)")
-    print("   - DB_USER (from linked database)")
-    print("   - DB_PASSWORD (from linked database)")
-    print("   - DB_PORT (usually 5432)")
-    print("   - DB_ENGINE (django.db.backends.postgresql)")
+    print("   The following variable should be automatically set by Render:")
+    print("   - DATABASE_URL (from linked database - recommended)")
+    print("     Format: postgresql://user:password@host:port/database")
+    print("   - Or individual variables (legacy, if DATABASE_URL not available):")
+    print("     - DB_NAME (from linked database)")
+    print("     - DB_HOST (from linked database)")
+    print("     - DB_USER (from linked database)")
+    print("     - DB_PASSWORD (from linked database)")
+    print("     - DB_PORT (usually 5432)")
+    print("     - DB_ENGINE (django.db.backends.postgresql)")
     
     print("\n5. Additional Environment Variables to Set:")
     print("   - SECRET_KEY (generate a secure key)")
@@ -66,10 +69,35 @@ def check_current_environment():
     print("\n🔍 Current Environment Check")
     print("=" * 40)
     
+    # Check for DATABASE_URL first (recommended)
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        print("✅ DATABASE_URL: Set (recommended)")
+        # Show a masked version for security
+        if '://' in database_url:
+            parts = database_url.split('://')
+            if len(parts) == 2:
+                scheme = parts[0]
+                rest = parts[1]
+                if '@' in rest:
+                    user_pass, host_db = rest.split('@', 1)
+                    if ':' in user_pass:
+                        user, password = user_pass.split(':', 1)
+                        masked_password = '*' * min(len(password), 8)
+                        masked_url = f"{scheme}://{user}:{masked_password}@{host_db}"
+                        print(f"   Format: {masked_url}")
+                    else:
+                        print(f"   Format: {scheme}://***@{host_db}")
+                else:
+                    print(f"   Format: {scheme}://***")
+    else:
+        print("❌ DATABASE_URL: Not set")
+    
+    # Check legacy variables
     db_vars = ['DB_NAME', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_PORT', 'DB_ENGINE']
     render_vars = ['RENDER', 'RENDER_EXTERNAL_HOSTNAME', 'RENDER_SERVICE_ID']
     
-    print("Database Variables:")
+    print("\nLegacy Database Variables:")
     for var in db_vars:
         value = os.getenv(var)
         if value:

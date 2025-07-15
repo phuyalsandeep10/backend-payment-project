@@ -202,28 +202,42 @@ WSGI_APPLICATION = "core_config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Use environment variables for database connection, with a fallback to SQLite
-DB_NAME = env('DB_NAME', default=None)
+# Use DATABASE_URL (recommended across services like Render, Heroku, Railway)
+# Format: postgresql://user:password@host:port/database
+# Example: postgresql://myuser:mypassword@localhost:5432/mydatabase
+import dj_database_url
 
-if DB_NAME:
+# Get DATABASE_URL from environment, with fallback to individual variables
+DATABASE_URL = env('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Use the full DATABASE_URL (recommended approach)
     DATABASES = {
-        'default': {
-            'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
-            'NAME': DB_NAME,
-            'USER': env('DB_USER'),
-            'PASSWORD': env('DB_PASSWORD'),
-            'HOST': env('DB_HOST'),
-            'PORT': env('DB_PORT', default='5432'),
-        }
+        'default': dj_database_url.parse(DATABASE_URL)
     }
 else:
-    # Fallback to SQLite if no database environment variables are set
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    # Fallback to individual environment variables (legacy support)
+    DB_NAME = env('DB_NAME', default=None)
+    
+    if DB_NAME:
+        DATABASES = {
+            'default': {
+                'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
+                'NAME': DB_NAME,
+                'USER': env('DB_USER'),
+                'PASSWORD': env('DB_PASSWORD'),
+                'HOST': env('DB_HOST'),
+                'PORT': env('DB_PORT', default='5432'),
+            }
         }
-    }
+    else:
+        # Final fallback to SQLite for development
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Enhanced Password validation

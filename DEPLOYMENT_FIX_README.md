@@ -30,12 +30,14 @@ The new `render-start-safe.sh` script will:
 1. Ensure you have a PostgreSQL service on Render
 2. Link it to your web service
 3. Verify environment variables are set:
-   - `DB_NAME`
-   - `DB_HOST`
-   - `DB_USER`
-   - `DB_PASSWORD`
-   - `DB_PORT` (usually 5432)
-   - `DB_ENGINE` (django.db.backends.postgresql)
+   - **Recommended**: `DATABASE_URL` (automatically set when linking database)
+   - **Legacy**: Individual variables:
+     - `DB_NAME`
+     - `DB_HOST`
+     - `DB_USER`
+     - `DB_PASSWORD`
+     - `DB_PORT` (usually 5432)
+     - `DB_ENGINE` (django.db.backends.postgresql)
 
 ### Option 2: Use SQLite Temporarily
 1. Remove all `DB_*` environment variables
@@ -60,12 +62,18 @@ python setup_render_env.py help
 Make sure these are set in your Render service:
 
 ```
+# Recommended (automatically set when linking database)
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# Legacy approach (if DATABASE_URL not available)
 DB_NAME=your_database_name
 DB_HOST=your_database_host
 DB_USER=your_database_user
 DB_PASSWORD=your_database_password
 DB_PORT=5432
 DB_ENGINE=django.db.backends.postgresql
+
+# Other required variables
 SECRET_KEY=your_generated_secret_key
 DEBUG=False
 ```

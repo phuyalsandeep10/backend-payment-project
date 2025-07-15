@@ -34,7 +34,10 @@ This error occurs when your Django application cannot connect to the PostgreSQL 
 **Problem**: Database connection details are wrong
 **Solution**: Check your environment variables in Render dashboard:
 
-Required variables:
+**Recommended approach (DATABASE_URL):**
+- `DATABASE_URL` - Full database URL (automatically provided by Render when linking database)
+
+**Legacy approach (individual variables):**
 - `DB_NAME` - Database name
 - `DB_HOST` - Database host (usually provided by Render)
 - `DB_USER` - Database username
@@ -91,12 +94,18 @@ python setup_render_env.py secret
 
 3. **Set Environment Variables**:
    ```
+   # Recommended (automatically set by Render when linking database)
+   DATABASE_URL=postgresql://user:password@host:port/database
+   
+   # Legacy approach (if DATABASE_URL not available)
    DB_NAME=your_database_name
    DB_HOST=your_database_host
    DB_USER=your_database_user
    DB_PASSWORD=your_database_password
    DB_PORT=5432
    DB_ENGINE=django.db.backends.postgresql
+   
+   # Other required variables
    SECRET_KEY=your_generated_secret_key
    DEBUG=False
    ```
@@ -145,10 +154,11 @@ python manage.py setup_permissions
 
 ### Common Environment Variable Issues
 
-1. **Missing Variables**: Ensure all required database variables are set
-2. **Wrong Values**: Double-check host, port, and credentials
-3. **Special Characters**: Escape special characters in passwords
+1. **Missing DATABASE_URL**: Ensure database is linked to web service in Render
+2. **Wrong DATABASE_URL Format**: Should be `postgresql://user:password@host:port/database`
+3. **Special Characters**: Escape special characters in passwords within DATABASE_URL
 4. **Case Sensitivity**: Environment variable names are case-sensitive
+5. **Legacy Variables**: If using individual DB_* variables, ensure all are set
 
 ### Getting Help
 
