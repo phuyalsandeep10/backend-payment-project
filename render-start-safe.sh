@@ -1,35 +1,40 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # exit on error
 set -o errexit
 
-echo "🚀 Starting safe deployment process..."
+# Install dependencies
+pip install -r requirements.txt
 
-# Change to backend directory
-cd backend
+# Collect static files (doesn't require database)
+echo "📦 Collecting static files..."
+python manage.py collectstatic --no-input
 
-# Step 1: Handle problematic migrations safely
-echo "🔧 Handling problematic migrations..."
-python manage.py migrate authentication 0004_remove_user_avatar --fake 2>/dev/null || echo "Avatar migration already handled"
+# Try to run migrations, but don't fail if database is not ready
+echo "🔄 Attempting to run database migrations..."
+if python manage.py migrate --noinput 2>/dev/null; then
+    echo "✅ Migrations completed successfully"
+    
+    # Try to setup superuser
+    echo "👤 Setting up superuser..."
+    python manage.py setup_superadmin --noinput 2>/dev/null || echo "⚠️  Could not create superuser"
+    
+    # Try to setup permissions
+    echo "🔐 Setting up permissions..."
+    python manage.py setup_permissions 2>/dev/null || echo "⚠️  Could not setup permissions"
+    
+    # Generate test data only in development
+    if [ "$DEBUG" = "True" ]; then
+        echo "🧪 Generating test data..."
+        python manage.py generate_rich_test_data 2>/dev/null || echo "⚠️  Could not generate test data"
+    fi
+else
+    echo "⚠️  Database not ready, skipping migrations and setup"
+    echo "🔄 You can run migrations manually once the database is ready:"
+    echo "   python manage.py migrate"
+    echo "   python manage.py setup_superadmin"
+    echo "   python manage.py setup_permissions"
+fi
 
-# Step 2: Run all other migrations
-echo "🔄 Running database migrations..."
-python manage.py migrate
-
-# Step 3: Initialize app with data
-echo "🔄 Initializing application..."
-python manage.py initialize_app --flush
-
-# Step 4: Setup permissions
-echo "🔐 Setting up permissions..."
-python manage.py create_all_permissions
-python manage.py assign_role_permissions
-
-# Step 5: Generate test data
-echo "📊 Generating test data..."
-python manage.py generate_rich_test_data --deals 10 --clients 3 --projects 2
-
-echo "🎉 Safe deployment complete!"
-
-# Start the Gunicorn server
-echo "🚀 Starting Gunicorn server..."
+# Start the application
+echo "🚀 Starting the application..."
 gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT 
