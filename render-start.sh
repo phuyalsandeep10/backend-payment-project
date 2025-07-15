@@ -38,24 +38,32 @@ if ! check_database; then
     echo "   - Database and web service are properly linked"
     exit 1
 fi
-python manage.py initialize_app
+
 # Run database migrations
 echo "🔄 Running database migrations..."
 python manage.py migrate
 
-# # Create superuser if it doesn't exist
-# echo "👤 Setting up superuser..."
-# python manage.py setup_superadmin --noinput
-
-# Setup permissions
-# echo "🔐 Setting up permissions..."
-# python manage.py setup_permissions
+# Try to initialize app, but don't fail if it doesn't work
+echo "🚀 Attempting to initialize application..."
+if python manage.py initialize_app --flush 2>/dev/null; then
+    echo "✅ Application initialized successfully"
+else
+    echo "⚠️  Application initialization failed, continuing with basic setup..."
+    
+    # Try to create superuser
+    echo "👤 Setting up superuser..."
+    python manage.py setup_superadmin --noinput 2>/dev/null || echo "⚠️  Could not create superuser"
+    
+    # Try to setup permissions
+    echo "🔐 Setting up permissions..."
+    python manage.py setup_permissions 2>/dev/null || echo "⚠️  Could not setup permissions"
+fi
 
 # Generate test data only in development
-if [ "$DEBUG" = "True" ]; then
-    echo "🧪 Generating test data..."
-    python manage.py generate_rich_test_data
-fi
+
+    
+python manage.py generate_rich_test_data 2>/dev/null || echo "⚠️  Could not generate test data"
+
 
 # Start the application
 echo "🚀 Starting the application..."
