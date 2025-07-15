@@ -1,0 +1,1 @@
+from permissions.utils import assign_all_permissions_to_roles 

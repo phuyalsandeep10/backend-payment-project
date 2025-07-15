@@ -106,11 +106,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from django.utils.crypto import get_random_string
         logger = logging.getLogger('django')
-        logger.info(f"[UserCreateSerializer] Creating user with data: {validated_data}")
+        logger.info("[UserCreateSerializer] Creating user with data: %r", validated_data)
         try:
-            role_data = validated_data.pop('role', None)
+            # Convert organization id to Organization instance if needed
             organization = validated_data.get('organization')
+            if isinstance(organization, int):
+                organization = Organization.objects.get(pk=organization)
+                validated_data['organization'] = organization
 
+            role_data = validated_data.pop('role', None)
             # Normalize role input
             if isinstance(role_data, str):
                 role_key = role_data.strip().lower()
