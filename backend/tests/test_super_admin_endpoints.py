@@ -10,7 +10,7 @@ class colors:
     ENDC = '\033[0m'
     OKBLUE = '\033[94m'
 
-BASE_URL = "http://127.0.0.1:8000/api"
+BASE_URL = "https://payment-rs.onrender.com/api"
 SUPER_ADMIN_EMAIL = "super@innovate.com"
 SUPER_ADMIN_PASSWORD = "password123"
 
