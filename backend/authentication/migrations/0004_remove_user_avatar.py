@@ -3,6 +3,32 @@
 from django.db import migrations
 
 
+def remove_avatar_if_exists(apps, schema_editor):
+    """
+    Remove the avatar field only if it exists in the database.
+    """
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        # Check if the avatar column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'authentication_user' 
+            AND column_name = 'avatar'
+        """)
+        if cursor.fetchone():
+            # Column exists, remove it
+            schema_editor.execute("ALTER TABLE authentication_user DROP COLUMN avatar")
+
+
+def reverse_remove_avatar(apps, schema_editor):
+    """
+    Reverse operation - add the avatar field back if needed.
+    """
+    # This is a no-op since we don't want to add the field back
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,8 +36,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="user",
-            name="avatar",
+        migrations.RunPython(
+            remove_avatar_if_exists,
+            reverse_remove_avatar,
         ),
     ]

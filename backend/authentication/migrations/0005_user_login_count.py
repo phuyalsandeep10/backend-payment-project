@@ -3,15 +3,50 @@
 from django.db import migrations, models
 
 
+def add_login_count_if_not_exists(apps, schema_editor):
+    """
+    Add the login_count field only if it doesn't exist in the database.
+    """
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        # Check if the login_count column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'authentication_user' 
+            AND column_name = 'login_count'
+        """)
+        if not cursor.fetchone():
+            # Column doesn't exist, add it
+            schema_editor.execute("ALTER TABLE authentication_user ADD COLUMN login_count integer DEFAULT 0")
+
+
+def reverse_add_login_count(apps, schema_editor):
+    """
+    Reverse operation - remove the login_count field if needed.
+    """
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        # Check if the login_count column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'authentication_user' 
+            AND column_name = 'login_count'
+        """)
+        if cursor.fetchone():
+            # Column exists, remove it
+            schema_editor.execute("ALTER TABLE authentication_user DROP COLUMN login_count")
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("authentication", "0004_remove_user_avatar"),
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="user",
-            name="login_count",
-            field=models.IntegerField(default=0),
+        migrations.RunPython(
+            add_login_count_if_not_exists,
+            reverse_add_login_count,
         ),
     ]

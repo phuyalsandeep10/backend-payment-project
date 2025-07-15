@@ -5,26 +5,29 @@ set -o errexit
 # Change to backend directory to run management commands
 cd backend
 
-# Step 1: Flush existing data and create base structure
-echo "🔄 Flushing existing data and creating base structure..."
-python manage.py initialize_app --flush
-echo "✅ Base data structure created!"
+echo "🔄 Running database migrations..."
+python manage.py nuclear_reset_db --force
+python manage.py makemigrations
+python manage.py migrate
 
-# Step 2: Fix deployment permission issues comprehensively
-echo "🔧 Fixing deployment permissions..."
+echo "🧹 Cleaning up duplicate permissions (safe)..."
+python manage.py cleanup_permissions
+
+echo "🔧 Fixing deployment permissions (safe, idempotent)..."
 python manage.py fix_deployment_permissions
 
-# Step 3: Verify that all users have proper permissions
+echo "🚀 Initializing app with demo data 
+and users (idempotent)..."
+python manage.py initialize_app --flush
+python manage.py reset_permissions --force
 echo "🔍 Verifying user permissions..."
 python manage.py check_permissions
 
-# Step 4: Generate additional rich, varied data for comprehensive testing
 echo "📊 Generating additional rich test data..."
-python manage.py generate_rich_test_data --deals 30 --clients 5 --projects 3
+python manage.py generate_rich_test_data --deals 100 --clients 30 --projects 19
 
-# Final verification - check if sales@innovate.com user has proper permissions
-echo "🧐 Final verification - checking sales user permissions..."
-python manage.py shell <<EOF
+echo "🔍 Final verification - checking sales user permissions..."
+python manage.py shell -c "
 from authentication.models import User
 from permissions.models import Role
 try:
@@ -45,12 +48,8 @@ except User.DoesNotExist:
     print('❌ Sales user not found!')
 except Exception as e:
     print(f'❌ Error: {e}')
-EOF
+"
 
-# Create the missing permission
-python manage.py create_all_permissions
-
-# Assign permissions to roles (including the new can_manage_roles)
 python manage.py assign_role_permissions
 
 echo "🎉 Application startup complete!"
