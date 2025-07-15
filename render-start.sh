@@ -9,7 +9,7 @@ cd backend
 echo "🧹 Cleaning up duplicate permissions (safe)..."
 python manage.py cleanup_permissions
 
-echo "🔧 Fixing deployment permissions (safe, idempotent)..."
+echo "🔧 Running comprehensive permission fix..."
 python manage.py fix_deployment_permissions
 
 echo "🚀 Initializing app with demo data 
@@ -22,26 +22,41 @@ python manage.py check_permissions
 echo "📊 Generating additional rich test data..."
 python manage.py generate_rich_test_data --deals 100 --clients 30 --projects 19
 
-echo "🔍 Final verification - checking sales user permissions..."
+echo "🔍 Final verification - checking user permissions..."
 python manage.py shell -c "
 from authentication.models import User
 from permissions.models import Role
 try:
-    user = User.objects.get(email='sales@innovate.com')
-    print(f'✅ User found: {user.email}')
-    print(f'   Role: {user.role}')
-    print(f'   Organization: {user.organization}')
-    if user.role:
-        permissions = list(user.role.permissions.values_list('codename', flat=True))
+    # Check sales user
+    sales_user = User.objects.get(email='sales@innovate.com')
+    print(f'✅ Sales user found: {sales_user.email}')
+    print(f'   Role: {sales_user.role}')
+    if sales_user.role:
+        permissions = list(sales_user.role.permissions.values_list('codename', flat=True))
         print(f'   Permissions count: {len(permissions)}')
         if 'view_all_deals' in permissions and 'create_deal' in permissions:
             print('✅ Salesperson has required permissions!')
         else:
             print('❌ Salesperson missing required permissions!')
     else:
-        print('❌ User has no role assigned!')
-except User.DoesNotExist:
-    print('❌ Sales user not found!')
+        print('❌ Sales user has no role assigned!')
+        
+    # Check verifier user
+    verifier_user = User.objects.get(username='verifier')
+    print(f'✅ Verifier user found: {verifier_user.username}')
+    print(f'   Role: {verifier_user.role}')
+    if verifier_user.role:
+        permissions = list(verifier_user.role.permissions.values_list('codename', flat=True))
+        print(f'   Permissions count: {len(permissions)}')
+        if 'view_payment_verification_dashboard' in permissions and 'verify_deal_payment' in permissions:
+            print('✅ Verifier has required permissions!')
+        else:
+            print('❌ Verifier missing required permissions!')
+    else:
+        print('❌ Verifier user has no role assigned!')
+        
+except User.DoesNotExist as e:
+    print(f'❌ User not found: {e}')
 except Exception as e:
     print(f'❌ Error: {e}')
 "
