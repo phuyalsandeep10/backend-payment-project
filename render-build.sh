@@ -3,6 +3,7 @@
 set -o errexit
 
 echo "🚀 Starting Render deployment..."
+cd backend
 
 # Install dependencies
 echo "📦 Installing dependencies..."
