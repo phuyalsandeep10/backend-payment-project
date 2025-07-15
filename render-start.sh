@@ -6,7 +6,7 @@ set -o errexit
 cd backend
 
 echo "🔄 Running database migrations..."
-python manage.py nuclear_reset_db --force
+
 python manage.py makemigrations
 python manage.py migrate
 
@@ -18,7 +18,7 @@ python manage.py fix_deployment_permissions
 
 echo "🚀 Initializing app with demo data 
 and users (idempotent)..."
-python manage.py initialize_app --flush
+python manage.py initialize_app 
 python manage.py reset_permissions --force
 echo "🔍 Verifying user permissions..."
 python manage.py check_permissions
