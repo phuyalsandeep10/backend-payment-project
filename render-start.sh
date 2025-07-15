@@ -3,10 +3,10 @@
 set -o errexit
 
 # Install dependencies
-pip install -r requirements.txt
 
+cd backend
 # Collect static files
-python manage.py collectstatic --no-input
+# python manage.py collectstatic --no-input
 
 # Function to check database connectivity
 check_database() {
@@ -38,7 +38,7 @@ if ! check_database; then
     echo "   - Database and web service are properly linked"
     exit 1
 fi
-
+python manage.py initialize_app
 # Run database migrations
 echo "🔄 Running database migrations..."
 python manage.py migrate
@@ -48,8 +48,8 @@ python manage.py migrate
 # python manage.py setup_superadmin --noinput
 
 # Setup permissions
-echo "🔐 Setting up permissions..."
-python manage.py setup_permissions
+# echo "🔐 Setting up permissions..."
+# python manage.py setup_permissions
 
 # Generate test data only in development
 if [ "$DEBUG" = "True" ]; then
