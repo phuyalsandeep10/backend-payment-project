@@ -79,7 +79,6 @@ class User(AbstractUser):
 
     # Frontend compatibility fields
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    avatar = models.URLField(blank=True, null=True, help_text="URL to user's avatar image")
     must_change_password = models.BooleanField(default=False, help_text="Require user to change password at next login")
 
     # Advanced features

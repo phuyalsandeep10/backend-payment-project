@@ -41,7 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'status', 'avatar', 'address', 'phoneNumber'
+            'status', 'address', 'phoneNumber'
         ]
         read_only_fields = ['organization_name']
 
@@ -80,7 +80,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'username', 'password', 'first_name', 'last_name', 'email',
             'role', 'contact_number', 'is_active',
-            'address', 'status', 'avatar'
+            'address', 'status'
         )
         read_only_fields = ('id',)
         extra_kwargs = {
@@ -245,7 +245,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     """Serializer for comprehensive user details."""
-    profile = UserProfileSerializer()
+    profile = UserProfileSerializer(required=False)
     phoneNumber = serializers.CharField(source='contact_number', read_only=True)
     teams = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
@@ -257,7 +257,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'organization', 'organization_name', 'role',
             'contact_number', 'is_active', 'profile', 'teams',
-            'address', 'status', 'avatar', 'phoneNumber'
+            'address', 'status', 'phoneNumber'
         )
 
     def get_teams(self, obj):
@@ -286,7 +286,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'first_name', 'last_name', 'contact_number', 'phoneNumber',
-            'sales_target', 'profile', 'address', 'status', 'avatar'
+            'sales_target', 'profile', 'address', 'status'
         )
 
     def update(self, instance, validated_data):

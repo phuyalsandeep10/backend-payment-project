@@ -34,10 +34,12 @@ class VerifierInvoiceSerializer(serializers.ModelSerializer):
         read_only_fields = ['payment_id', 'invoice_id', 'client_name', 'deal_name', 'amount', 'status']
     
     
-class VerifierDealSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DealSerializer.Meta.model
-        fields = DealSerializer.Meta.fields
+class VerifierDealSerializer(DealSerializer):
+    """
+    Serializer for deals in the verifier dashboard.
+    Inherits from DealSerializer to maintain consistency.
+    """
+    pass
     
     
 class PaymentFailureReasonSerializer(serializers.Serializer):
