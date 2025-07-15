@@ -20,6 +20,7 @@ echo "🔧 Fixing migration conflicts..."
 
 # Run all migrations
 echo "🔄 Running all migrations..."
+python manage.py makemigrations
 python manage.py migrate
 
 # Collect static files
