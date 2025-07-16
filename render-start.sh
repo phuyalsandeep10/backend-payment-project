@@ -67,4 +67,5 @@ echo "🎉 Application startup complete!"
 # Start the Gunicorn server.
 # We are already in the 'backend' directory, so we point to 'core_config.wsgi'.
 echo "🚀 Starting Gunicorn server..."
-gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT
+# Start ASGI server (supports WebSockets)
+daphne -b 0.0.0.0 -p $PORT core_config.asgi:application

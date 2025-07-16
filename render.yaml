@@ -1,0 +1,50 @@
+services:
+  # Redis instance for Django Channels layer
+  - name: prs-cache
+    type: redis
+    plan: free
+
+  # Django backend (serves HTTP & WebSocket via Daphne)
+  - name: prs-backend
+    type: web
+    runtime: python
+    region: oregon
+
+    # Optional: Make sure you allow Render to use a higher builder image if needed
+    buildCommand: |
+      # Use our custom build script which installs dependencies, runs migrations, and collects static files
+      ./render-build.sh
+
+    startCommand: |
+      # Start Daphne (ASGI) via our minimal Render start script (handles HTTP + WebSockets)
+      bash render-start-minimal.sh
+
+    # The root path for the service (where manage.py lives)
+    workingDir: backend
+
+    envVars:
+      # Standard Django variables
+      - key: SECRET_KEY
+        sync: false  # Fill in from Render Dashboard
+      - key: DEBUG
+        value: "False"
+      # Database & caching
+      - key: DATABASE_URL
+        fromDatabase:
+          name: prs-backend-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: prs-cache
+          property: connectionString
+      # Gunicorn automatically binds to PORT provided by Render
+      - key: PORT
+        value: "8000"
+
+    # Optional health check
+    healthCheckPath: /api/v1/health/
+    healthCheckTimeoutSeconds: 15
+
+    # Automatic PR previews off for now (can be re-enabled later)
+    pullRequestPreviewsEnabled: false

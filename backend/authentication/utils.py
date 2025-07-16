@@ -16,7 +16,13 @@ def send_otp_email(email: str, otp: str) -> None:
         f'Your one-time verification code is: {otp}\n\n'
         'This code will expire in 5 minutes.'
     )
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=True)
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
+        print(f"✅ OTP email sent successfully to {email}")
+    except Exception as e:
+        print(f"❌ Failed to send OTP email to {email}: {e}")
+        # Fallback to console output
+        print(f"📧 OTP for {email}: {otp}")
 
 
 def send_temporary_password_email(email: str, temp_password: str) -> None:

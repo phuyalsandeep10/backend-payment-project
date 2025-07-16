@@ -36,6 +36,14 @@ urlpatterns = [
     re_path(r'^login/?$', views.login_view, name='login'),
     re_path(r'^login/verify-otp/?$', views.verify_otp_view, name='verify_otp'),
     
+    # Super Admin login endpoints
+    re_path(r'^login/super-admin/?$', views.super_admin_login_view, name='super_admin_login'),
+    re_path(r'^login/super-admin/verify/?$', views.super_admin_verify_view, name='super_admin_verify'),
+    
+    # Org Admin login endpoints
+    re_path(r'^login/org-admin/?$', views.org_admin_login_view, name='org_admin_login'),
+    re_path(r'^login/org-admin/verify/?$', views.org_admin_verify_view, name='org_admin_verify'),
+    
     # Registration & Logout
     re_path(r'^register/?$', views.register_view, name='register'),
     re_path(r'^logout/?$', views.logout_view, name='logout'),

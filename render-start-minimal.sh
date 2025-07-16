@@ -44,4 +44,5 @@ fi
 
 # Start the application
 echo "🚀 Starting the application..."
-gunicorn core_config.wsgi:application --bind 0.0.0.0:$PORT 
+# Start ASGI server (supports WebSockets)
+daphne -b 0.0.0.0 -p $PORT core_config.asgi:application 
