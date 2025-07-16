@@ -422,6 +422,7 @@ SWAGGER_SETTINGS = {
 # Custom settings for management commands
 ADMIN_USER = env('ADMIN_USER', default='admin')
 ADMIN_PASS = env('ADMIN_PASS', default='Admin123')
+ADMIN_EMAIL = env('ADMIN_EMAIL', default=None)
 
 # Caching for better performance - using locmem for development
 # Caching: prefer Redis when REDIS_URL is set, otherwise fall back to in-memory cache

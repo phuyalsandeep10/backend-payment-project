@@ -27,7 +27,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('No existing super admin found. Proceeding with creation...'))
 
-        admin_email = options.get('email') or f"{getattr(settings, 'ADMIN_USER', 'admin')}@innovate.com"
+        admin_email = (
+            options.get('email')
+            or getattr(settings, 'ADMIN_EMAIL', None)
+            or f"{getattr(settings, 'ADMIN_USER', 'admin')}@innovate.com"
+        )
         admin_password = options.get('password') or getattr(settings, 'ADMIN_PASS', None)
         admin_username = options.get('username') or getattr(settings, 'ADMIN_USER', 'admin')
 
