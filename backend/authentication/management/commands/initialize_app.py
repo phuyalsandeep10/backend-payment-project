@@ -1,6 +1,7 @@
 import os
 import random
 from datetime import timedelta
+from django.core.management import call_command
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -42,6 +43,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Load JSON fixture if available before generating synthetic data
+        fixture_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'initial_data.json')
+        if os.path.exists(fixture_path):
+            self.stdout.write(self.style.HTTP_INFO("--- Loading initial_data.json fixture ---"))
+            try:
+                call_command('loaddata', fixture_path, verbosity=0)
+                self.stdout.write(self.style.SUCCESS("✅ initial_data.json loaded successfully"))
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"⚠️ Could not load initial_data.json fixture: {e}"))
         self.stdout.write(self.style.SUCCESS("🚀 Starting application initialization..."))
         
         # Clean up duplicate permissions first

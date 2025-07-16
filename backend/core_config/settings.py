@@ -308,22 +308,36 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Use `REDIS_URL` provided by the environment when running on Render.
 # Fallback to localhost when running locally.
 REDIS_URL = env('REDIS_URL', default=None)
-if REDIS_URL:
+
+# Determine the appropriate channel layer backend.
+# Use Redis if (1) a REDIS_URL is provided *and* channels_redis is available.
+# Otherwise fall back to the in-memory layer so the application can still run
+# (e.g. during CI, local dev or when channels_redis cannot compile for the
+# target Python version).
+try:
+    import importlib
+    importlib.import_module('channels_redis')
+    _channel_backend = 'channels_redis.core.RedisChannelLayer'
+except ImportError:
+    # channels_redis is not installed – fall back to the in-memory backend
+    _channel_backend = 'channels.layers.InMemoryChannelLayer'
+
+if _channel_backend == 'channels_redis.core.RedisChannelLayer' and REDIS_URL:
     CHANNEL_LAYERS = {
         'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'BACKEND': _channel_backend,
             'CONFIG': {
                 "hosts": [REDIS_URL],
             },
         },
     }
 else:
+    # Either no REDIS_URL or channels_redis unavailable – use in-memory backend
     CHANNEL_LAYERS = {
         'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                "hosts": [('127.0.0.1', 6379)],
-            },
+            'BACKEND': _channel_backend,
+            # In-memory backend does not use CONFIG, but an empty dict is fine.
+            'CONFIG': {},
         },
     }
 
