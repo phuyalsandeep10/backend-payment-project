@@ -12,15 +12,76 @@ python manage.py cleanup_permissions
 echo "🔧 Running comprehensive permission fix..."
 python manage.py fix_deployment_permissions
 
-echo "🚀 Initializing app with demo data 
-and users (idempotent)..."
-python manage.py initialize_app --flush
+# -----------------------------------------------------------------------------
+# Seed database with real data (if empty) and set up permissions
+# -----------------------------------------------------------------------------
+
+echo "🗄️  Seeding database with initial data (if empty)..."
+python - <<'PY'
+"""Flush the database then load seed data from initial_data.json.
+Fails with an explicit message if fixture not found."""
+import os, sys, django
+from pathlib import Path
+from django.core.management import call_command
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
+
+django.setup()
+
+base_dir = Path(__file__).resolve().parent
+candidate_paths = [
+    base_dir / 'initial_data.json',
+    base_dir / 'backend' / 'initial_data.json',
+    base_dir / 'fixtures' / 'initial_data.json',
+]
+fixture = next((p for p in candidate_paths if p.is_file()), None)
+if not fixture:
+    sys.stderr.write("❌ initial_data.json fixture not found. Add it to the repository before deployment.\n")
+    sys.exit(1)
+
+print("🧹 Flushing existing database data ...")
+call_command('flush', '--noinput')
+print(f"📥 Importing seed data from {fixture} ...")
+call_command('loaddata', str(fixture), verbosity=0)
+print("✅ Seed data imported successfully.")
+PY
+
+# Re-initialise any dynamic setup (without flush so we keep imported data)
+echo "🔧 Initialising app (signals, default roles, etc.)..."
+python manage.py initialize_app
 python manage.py reset_permissions --force
+
+# -----------------------------------------------------------------------------
+# Ensure superadmin exists/updated
+# -----------------------------------------------------------------------------
+
+echo "👤 Ensuring superadmin account exists..."
+python - <<'PY'
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
+
+django.setup()
+from authentication.models import User
+
+email = "shishirkafle18@gmail.com"
+password = "password123"
+
+user, created = User.objects.get_or_create(email=email, defaults={"is_staff": True, "is_superuser": True})
+if not created:
+    user.is_superuser = True
+    user.is_staff = True
+    print("ℹ️  Superadmin already exists – updating password and flags.")
+else:
+    print("✅ Superadmin created.")
+
+user.set_password(password)
+user.save()
+PY
+
 echo "🔍 Verifying user permissions..."
 python manage.py check_permissions
 
-echo "📊 Generating additional rich test data..."
-python manage.py generate_rich_test_data --deals 100 --clients 30 --projects 19
+# echo "📊 Skipping generation of dummy rich test data (using real seed instead)"
 
 echo "🔍 Final verification - checking user permissions..."
 python manage.py shell -c "
