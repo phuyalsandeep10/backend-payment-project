@@ -424,13 +424,27 @@ ADMIN_USER = env('ADMIN_USER', default='admin')
 ADMIN_PASS = env('ADMIN_PASS', default='Admin123')
 
 # Caching for better performance - using locmem for development
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'prs-cache',
-        'TIMEOUT': 300,
+# Caching: prefer Redis when REDIS_URL is set, otherwise fall back to in-memory cache
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SSL': True,  # Upstash requires TLS (rediss scheme)
+            },
+            'TIMEOUT': 60 * 60,  # 1 hour
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'prs-cache',
+            'TIMEOUT': 300,
+        }
+    }
 
 # Security Logging
 LOGGING = {
