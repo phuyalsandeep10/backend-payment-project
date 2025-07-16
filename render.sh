@@ -67,8 +67,28 @@ fi
 
 if [[ -f "$FIXTURE_PATH" ]]; then
   echo "🌱 Loading seed data from $FIXTURE_PATH …"
-  python manage.py loaddata "$FIXTURE_PATH" --verbosity 0
+  # Disable signals during fixture loading to avoid signal-related issues
+  python - <<'PY'
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
+django.setup()
+
+from django.db.models import signals
+from django.core.management import call_command
+
+# Disable signals that might interfere with loading fixtures
+signals.post_save.receivers = []
+signals.post_delete.receivers = []
+
+# Now load the fixture
+call_command('loaddata', os.environ['FIXTURE_PATH'], verbosity=0)
+  PY
   echo "✅ Seed data loaded."
+  
+  # Re-import signals after loading the fixture
+  echo "🔄 Re-importing signals..."
+  python -c "from django.apps import apps; apps.get_app_config('deals').ready()"
+  python -c "from django.apps import apps; apps.get_app_config('notifications').ready()"
 else
   echo "⚠️  No initial_data.json fixture found – skipping seed."
 fi
@@ -83,9 +103,9 @@ echo "📦 Collecting static files …"
 python manage.py collectstatic --noinput --clear
 
 # 6. Ensure super-admin exists (uses env-vars to avoid hard-coding secrets)
-ADMIN_EMAIL=${ADMIN_EMAIL:-"superadmin@example.com"}
+ADMIN_EMAIL=${ADMIN_EMAIL:-"shishirkafle18@gmail.com"}
 ADMIN_USER=${ADMIN_USER:-"superadmin"}
-ADMIN_PASS=${ADMIN_PASS:-"SuperSecure123"}
+ADMIN_PASS=${ADMIN_PASS:-"password123"}
 
 python - <<PY
 import os, django
