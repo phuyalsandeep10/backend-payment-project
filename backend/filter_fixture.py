@@ -64,6 +64,12 @@ def keep(obj):
         return obj.get("pk", obj.get("id")) in org_related_ids["deal"]
     if obj["model"] == "commission.commission":
         return obj.get("pk", obj.get("id")) in org_related_ids["commission"]
+    # Remove authtoken.Token with null user
+    if obj["model"] == "authtoken.token":
+        if obj["fields"].get("user") is None:
+            print(f"Skipping authtoken.Token with null user: {obj}")
+            return False
+        return True
     # Always keep contenttypes, permissions, groups, etc.
     if obj["model"].startswith("contenttypes.") or obj["model"].startswith("auth.") or obj["model"].startswith("sessions.") or obj["model"].startswith("authtoken."):
         return True
