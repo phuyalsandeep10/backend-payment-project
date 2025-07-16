@@ -65,10 +65,12 @@ if [[ ! -f "$FIXTURE_PATH" ]]; then
   done
 fi
 
+export FIXTURE_PATH  # Make available to Python subprocess
+
 if [[ -f "$FIXTURE_PATH" ]]; then
   echo "🌱 Loading seed data from $FIXTURE_PATH …"
   # Disable signals during fixture loading to avoid signal-related issues
-  python - <<'PY'
+  python - <<PY
 import os, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
 django.setup()
@@ -82,7 +84,7 @@ signals.post_delete.receivers = []
 
 # Now load the fixture
 call_command('loaddata', os.environ['FIXTURE_PATH'], verbosity=0)
-  PY
+PY
   echo "✅ Seed data loaded."
   
   # Re-import signals after loading the fixture
