@@ -472,19 +472,24 @@ LOGGING = {
 # -----------------------------------------------------------------------------
 # Email Configuration
 # -----------------------------------------------------------------------------
-# In development we don’t want to send real emails; instead print them to the
-# terminal so developers can see temporary passwords / activation links.
-# In production we fall back to the SMTP settings that can be provided via env.
-if DEBUG:
+# Configure SMTP email backend for both development and production
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=30)
+
+# Default email settings
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@yourdomain.com')
+SERVER_EMAIL = env('SERVER_EMAIL', default='server@yourdomain.com')
+
+# Fallback to console backend if SMTP credentials are not provided
+if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+    print("⚠️  SMTP credentials not provided. Falling back to console email backend.")
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-    EMAIL_HOST = env('EMAIL_HOST', default='smtp.your-provider.com')
-    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-    EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
 
 CHANNEL_LAYERS = {
     "default": {
