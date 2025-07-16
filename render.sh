@@ -140,3 +140,5 @@ PY
 
 echo "🚀 Starting Daphne (ASGI) on port $PORT …"
 daphne -b 0.0.0.0 -p "$PORT" core_config.asgi:application
+
+# End of script
