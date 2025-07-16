@@ -54,18 +54,14 @@ python manage.py migrate --noinput
 echo "📦 Collecting static files …"
 python manage.py collectstatic --noinput --clear
 
-# 3. Create superadmin from env vars
-echo "👤 Creating superadmin …"
-python manage.py setup_superadmin
+# 3. Initialize app: flush, create orgs, roles, assign permissions, superadmin, etc.
+echo "🚀 Initializing app (roles, permissions, orgs, superadmin, etc.) …"
+python manage.py initialize_app --flush
 
-# 4. Set up all permissions and roles
-echo "🔐 Setting up permissions and roles …"
-python manage.py setup_permissions
-
-# 5. (Optional) Fix deployment permissions (if needed)
+# 4. (Optional) Fix deployment permissions (if needed)
 python manage.py fix_deployment_permissions || true
 
-# 6. Launch ASGI server (Daphne)
+# 5. Launch ASGI server (Daphne)
 echo "🚀 Starting Daphne (ASGI) on port $PORT …"
 daphne -b 0.0.0.0 -p "$PORT" core_config.asgi:application
 

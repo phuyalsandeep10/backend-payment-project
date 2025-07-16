@@ -167,7 +167,7 @@ class Command(BaseCommand):
         """Create the main organization."""
         self.stdout.write(self.style.HTTP_INFO("--- Creating Organization ---"))
         organization, created = Organization.objects.get_or_create(
-            name="Innovate Inc.",
+            name="BrahmabyteLabs",
             defaults={'description': 'A leading innovation company'}
         )
         self.stdout.write(self.style.SUCCESS(f"🏢 Organization '{organization.name}' created."))
@@ -355,8 +355,8 @@ class Command(BaseCommand):
 
         users = {}
         user_data = {
-            "Super Admin": [("superadmin", "super@innovate.com")],
-            "Organization Admin": [("orgadmin", "orgadmin@innovate.com")],
+            "Super Admin": [("superadmin", "shishirkafle44@gmail.com")],
+            "Organization Admin": [("orgadmin", "shishirkafle18@gmail.com")],
             "Salesperson": [("salestest", "sales@innovate.com"), ("salespro", "salespro@innovate.com")],
             "Verifier": [("verifier", "verifier@innovate.com")],
         }
