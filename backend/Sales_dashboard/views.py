@@ -150,9 +150,9 @@ def dashboard_view(request):
         )
         
         status_summary = {
-            'verified': {'count': 0, 'total': Decimal('0')},
-            'pending': {'count': 0, 'total': Decimal('0')},
-            'rejected': {'count': 0, 'total': Decimal('0')},
+            'verified': {'count': 0, 'total': 0.0},
+            'pending': {'count': 0, 'total': 0.0},
+            'rejected': {'count': 0, 'total': 0.0},
         }
         
         for status_data in verification_status:
@@ -160,7 +160,7 @@ def dashboard_view(request):
             if status_key in status_summary:
                 status_summary[status_key] = {
                     'count': status_data['count'],
-                    'total': status_data['total_value'] or Decimal('0')
+                    'total': float(status_data['total_value'] or Decimal('0'))
                 }
         
         # Prepare response data
@@ -1110,15 +1110,15 @@ def payment_verification_view(request):
     )
 
     output = {
-        'pending': {'count': 0, 'total': '0'},
-        'verified': {'count': 0, 'total': '0'},
-        'rejected': {'count': 0, 'total': '0'},
+        'pending': {'count': 0, 'total': 0.0},
+        'verified': {'count': 0, 'total': 0.0},
+        'rejected': {'count': 0, 'total': 0.0},
     }
 
     for row in summary_qs:
         status_key = row['verification_status']
         if status_key in output:
             output[status_key]['count'] = row['count']
-            output[status_key]['total'] = str(row['total_value'] or 0)
+            output[status_key]['total'] = float(row['total_value'] or 0)
 
     return Response(output, status=status.HTTP_200_OK)

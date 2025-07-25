@@ -1,6 +1,12 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.utils import timezone
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import json
+
 from clients.models import Client
 from deals.models import Deal, Payment
 from organization.models import Organization
@@ -8,34 +14,28 @@ from permissions.models import Role
 from team.models import Team
 from project.models import Project
 from commission.models import Commission
+from notifications.models import Notification
 from .services import NotificationService
 from .serializers import NotificationSerializer
-from django.db.models import Q
-from notifications.models import Notification
-from asgiref.sync import async_to_sync
+from .group_utils import sync_group_manager
+
+User = get_user_model()
 
 @receiver(post_save, sender=Notification)
 def send_live_notification(sender, instance, created, **kwargs):
     """Send live notification to the user via WebSocket when a notification is created."""
     if created:
-        channel_layer = get_channel_layer()
-        group_name = f'notifications_{instance.recipient.id}'
-        
-        # Serialize the notification data
-        serializer = NotificationSerializer(instance)
-        notification_data = serializer.data
-        
-        # The event dictionary must have a 'type' key that corresponds to a method in the consumer
-        event = {
-            'type': 'send_notification',  # This will call the 'send_notification' method in the consumer
-            'notification': notification_data
-        }
-        
-        async_to_sync(channel_layer.group_send)(group_name, event)
-from channels.layers import get_channel_layer
-import json
-
-User = get_user_model()
+        try:
+            # Serialize the notification data
+            serializer = NotificationSerializer(instance)
+            notification_data = serializer.data
+            
+            # Send to the specific user
+            sync_group_manager.send_to_user(instance.recipient.id, notification_data)
+            
+            print(f"[NotificationSignal] Sent notification {instance.id} to user {instance.recipient.id}")
+        except Exception as e:
+            print(f"[NotificationSignal] Error sending notification {instance.id}: {e}")
 
 # =============================================================================
 # CLIENT NOTIFICATIONS
@@ -253,29 +253,93 @@ def notify_new_organization(sender, instance, created, **kwargs):
             related_object_type='organization',
             related_object_id=instance.id,
             send_email_to_superadmin=True
-        ) 
-
-@receiver(post_save, sender=Notification)
-def send_notification_ws(sender, instance, created, **kwargs):
-    if created:
-        print(f"[DEBUG] Signal triggered for notification {instance.id}")
-        channel_layer = get_channel_layer()
-        group_name = f"notifications_{instance.recipient_id}"  # Per-user group
-        notification_data = {
-            "id": instance.id,
-            "title": instance.title,
-            "message": instance.message,
-            "notification_type": instance.notification_type,
-            "priority": instance.priority,
-            "category": instance.category,
-            "is_read": instance.is_read,
-            "created_at": instance.created_at.isoformat(),
-        }
-        async_to_sync(channel_layer.group_send)(
-            group_name,
-            {
-                "type": "send_notification",
-                "notification": notification_data,
-            }
         )
-        print(f"[DEBUG] group_send called for notification {instance.id}") 
+
+# =============================================================================
+# ENHANCED GROUP-BASED NOTIFICATION SIGNALS
+# =============================================================================
+
+def send_role_broadcast_notification(org_id, role_names, title, message, notification_type='system_alert', priority='medium'):
+    """
+    Send broadcast notification to specific roles within an organization
+    without creating individual notification records.
+    """
+    from django.utils import timezone
+    
+    notification_data = {
+        'title': title,
+        'message': message,
+        'notification_type': notification_type,
+        'priority': priority,
+        'category': 'broadcast',
+        'is_broadcast': True,
+        'created_at': timezone.now().isoformat(),
+        'organization_id': org_id
+    }
+    
+    sync_group_manager.send_to_roles(org_id, role_names, notification_data)
+    print(f"[BroadcastSignal] Sent {notification_type} to roles {role_names} in org {org_id}")
+
+def send_organization_broadcast(org_id, title, message, notification_type='system_alert', priority='medium'):
+    """
+    Send broadcast notification to all users in an organization
+    without creating individual notification records.
+    """
+    from django.utils import timezone
+    
+    notification_data = {
+        'title': title,
+        'message': message,
+        'notification_type': notification_type,
+        'priority': priority,
+        'category': 'broadcast',
+        'is_broadcast': True,
+        'created_at': timezone.now().isoformat(),
+        'organization_id': org_id
+    }
+    
+    sync_group_manager.send_org_broadcast(org_id, notification_data)
+    print(f"[BroadcastSignal] Sent {notification_type} broadcast to org {org_id}")
+
+def send_system_broadcast(title, message, notification_type='system_alert', priority='high'):
+    """
+    Send system-wide broadcast notification to all connected users
+    without creating individual notification records.
+    """
+    from django.utils import timezone
+    
+    notification_data = {
+        'title': title,
+        'message': message,
+        'notification_type': notification_type,
+        'priority': priority,
+        'category': 'broadcast',
+        'is_broadcast': True,
+        'created_at': timezone.now().isoformat(),
+        'system_wide': True
+    }
+    
+    sync_group_manager.send_system_broadcast(notification_data)
+    print(f"[BroadcastSignal] Sent system-wide {notification_type} broadcast")
+
+# Example usage functions that can be called from management commands or admin actions
+def notify_system_maintenance(start_time, duration_minutes):
+    """Notify all users about scheduled system maintenance"""
+    send_system_broadcast(
+        title="Scheduled System Maintenance",
+        message=f"System maintenance is scheduled to start at {start_time} and will last approximately {duration_minutes} minutes. Please save your work.",
+        notification_type="system_maintenance",
+        priority="high"
+    )
+
+def notify_organization_announcement(org_id, title, message):
+    """Send announcement to all users in an organization"""
+    send_organization_broadcast(
+        org_id=org_id,
+        title=title,
+        message=message,
+        notification_type="organization_announcement",
+        priority="medium"
+    ) 
+
+ 

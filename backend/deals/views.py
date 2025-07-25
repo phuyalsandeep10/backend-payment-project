@@ -35,36 +35,42 @@ class DealViewSet(viewsets.ModelViewSet):
         return DealSerializer
 
     def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
-            return Deal.objects.none()
-
-        user = self.request.user
-        queryset = Deal.objects.select_related(
-            'organization', 'client', 'created_by', 'updated_by'
+        """Optimize queries with select_related and prefetch_related"""
+        return Deal.objects.select_related(
+            'client',
+            'created_by',
+            'created_by__organization'
         ).prefetch_related(
-            'payments', 'activity_logs'
+            'payments'
+        ).filter(
+            organization=self.request.user.organization
         )
 
-        if user.is_superuser:
-            return queryset.all()
-
-        if not user.organization:
-            return Deal.objects.none()
-
-        org_queryset = queryset.filter(organization=user.organization)
-
-        # Org Admins and users with view_all_deals permission can see all deals in their organization
-        if hasattr(user, 'role') and user.role:
-            if user.role.name.strip().replace('-', ' ').lower() in [
-                'organization admin', 'org admin'
-            ]:
-                return org_queryset
-
-            if user.role.permissions.filter(codename='view_all_deals').exists():
-                return org_queryset
+    def list(self, request, *args, **kwargs):
+        """Optimized list view with pagination"""
+        queryset = self.get_queryset()
         
-        # Other users can only see deals they created
-        return org_queryset.filter(created_by=user)
+        # Add filtering
+        status = request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(payment_status=status)
+        
+        # Add search
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(deal_name__icontains=search) |
+                Q(client__client_name__icontains=search) |
+                Q(deal_id__icontains=search)
+            )
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(

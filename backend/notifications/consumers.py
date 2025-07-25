@@ -5,8 +5,14 @@ from django.db import close_old_connections
 from django.apps import apps
 import json
 from channels.db import database_sync_to_async
+from .group_utils import NotificationGroupManager
 
 class NotificationConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.group_manager = NotificationGroupManager()
+        self.user_groups = []
+    
     @property
     def User(self):
         return get_user_model()
@@ -37,26 +43,43 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 self.user = None
         print(f"[NotificationConsumer] User: {self.user}")
         if self.user and self.user.is_active:
-            self.group_name = f"notifications_{self.user.id}"
-            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            # Add user to all appropriate Redis groups
+            self.user_groups = await self.group_manager.add_user_to_groups(
+                self.user, self.channel_name
+            )
+            
             await self.accept()
-            # Send a hello message
-            await self.send(text_data=json.dumps({"message": "WebSocket connected!"}))
+            
+            # Get timestamp
+            timestamp = await self._get_current_timestamp()
+            
+            # Send connection confirmation with group information
+            await self.send(text_data=json.dumps({
+                "message": "WebSocket connected!",
+                "user_id": self.user.id,
+                "groups": self.user_groups,
+                "timestamp": timestamp
+            }))
 
             # After connection, push unread notifications so the frontend
             # can render current state without an extra REST round-trip.
             batch = await self._get_unread_notifications()
             await self.send(text_data=json.dumps({
                 "type": "notification_batch",
-                "notifications": batch
+                "notifications": batch,
+                "count": len(batch)
             }, default=str))
         else:
             print("[NotificationConsumer] WebSocket connection rejected: user not authenticated or inactive.")
             await self.close()
 
     async def disconnect(self, close_code):
-        if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        # Remove user from all Redis groups they were part of
+        if hasattr(self, "user") and self.user and hasattr(self, "user_groups"):
+            await self.group_manager.remove_user_from_groups(
+                self.user, self.channel_name
+            )
+            print(f"[NotificationConsumer] User {self.user.id} disconnected from groups: {self.user_groups}")
 
     @database_sync_to_async
     def _get_unread_notifications(self):
@@ -72,13 +95,103 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             )[:50]
         )
         return list(unread)
+    
+    @database_sync_to_async
+    def _get_current_timestamp(self):
+        """Get current timestamp"""
+        from django.utils import timezone
+        return timezone.now().isoformat()
 
     async def receive(self, text_data):
-        pass
+        """Handle incoming WebSocket messages from client"""
+        try:
+            data = json.loads(text_data)
+            message_type = data.get('type')
+            
+            # Handle client-side message types
+            if message_type == 'ping':
+                timestamp = await self._get_current_timestamp()
+                await self.send(text_data=json.dumps({
+                    "type": "pong",
+                    "timestamp": timestamp
+                }))
+                return  # Important: return early to avoid other processing
+                
+            elif message_type == 'mark_as_read':
+                notification_id = data.get('notification_id')
+                if notification_id:
+                    success = await self._mark_notification_as_read(notification_id)
+                    await self.send(text_data=json.dumps({
+                        "type": "mark_as_read_response",
+                        "notification_id": notification_id,
+                        "success": success
+                    }))
+            elif message_type == 'get_unread_count':
+                count = await self._get_unread_count()
+                await self.send(text_data=json.dumps({
+                    "type": "unread_count",
+                    "count": count
+                }))
+                
+        except json.JSONDecodeError as e:
+            print(f"[NotificationConsumer] Invalid JSON received: {e}")
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": "Invalid JSON format"
+            }))
+        except Exception as e:
+            print(f"[NotificationConsumer] Error handling message: {e}")
+            await self.send(text_data=json.dumps({
+                "type": "error", 
+                "message": "Internal server error"
+            }))
+
+    @database_sync_to_async
+    def _mark_notification_as_read(self, notification_id):
+        """Mark notification as read"""
+        try:
+            from notifications.models import Notification
+            notification = Notification.objects.get(
+                id=notification_id, 
+                recipient=self.user
+            )
+            notification.is_read = True
+            notification.save()
+            return True
+        except Notification.DoesNotExist:
+            return False
+        except Exception as e:
+            print(f"Error marking notification as read: {e}")
+            return False
+    
+    @database_sync_to_async
+    def _get_unread_count(self):
+        """Get unread notification count for user"""
+        try:
+            from notifications.models import Notification
+            return Notification.objects.filter(
+                recipient=self.user,
+                is_read=False
+            ).count()
+        except Exception as e:
+            print(f"Error getting unread count: {e}")
+            return 0
 
     async def send_notification(self, event):
+        """Handle notification broadcast from Redis groups"""
         notification = event["notification"]
+        
+        # Get timestamp
+        timestamp = await self._get_current_timestamp()
+        
+        # Add timestamp and channel info for debugging
+        enhanced_notification = {
+            **notification,
+            "received_at": timestamp,
+            "channel_name": self.channel_name[:8] + "..." if len(self.channel_name) > 8 else self.channel_name
+        }
+        
         await self.send(text_data=json.dumps({
             "type": "notification",
-            "notification": notification
-        })) 
+            "notification": enhanced_notification
+        }, default=str)) 

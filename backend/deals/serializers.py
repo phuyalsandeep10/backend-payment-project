@@ -72,15 +72,29 @@ class PaymentSerializer(serializers.ModelSerializer):
         return obj.received_amount
     
     def get_verified_by(self, obj):
-        """Get the verifier information from the latest approval"""
+        """Get the verifier information from the latest approval - only for verified/rejected payments"""
         try:
-            latest_approval = obj.approvals.order_by('-approval_date').first()
-            if latest_approval and latest_approval.approved_by:
-                return {
-                    'id': latest_approval.approved_by.id,
-                    'full_name': latest_approval.approved_by.get_full_name() or latest_approval.approved_by.email,
-                    'email': latest_approval.approved_by.email
-                }
+            # First check if payment is actually verified/rejected
+            payment_status = 'pending'
+            if hasattr(obj, 'invoice') and obj.invoice:
+                payment_status = obj.invoice.invoice_status
+            else:
+                latest_approval = obj.approvals.order_by('-approval_date').first()
+                if latest_approval:
+                    if latest_approval.failure_remarks:
+                        payment_status = 'rejected'
+                    else:
+                        payment_status = 'verified'
+            
+            # Only return verifier info if payment is actually verified or rejected
+            if payment_status in ['verified', 'rejected']:
+                latest_approval = obj.approvals.order_by('-approval_date').first()
+                if latest_approval and latest_approval.approved_by:
+                    return {
+                        'id': latest_approval.approved_by.id,
+                        'full_name': latest_approval.approved_by.get_full_name() or latest_approval.approved_by.email,
+                        'email': latest_approval.approved_by.email
+                    }
         except:
             pass
         return None
@@ -150,18 +164,37 @@ class PaymentSerializer(serializers.ModelSerializer):
             elif isinstance(received_amount, Decimal):
                 received_amount = float(received_amount)
             
-            # Calculate total amount already paid for this deal (using verified amounts when available)
+            # Calculate total amount already paid for this deal (only counting verified payments)
             total_paid = 0
             for payment in deal.payments.all():
-                # Get the verified amount if available, otherwise use received amount
+                # Only count payments that are verified (not denied/rejected)
+                payment_status = 'pending'
                 try:
-                    latest_approval = payment.approvals.order_by('-approval_date').first()
-                    if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
-                        total_paid += float(latest_approval.amount_in_invoice)
+                    # First try to get status from the invoice
+                    if hasattr(payment, 'invoice') and payment.invoice:
+                        payment_status = payment.invoice.invoice_status
                     else:
+                        # If no invoice, check the latest approval
+                        latest_approval = payment.approvals.order_by('-approval_date').first()
+                        if latest_approval:
+                            if latest_approval.failure_remarks:
+                                payment_status = 'rejected'
+                            else:
+                                payment_status = 'verified'
+                except Exception:
+                    payment_status = 'pending'
+                
+                # Only include verified payments in total
+                if payment_status == 'verified':
+                    # Get the verified amount if available, otherwise use received amount
+                    try:
+                        latest_approval = payment.approvals.order_by('-approval_date').first()
+                        if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
+                            total_paid += float(latest_approval.amount_in_invoice)
+                        else:
+                            total_paid += float(payment.received_amount)
+                    except:
                         total_paid += float(payment.received_amount)
-                except:
-                    total_paid += float(payment.received_amount)
             
             deal_value = float(deal.deal_value)
             
@@ -284,13 +317,80 @@ class DealSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'deal_id', 'organization', 'created_by', 'updated_by', 
-            'payment_status', 'verification_status', 'client_status', 'created_at', 'updated_at',
+            'verification_status', 'client_status', 'created_at', 'updated_at',
             'client_name', 'pay_status', 'total_paid', 'remaining_balance', 'payment_progress', 'payments_read'
         ]
 
+    def validate(self, data):
+        """Validate deal data including payment consistency"""
+        # Validate payment status vs first payment amount
+        if 'payments' in data and data['payments']:
+            first_payment = data['payments'][0]
+            payment_status = data.get('payment_status')
+            deal_value = data.get('deal_value')
+            received_amount = first_payment.get('received_amount')
+            
+            if payment_status and deal_value and received_amount:
+                deal_value_decimal = Decimal(str(deal_value))
+                received_amount_decimal = Decimal(str(received_amount))
+                
+                if payment_status == 'full_payment':
+                    # For full payment, received amount must equal deal value
+                    if abs(deal_value_decimal - received_amount_decimal) > Decimal('0.01'):
+                        raise serializers.ValidationError({
+                            'payments': f'For full payment, received amount must equal deal value ({deal_value})'
+                        })
+                elif payment_status == 'partial_payment':
+                    # For partial payment, received amount must be less than deal value
+                    if received_amount_decimal >= deal_value_decimal:
+                        raise serializers.ValidationError({
+                            'payments': f'For partial payment, received amount must be less than deal value ({deal_value})'
+                        })
+                    if received_amount_decimal <= 0:
+                        raise serializers.ValidationError({
+                            'payments': 'Payment amount must be greater than 0'
+                        })
+        
+        # Validate date logic
+        deal_date = data.get('deal_date')
+        due_date = data.get('due_date')
+        if deal_date and due_date and deal_date > due_date:
+            raise serializers.ValidationError({
+                'due_date': 'Due date cannot be before deal date'
+            })
+        
+        return data
+
     def create(self, validated_data):
         payments_data = validated_data.pop('payments', [])
-        deal = super().create(validated_data)
+        
+        # Store payment data for model validation but don't pass it to create()
+        payment_data_for_validation = None
+        if payments_data:
+            payment_data_for_validation = payments_data[0]
+        
+        # Create deal instance without _payment_data
+        try:
+            # Create the deal with validation
+            deal = Deal(**validated_data)
+            
+            # Set payment data for validation if available
+            if payment_data_for_validation:
+                deal._payment_data = payment_data_for_validation
+            
+            # Run full_clean to trigger model validation including payment validation
+            deal.full_clean()
+            
+            # Save the deal
+            deal.save()
+        except ValidationError as e:
+            # Convert Django ValidationError to DRF ValidationError
+            if hasattr(e, 'message_dict'):
+                raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(str(e))
+        except Exception as e:
+            raise serializers.ValidationError(f"Unexpected error: {str(e)}")
+        
         Payment = apps.get_model('deals', 'Payment')
         ActivityLog = apps.get_model('deals', 'ActivityLog')
         
@@ -333,7 +433,39 @@ class DealSerializer(serializers.ModelSerializer):
         return deal
 
     def get_total_paid(self, obj):
-        return sum(float(payment.received_amount) for payment in obj.payments.all())
+        """Calculate total amount paid for this deal (only counting verified payments)"""
+        total_paid = 0
+        for payment in obj.payments.all():
+            # Only count payments that are verified (not denied/rejected)
+            payment_status = 'pending'
+            try:
+                # First try to get status from the invoice
+                if hasattr(payment, 'invoice') and payment.invoice:
+                    payment_status = payment.invoice.invoice_status
+                else:
+                    # If no invoice, check the latest approval
+                    latest_approval = payment.approvals.order_by('-approval_date').first()
+                    if latest_approval:
+                        if latest_approval.failure_remarks:
+                            payment_status = 'rejected'
+                        else:
+                            payment_status = 'verified'
+            except Exception:
+                payment_status = 'pending'
+            
+            # Only include verified payments in total
+            if payment_status == 'verified':
+                # Get the verified amount if available, otherwise use received amount
+                try:
+                    latest_approval = payment.approvals.order_by('-approval_date').first()
+                    if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
+                        total_paid += float(latest_approval.amount_in_invoice)
+                    else:
+                        total_paid += float(payment.received_amount)
+                except:
+                    total_paid += float(payment.received_amount)
+        
+        return total_paid
     
     def get_remaining_balance(self, obj):
         total_paid = self.get_total_paid(obj)
@@ -410,16 +542,27 @@ class DealPaymentHistorySerializer(serializers.ModelSerializer):
             return 'pending'
     
     def get_verified_by(self, obj):
-        """Get the name of the person who verified this specific payment"""
+        """Get the name of the person who verified this specific payment - only for verified/rejected payments"""
         try:
-            # Get the latest approval for this payment
-            latest_approval = obj.approvals.order_by('-approval_date').first()
-            if latest_approval and latest_approval.approved_by:
-                return latest_approval.approved_by.get_full_name()
+            # First check if payment is actually verified/rejected
+            payment_status = 'pending'
+            if hasattr(obj, 'invoice') and obj.invoice:
+                payment_status = obj.invoice.invoice_status
+            else:
+                latest_approval = obj.approvals.order_by('-approval_date').first()
+                if latest_approval:
+                    if latest_approval.failure_remarks:
+                        payment_status = 'rejected'
+                    else:
+                        payment_status = 'verified'
             
-            # Fallback to deal's updated_by if no approval exists
-            if obj.deal.updated_by:
-                return obj.deal.updated_by.get_full_name()
+            # Only return verifier info if payment is actually verified or rejected
+            if payment_status in ['verified', 'rejected']:
+                latest_approval = obj.approvals.order_by('-approval_date').first()
+                if latest_approval and latest_approval.approved_by:
+                    return latest_approval.approved_by.get_full_name()
+            
+            # Return None for pending payments (frontend should show "N/A")
             return None
         except:
             return None

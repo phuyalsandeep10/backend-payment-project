@@ -21,6 +21,10 @@ class Notification(models.Model):
         ('payment_received', 'Payment Received'),
         ('new_organization', 'New Organization Created'),
         ('system_alert', 'System Alert'),
+        ('system_maintenance', 'System Maintenance'),
+        ('organization_announcement', 'Organization Announcement'),
+        ('test_system_broadcast', 'Test System Broadcast'),
+        ('test_notification', 'Test Notification'),
     ]
     
     # Priority Levels

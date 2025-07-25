@@ -69,8 +69,20 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     # Relationships
-    organization = models.ForeignKey('organization.Organization', on_delete=models.SET_NULL, null=True, blank=True)
-    role = models.ForeignKey('permissions.Role', on_delete=models.SET_NULL, null=True, blank=True)
+    organization = models.ForeignKey(
+        'organization.Organization',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='users'
+    )
+    role = models.ForeignKey(
+        'permissions.Role', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='users'
+    )
     team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
     
     # Contact information

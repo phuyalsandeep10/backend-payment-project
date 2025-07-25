@@ -96,14 +96,15 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-
-    # third party apps
+    'daphne',  # Add this at the top
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    
+    # Third party apps
     'rest_framework',
     'rest_framework.authtoken',
     'channels',
@@ -111,17 +112,17 @@ INSTALLED_APPS = [
     'drf_yasg',
     'cloudinary',
     'cloudinary_storage',
-
-    # my apps
-    "authentication",
-    "clients",
-    "organization",
-    "permissions",
-    "commission",
-    "team",
-    "project",
-    "deals",
-    "notifications",
+    
+    # Your apps
+    'authentication',
+    'clients',
+    'organization',
+    'permissions',
+    'commission',
+    'team',
+    'project',
+    'deals',
+    'notifications',
     'Sales_dashboard',
     'Verifier_dashboard',
     'django_filters',
@@ -204,42 +205,46 @@ ASGI_APPLICATION = 'core_config.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Use DATABASE_URL (recommended across services like Render, Heroku, Railway)
-# Format: postgresql://user:password@host:port/database
-# Example: postgresql://myuser:mypassword@localhost:5432/mydatabase
-import dj_database_url
+# Add database connection validation
+import os
+from django.core.exceptions import ImproperlyConfigured
 
-# Get DATABASE_URL from environment, with fallback to individual variables
-DATABASE_URL = env('DATABASE_URL', default=None)
+def get_env_variable(var_name, default=None):
+    """Get environment variable or raise exception"""
+    try:
+        return os.environ[var_name]
+    except KeyError:
+        if default is not None:
+            return default
+        error_msg = f"Set the {var_name} environment variable"
+        raise ImproperlyConfigured(error_msg)
 
-if DATABASE_URL:
-    # Use the full DATABASE_URL (recommended approach)
+# Database configuration with validation
+if os.getenv('DATABASE_URL'):
+    # Parse DATABASE_URL for production
+    import dj_database_url
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
+        'default': dj_database_url.parse(
+            os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
-    # Fallback to individual environment variables (legacy support)
-    DB_NAME = env('DB_NAME', default=None)
-    
-    if DB_NAME:
-        DATABASES = {
-            'default': {
-                'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
-                'NAME': DB_NAME,
-                'USER': env('DB_USER'),
-                'PASSWORD': env('DB_PASSWORD'),
-                'HOST': env('DB_HOST'),
-                'PORT': env('DB_PORT', default='5432'),
-            }
+    # Development database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': get_env_variable('DB_NAME', 'prs_db'),
+            'USER': get_env_variable('DB_USER', 'postgres'),
+            'PASSWORD': get_env_variable('DB_PASSWORD', 'password'),
+            'HOST': get_env_variable('DB_HOST', 'localhost'),
+            'PORT': get_env_variable('DB_PORT', '5432'),
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
         }
-    else:
-        # Final fallback to SQLite for development
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    }
 
 
 # Enhanced Password validation
@@ -534,12 +539,64 @@ if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
     print("⚠️  SMTP credentials not provided. Falling back to console email backend.")
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+# WebSocket Configuration
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
         },
     },
 }
+
+# Ensure ASGI application is configured
+ASGI_APPLICATION = 'core_config.asgi.application'
+
+# CORS settings for WebSocket
+CORS_ALLOW_ALL_ORIGINS = True  # For development
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'sec-websocket-key',
+    'sec-websocket-protocol',
+    'sec-websocket-version',
+    'upgrade',
+    'connection',
+]
+
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'https://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+
+# API endpoints that need CSRF protection
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Session security
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+
+# Security headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 

@@ -12,6 +12,8 @@ import os
 from django.utils import timezone
 from project.models import Project
 from django.db.models.signals import pre_save, post_save
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 ##
 ##  Deals Section
@@ -52,7 +54,7 @@ class Deal(models.Model):
         ('bad_debt', 'Bad Debt'),
     ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True )
-    deal_id = models.CharField(max_length=50)
+    deal_id = models.CharField(max_length=50, blank=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='deals')
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='deals')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='deals', null=True, blank=True)
@@ -79,6 +81,15 @@ class Deal(models.Model):
         return f"{self.deal_id} - {self.client.client_name if self.client else ''}"
     
     class Meta:
+        db_table = 'deals_deal'
+        indexes = [
+            models.Index(fields=['client', 'created_at']),
+            models.Index(fields=['created_by', 'deal_date']),
+            models.Index(fields=['payment_status', 'verification_status']),
+            models.Index(fields=['due_date']),
+            models.Index(fields=['deal_value']),
+        ]
+        ordering = ['-created_at']
         unique_together = ('organization','deal_id')
         permissions = [
             ("manage_invoices", "Can manage invoices"),
@@ -108,18 +119,37 @@ class Deal(models.Model):
         super().save(*args,**kwargs)
 
     def get_total_paid_amount(self):
-        """Calculate total amount paid for this deal (using verified amounts when available)"""
+        """Calculate total amount paid for this deal (only counting verified payments)"""
         total_paid = 0
         for payment in self.payments.all():
-            # Get the verified amount if available, otherwise use received amount
+            # Only count payments that are verified (not denied/rejected)
+            payment_status = 'pending'
             try:
-                latest_approval = payment.approvals.order_by('-approval_date').first()
-                if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
-                    total_paid += float(latest_approval.amount_in_invoice)
+                # First try to get status from the invoice
+                if hasattr(payment, 'invoice') and payment.invoice:
+                    payment_status = payment.invoice.invoice_status
                 else:
+                    # If no invoice, check the latest approval
+                    latest_approval = payment.approvals.order_by('-approval_date').first()
+                    if latest_approval:
+                        if latest_approval.failure_remarks:
+                            payment_status = 'rejected'
+                        else:
+                            payment_status = 'verified'
+            except Exception:
+                payment_status = 'pending'
+            
+            # Only include verified payments in total
+            if payment_status == 'verified':
+                # Get the verified amount if available, otherwise use received amount
+                try:
+                    latest_approval = payment.approvals.order_by('-approval_date').first()
+                    if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
+                        total_paid += float(latest_approval.amount_in_invoice)
+                    else:
+                        total_paid += float(payment.received_amount)
+                except:
                     total_paid += float(payment.received_amount)
-            except:
-                total_paid += float(payment.received_amount)
         return total_paid
     
     def get_remaining_balance(self):
@@ -135,10 +165,106 @@ class Deal(models.Model):
             return 0
         return (float(total_paid) / deal_value) * 100
     
+    def clean(self):
+        """Validate deal data including payment logic"""
+        super().clean()
+        
+        # Validate deal_value is positive
+        if self.deal_value is not None and self.deal_value <= 0:
+            raise ValidationError({'deal_value': 'Deal value must be greater than 0'})
+        
+        # Validate date logic
+        if self.deal_date and self.due_date and self.deal_date > self.due_date:
+            raise ValidationError({'due_date': 'Due date cannot be before deal date'})
+        
+        # Validate payment status consistency
+        if hasattr(self, '_payment_data'):
+            self._validate_payment_consistency()
+    
+    def _validate_payment_consistency(self):
+        """Validate payment amount against deal value based on payment status"""
+        if not hasattr(self, '_payment_data') or not self._payment_data:
+            return
+            
+        payment_amount = Decimal(str(self._payment_data.get('received_amount', 0)))
+        deal_value = Decimal(str(self.deal_value))
+        
+        if self.payment_status == 'full_payment':
+            # For full payment, received amount should equal deal value
+            if abs(deal_value - payment_amount) > Decimal('0.01'):
+                raise ValidationError({
+                    'received_amount': f'For full payment, received amount must equal deal value ({deal_value})'
+                })
+        elif self.payment_status == 'partial_payment':
+            # For partial payment, received amount should be less than deal value
+            if payment_amount >= deal_value:
+                raise ValidationError({
+                    'received_amount': f'For partial payment, received amount must be less than deal value ({deal_value})'
+                })
+            if payment_amount <= 0:
+                raise ValidationError({
+                    'received_amount': 'Payment amount must be greater than 0'
+                })
+    
+    def validate_additional_payment(self, payment_amount):
+        """Validate additional payments don't exceed deal value"""
+        current_total = Decimal(str(self.get_total_paid_amount()))
+        new_payment = Decimal(str(payment_amount))
+        deal_value = Decimal(str(self.deal_value))
+        
+        total_after_payment = current_total + new_payment
+        
+        if total_after_payment > deal_value:
+            remaining = deal_value - current_total
+            raise ValidationError(
+                f'Payment amount ({new_payment}) would exceed deal value. '
+                f'Maximum allowed: {remaining} (Remaining balance)'
+            )
+        
+        return True
+    
     
 ##
 ##   Payments Section
 ##
+
+def validate_file_upload(file):
+    """Enhanced file validation with security checks"""
+    import magic
+    from django.core.exceptions import ValidationError
+    
+    # File size limit (10MB)
+    max_size = 10 * 1024 * 1024
+    if file.size > max_size:
+        raise ValidationError(f'File size ({file.size} bytes) exceeds maximum allowed (10MB)')
+    
+    # Allowed file types with MIME validation
+    allowed_types = {
+        'image/jpeg': ['.jpg', '.jpeg'],
+        'image/png': ['.png'],
+        'application/pdf': ['.pdf'],
+        'text/plain': ['.txt'],
+    }
+    
+    # Get actual MIME type using python-magic
+    file.seek(0)
+    file_content = file.read(1024)  # Read first 1KB
+    file.seek(0)
+    
+    try:
+        mime_type = magic.from_buffer(file_content, mime=True)
+    except:
+        raise ValidationError('Could not determine file type')
+    
+    if mime_type not in allowed_types:
+        raise ValidationError(f'File type {mime_type} not allowed')
+    
+    # Validate file extension matches MIME type
+    file_ext = os.path.splitext(file.name)[1].lower()
+    if file_ext not in allowed_types[mime_type]:
+        raise ValidationError(f'File extension {file_ext} does not match file type {mime_type}')
+    
+    return True
 
 class Payment(models.Model):
     PAYMENT_TYPE = [
@@ -156,10 +282,10 @@ class Payment(models.Model):
     deal = models.ForeignKey(Deal,on_delete=models.CASCADE,related_name = 'payments')
     payment_date = models.DateField()
     receipt_file = models.FileField(
-        upload_to='receipts/', 
-        blank=True, 
+        upload_to='receipts/',
         null=True,
-        validators=[validate_file_security]
+        blank=True,
+        validators=[validate_file_upload]
     )
     payment_remarks = models.TextField(blank=True,null=True)
     
@@ -172,12 +298,38 @@ class Payment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'deals_payment'
+        indexes = [
+            models.Index(fields=['deal', 'payment_date']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['received_amount']),
+        ]
+        ordering = ['-payment_date']
         permissions = [
             ("create_deal_payment", "Can create deal payment"),
         ]
 
     def __str__(self):
         return f"payment for {self.deal.deal_id} on {self.payment_date}"
+    
+    def clean(self):
+        """Validate payment data"""
+        super().clean()
+        
+        # Validate received amount is positive
+        if self.received_amount is not None and self.received_amount <= 0:
+            raise ValidationError({'received_amount': 'Payment amount must be greater than 0'})
+        
+        # Validate payment date is not in the future
+        if self.payment_date and self.payment_date > timezone.now().date():
+            raise ValidationError({'payment_date': 'Payment date cannot be in the future'})
+        
+        # Validate payment doesn't exceed deal value for additional payments
+        if self.deal_id and self.received_amount:
+            try:
+                self.deal.validate_additional_payment(self.received_amount)
+            except ValidationError as e:
+                raise ValidationError({'received_amount': str(e)})
     
     def save(self, *args, **kwargs):
         # Validate cheque number for uniqueness before saving

@@ -75,4 +75,5 @@ uritemplate==4.2.0
 urllib3==2.5.0
 user-agents==2.2.0
 channels==4.0.0
-daphne==4.0.0
+channels-redis==4.2.0
+daphne==4.1.1
