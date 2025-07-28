@@ -256,7 +256,7 @@ class NestedPaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = [
             'payment_date', 'received_amount', 'cheque_number', 
-            'payment_method', 'payment_remarks'
+            'payment_method', 'payment_remarks', 'receipt_file'
         ]
     
     def validate_cheque_number(self, value):
@@ -288,6 +288,69 @@ class DealSerializer(serializers.ModelSerializer):
     )
     payments = NestedPaymentSerializer(many=True, required=False, write_only=True)
     activity_logs = ActivityLogSerializer(many=True, read_only=True)
+
+    def __init__(self, *args, **kwargs):
+        """Override to handle FormData with nested payment fields"""
+        super().__init__(*args, **kwargs)
+        
+        # Handle FormData parsing for nested payment fields
+        if hasattr(self, 'initial_data') and self.initial_data:
+            self._parse_formdata_payments()
+    
+    def _parse_formdata_payments(self):
+        """Parse FormData where all fields come as arrays and handle nested payment structure"""
+        if not hasattr(self, 'initial_data'):
+            return
+            
+        # Convert QueryDict/FormData to regular dict and extract first value from arrays
+        cleaned_data = {}
+        payments_data = []
+        payment_fields = {}
+        
+        for key, value in self.initial_data.items():
+            # Handle Django QueryDict where values are lists, but exclude file uploads
+            from django.core.files.uploadedfile import UploadedFile
+            
+            if isinstance(value, UploadedFile):
+                # File uploads are not arrays - use directly
+                cleaned_value = value
+            elif hasattr(value, '__iter__') and not isinstance(value, (str, bytes)):
+                # It's a list/array - take the first value
+                cleaned_value = value[0] if len(value) > 0 else value
+            else:
+                cleaned_value = value
+            
+            # Check if it's a payment field
+            if key.startswith('payments[0][') and key.endswith(']'):
+                # Extract field name from payments[0][field_name]
+                field_name = key[12:-1]  # Remove 'payments[0][' and ']'
+                payment_fields[field_name] = cleaned_value
+            else:
+                # It's a regular deal field
+                cleaned_data[key] = cleaned_value
+        
+        # If we found payment fields, add them to payments array
+        if payment_fields:
+            payments_data.append(payment_fields)
+            cleaned_data['payments'] = payments_data
+            
+        # Handle client_name to client_id conversion
+        if 'client_name' in cleaned_data and 'client_id' not in cleaned_data:
+            client_name = cleaned_data['client_name']
+            try:
+                # Get the organization from context (should be set by the view)
+                request = self.context.get('request')
+                if request and hasattr(request, 'user') and request.user.organization:
+                    client = Client.objects.get(
+                        client_name=client_name, 
+                        organization=request.user.organization
+                    )
+                    cleaned_data['client_id'] = client.id
+            except Client.DoesNotExist:
+                pass  # Let the validation handle this error
+        
+        # Replace initial_data with cleaned data
+        self.initial_data = cleaned_data
 
     # Aliases expected by FE table
     client_name = serializers.CharField(source='client.client_name', read_only=True)
@@ -418,6 +481,7 @@ class DealSerializer(serializers.ModelSerializer):
                     cheque_number=payment_info.get('cheque_number', ''),
                     payment_type=payment_info.get('payment_method', deal.payment_method),  # Use deal's payment method if not specified
                     payment_remarks=payment_info.get('payment_remarks', ''),
+                    receipt_file=payment_info.get('receipt_file'),  # Include receipt file
                 )
                 ActivityLog.objects.create(
                     deal=deal, 

@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 upload_to="receipts/",
-                validators=[deals.models.validate_file_upload],
+                validators=[deals.validators.validate_file_security],
             ),
         ),
         migrations.AddIndex(

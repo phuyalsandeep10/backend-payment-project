@@ -228,43 +228,7 @@ class Deal(models.Model):
 ##   Payments Section
 ##
 
-def validate_file_upload(file):
-    """Enhanced file validation with security checks"""
-    import magic
-    from django.core.exceptions import ValidationError
-    
-    # File size limit (10MB)
-    max_size = 10 * 1024 * 1024
-    if file.size > max_size:
-        raise ValidationError(f'File size ({file.size} bytes) exceeds maximum allowed (10MB)')
-    
-    # Allowed file types with MIME validation
-    allowed_types = {
-        'image/jpeg': ['.jpg', '.jpeg'],
-        'image/png': ['.png'],
-        'application/pdf': ['.pdf'],
-        'text/plain': ['.txt'],
-    }
-    
-    # Get actual MIME type using python-magic
-    file.seek(0)
-    file_content = file.read(1024)  # Read first 1KB
-    file.seek(0)
-    
-    try:
-        mime_type = magic.from_buffer(file_content, mime=True)
-    except:
-        raise ValidationError('Could not determine file type')
-    
-    if mime_type not in allowed_types:
-        raise ValidationError(f'File type {mime_type} not allowed')
-    
-    # Validate file extension matches MIME type
-    file_ext = os.path.splitext(file.name)[1].lower()
-    if file_ext not in allowed_types[mime_type]:
-        raise ValidationError(f'File extension {file_ext} does not match file type {mime_type}')
-    
-    return True
+
 
 class Payment(models.Model):
     PAYMENT_TYPE = [
@@ -285,7 +249,7 @@ class Payment(models.Model):
         upload_to='receipts/',
         null=True,
         blank=True,
-        validators=[validate_file_upload]
+        validators=[validate_file_security]
     )
     payment_remarks = models.TextField(blank=True,null=True)
     
