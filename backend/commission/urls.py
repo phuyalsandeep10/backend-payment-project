@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CommissionViewSet, UserCommissionView, OrgAdminCommissionView, CurrencyListView
+from .views import CommissionViewSet, UserCommissionView, OrgAdminCommissionView, CurrencyListView, CountryCodesView, NationalityView
 
 router = DefaultRouter()
 router.register(r'commissions', CommissionViewSet, basename='commission')
@@ -14,6 +14,8 @@ urlpatterns = [
     path('commissions/user/<int:user_id>/', UserCommissionView.as_view(), name='user-commission'),
     path('commissions/org-admin/', OrgAdminCommissionView.as_view(), name='org-admin-commission'),
     path('currencies/', CurrencyListView.as_view(), name='currency-list'),
+    path('country-codes/', CountryCodesView.as_view(), name='country-codes-list'),
+    path('nationalities/', NationalityView.as_view(), name='nationality-list'),
     # Router include comes last
     path('', include(router.urls)),
 ] 

@@ -23,8 +23,9 @@ inflection==0.5.1
 ngrok==1.4.0
 packaging==25.0
 pillow
-psycopg==3.2.9
-psycopg-binary==3.2.9
+psycopg
+
+
 PyJWT==2.10.1
 pycountry==24.6.1
 pyngrok==7.2.11
@@ -52,3 +53,4 @@ user-agents==2.2.0
 whitenoise==6.7.0
 # ASGI server for Django Channels
 Daphne==4.1.1
+psycopg[binary]>=3.1.0

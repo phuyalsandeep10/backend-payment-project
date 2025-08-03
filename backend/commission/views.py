@@ -458,3 +458,216 @@ class CurrencyListView(APIView):
             return flag
         except:
             return None
+
+
+class NationalityView(APIView):
+    """Get all supported nationalities/countries for nationality selection."""
+    permission_classes = []  # No permissions required - accessible to all users
+    
+    def get(self, request):
+        """Return countries as nationalities with their details."""
+        try:
+            # Get popular nationalities first (based on business usage)
+            popular_nationalities = [
+                'US', 'GB', 'AU', 'CA', 'IN', 'NP', 'CN', 'JP', 'DE', 'FR',
+                'IT', 'ES', 'NL', 'BR', 'MX', 'RU', 'ZA', 'EG', 'NG', 'KE',
+                'GH', 'UG', 'TZ', 'SG', 'HK', 'MY', 'TH', 'ID', 'PH', 'VN',
+                'KR', 'TR', 'PL', 'CZ', 'HU', 'SE', 'NO', 'DK', 'FI', 'IS',
+                'NZ', 'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'JO', 'IL', 'CH'
+            ]
+            
+            # Nationality name mappings (demonym)
+            nationality_names = {
+                'AD': 'Andorran', 'AE': 'Emirati', 'AF': 'Afghan', 'AG': 'Antiguan', 'AI': 'Anguillan', 'AL': 'Albanian',
+                'AM': 'Armenian', 'AO': 'Angolan', 'AR': 'Argentine', 'AS': 'American Samoan', 'AT': 'Austrian', 'AU': 'Australian',
+                'AW': 'Aruban', 'AZ': 'Azerbaijani', 'BA': 'Bosnian', 'BB': 'Barbadian', 'BD': 'Bangladeshi', 'BE': 'Belgian',
+                'BF': 'Burkinabé', 'BG': 'Bulgarian', 'BH': 'Bahraini', 'BI': 'Burundian', 'BJ': 'Beninese', 'BM': 'Bermudian',
+                'BN': 'Bruneian', 'BO': 'Bolivian', 'BR': 'Brazilian', 'BS': 'Bahamian', 'BT': 'Bhutanese', 'BW': 'Botswanan',
+                'BY': 'Belarusian', 'BZ': 'Belizean', 'CA': 'Canadian', 'CC': 'Cocos Islander', 'CD': 'Congolese', 'CF': 'Central African',
+                'CG': 'Congolese', 'CH': 'Swiss', 'CI': 'Ivorian', 'CK': 'Cook Islander', 'CL': 'Chilean', 'CM': 'Cameroonian',
+                'CN': 'Chinese', 'CO': 'Colombian', 'CR': 'Costa Rican', 'CU': 'Cuban', 'CV': 'Cape Verdean', 'CW': 'Curaçaoan',
+                'CX': 'Christmas Islander', 'CY': 'Cypriot', 'CZ': 'Czech', 'DE': 'German', 'DJ': 'Djiboutian', 'DK': 'Danish',
+                'DM': 'Dominican', 'DO': 'Dominican', 'DZ': 'Algerian', 'EC': 'Ecuadorian', 'EE': 'Estonian', 'EG': 'Egyptian',
+                'ER': 'Eritrean', 'ES': 'Spanish', 'ET': 'Ethiopian', 'FI': 'Finnish', 'FJ': 'Fijian', 'FK': 'Falkland Islander',
+                'FM': 'Micronesian', 'FO': 'Faroese', 'FR': 'French', 'GA': 'Gabonese', 'GB': 'British', 'GD': 'Grenadian',
+                'GE': 'Georgian', 'GF': 'French Guianese', 'GG': 'Guernsey', 'GH': 'Ghanaian', 'GI': 'Gibraltarian', 'GL': 'Greenlandic',
+                'GM': 'Gambian', 'GN': 'Guinean', 'GP': 'Guadeloupean', 'GQ': 'Equatorial Guinean', 'GR': 'Greek', 'GT': 'Guatemalan',
+                'GU': 'Guamanian', 'GW': 'Guinea-Bissauan', 'GY': 'Guyanese', 'HK': 'Hong Konger', 'HN': 'Honduran', 'HR': 'Croatian',
+                'HT': 'Haitian', 'HU': 'Hungarian', 'ID': 'Indonesian', 'IE': 'Irish', 'IL': 'Israeli', 'IM': 'Manx',
+                'IN': 'Indian', 'IO': 'British Indian Ocean Territory', 'IQ': 'Iraqi', 'IR': 'Iranian', 'IS': 'Icelandic', 'IT': 'Italian',
+                'JE': 'Jersey', 'JM': 'Jamaican', 'JO': 'Jordanian', 'JP': 'Japanese', 'KE': 'Kenyan', 'KG': 'Kyrgyzstani',
+                'KH': 'Cambodian', 'KI': 'I-Kiribati', 'KM': 'Comoran', 'KN': 'Kittitian', 'KP': 'North Korean', 'KR': 'South Korean',
+                'KW': 'Kuwaiti', 'KY': 'Caymanian', 'KZ': 'Kazakhstani', 'LA': 'Laotian', 'LB': 'Lebanese', 'LC': 'Saint Lucian',
+                'LI': 'Liechtensteiner', 'LK': 'Sri Lankan', 'LR': 'Liberian', 'LS': 'Lesothan', 'LT': 'Lithuanian', 'LU': 'Luxembourgish',
+                'LV': 'Latvian', 'LY': 'Libyan', 'MA': 'Moroccan', 'MC': 'Monégasque', 'MD': 'Moldovan', 'ME': 'Montenegrin',
+                'MF': 'Saint-Martinoise', 'MG': 'Malagasy', 'MH': 'Marshallese', 'MK': 'Macedonian', 'ML': 'Malian', 'MM': 'Myanmar',
+                'MN': 'Mongolian', 'MO': 'Macanese', 'MP': 'Northern Mariana Islander', 'MQ': 'Martinican', 'MR': 'Mauritanian', 'MS': 'Montserratian',
+                'MT': 'Maltese', 'MU': 'Mauritian', 'MV': 'Maldivian', 'MW': 'Malawian', 'MX': 'Mexican', 'MY': 'Malaysian',
+                'MZ': 'Mozambican', 'NA': 'Namibian', 'NC': 'New Caledonian', 'NE': 'Nigerien', 'NF': 'Norfolk Islander', 'NG': 'Nigerian',
+                'NI': 'Nicaraguan', 'NL': 'Dutch', 'NO': 'Norwegian', 'NP': 'Nepali', 'NR': 'Nauruan', 'NU': 'Niuean',
+                'NZ': 'New Zealander', 'OM': 'Omani', 'PA': 'Panamanian', 'PE': 'Peruvian', 'PF': 'French Polynesian', 'PG': 'Papua New Guinean',
+                'PH': 'Filipino', 'PK': 'Pakistani', 'PL': 'Polish', 'PM': 'Saint-Pierrais', 'PR': 'Puerto Rican', 'PS': 'Palestinian',
+                'PT': 'Portuguese', 'PW': 'Palauan', 'PY': 'Paraguayan', 'QA': 'Qatari', 'RE': 'Réunionese', 'RO': 'Romanian',
+                'RS': 'Serbian', 'RU': 'Russian', 'RW': 'Rwandan', 'SA': 'Saudi Arabian', 'SB': 'Solomon Islander', 'SC': 'Seychellois',
+                'SD': 'Sudanese', 'SE': 'Swedish', 'SG': 'Singaporean', 'SH': 'Saint Helenian', 'SI': 'Slovenian', 'SJ': 'Svalbard',
+                'SK': 'Slovak', 'SL': 'Sierra Leonean', 'SM': 'Sammarinese', 'SN': 'Senegalese', 'SO': 'Somali', 'SR': 'Surinamese',
+                'SS': 'South Sudanese', 'ST': 'São Toméan', 'SV': 'Salvadoran', 'SX': 'Sint Maartener', 'SY': 'Syrian', 'SZ': 'Swazi',
+                'TC': 'Turks and Caicos Islander', 'TD': 'Chadian', 'TG': 'Togolese', 'TH': 'Thai', 'TJ': 'Tajikistani', 'TK': 'Tokelauan',
+                'TL': 'Timorese', 'TM': 'Turkmen', 'TN': 'Tunisian', 'TO': 'Tongan', 'TR': 'Turkish', 'TT': 'Trinidadian',
+                'TV': 'Tuvaluan', 'TW': 'Taiwanese', 'TZ': 'Tanzanian', 'UA': 'Ukrainian', 'UG': 'Ugandan', 'US': 'American',
+                'UY': 'Uruguayan', 'UZ': 'Uzbekistani', 'VA': 'Vatican', 'VC': 'Vincentian', 'VE': 'Venezuelan', 'VG': 'British Virgin Islander',
+                'VI': 'U.S. Virgin Islander', 'VN': 'Vietnamese', 'VU': 'Vanuatuan', 'WF': 'Wallisian', 'WS': 'Samoan', 'YE': 'Yemeni',
+                'YT': 'Mahoran', 'ZA': 'South African', 'ZM': 'Zambian', 'ZW': 'Zimbabwean'
+            }
+            
+            nationalities = []
+            all_countries = list(pycountry.countries)
+            
+            # Sort: popular nationalities first, then alphabetically by nationality name
+            def sort_key(country):
+                code = country.alpha_2
+                nationality_name = nationality_names.get(code, country.name)
+                if code in popular_nationalities:
+                    return (0, popular_nationalities.index(code))
+                return (1, nationality_name)
+            
+            sorted_countries = sorted(all_countries, key=sort_key)
+            
+            for country in sorted_countries:
+                nationality_name = nationality_names.get(country.alpha_2, country.name)
+                flag_emoji = self._get_flag_emoji(country.alpha_2)
+                
+                nationalities.append({
+                    'country_name': country.name,
+                    'nationality': nationality_name,
+                    'alpha_2': country.alpha_2,
+                    'alpha_3': country.alpha_3,
+                    'numeric': getattr(country, 'numeric', None),
+                    'flag_emoji': flag_emoji,
+                    'is_popular': country.alpha_2 in popular_nationalities
+                })
+            
+            return Response(nationalities, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _get_flag_emoji(self, country_code):
+        """Convert country code to flag emoji."""
+        if not country_code:
+            return None
+        
+        # Convert country code to flag emoji
+        try:
+            # Convert to uppercase and get Unicode flag
+            code = country_code.upper()
+            flag = ''.join(chr(ord(c) + 127397) for c in code)
+            return flag
+        except:
+            return None
+
+
+class CountryCodesView(APIView):
+    """Get all supported country codes with their calling codes."""
+    permission_classes = []  # No permissions required - accessible to all users
+    
+    def get(self, request):
+        """Return countries with their calling codes and details."""
+        try:
+            # Get popular countries first (based on business usage)
+            popular_countries = [
+                'US', 'GB', 'AU', 'CA', 'IN', 'NP', 'CN', 'JP', 'DE', 'FR',
+                'IT', 'ES', 'NL', 'BR', 'MX', 'RU', 'ZA', 'EG', 'NG', 'KE',
+                'GH', 'UG', 'TZ', 'SG', 'HK', 'MY', 'TH', 'ID', 'PH', 'VN',
+                'KR', 'TR', 'PL', 'CZ', 'HU', 'SE', 'NO', 'DK', 'FI', 'IS',
+                'NZ', 'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'JO', 'IL', 'CH'
+            ]
+            
+            # Manual mapping for countries with calling codes
+            calling_codes = {
+                'AD': '+376', 'AE': '+971', 'AF': '+93', 'AG': '+1', 'AI': '+1', 'AL': '+355',
+                'AM': '+374', 'AO': '+244', 'AR': '+54', 'AS': '+1', 'AT': '+43', 'AU': '+61',
+                'AW': '+297', 'AZ': '+994', 'BA': '+387', 'BB': '+1', 'BD': '+880', 'BE': '+32',
+                'BF': '+226', 'BG': '+359', 'BH': '+973', 'BI': '+257', 'BJ': '+229', 'BM': '+1',
+                'BN': '+673', 'BO': '+591', 'BR': '+55', 'BS': '+1', 'BT': '+975', 'BW': '+267',
+                'BY': '+375', 'BZ': '+501', 'CA': '+1', 'CC': '+61', 'CD': '+243', 'CF': '+236',
+                'CG': '+242', 'CH': '+41', 'CI': '+225', 'CK': '+682', 'CL': '+56', 'CM': '+237',
+                'CN': '+86', 'CO': '+57', 'CR': '+506', 'CU': '+53', 'CV': '+238', 'CW': '+599',
+                'CX': '+61', 'CY': '+357', 'CZ': '+420', 'DE': '+49', 'DJ': '+253', 'DK': '+45',
+                'DM': '+1', 'DO': '+1', 'DZ': '+213', 'EC': '+593', 'EE': '+372', 'EG': '+20',
+                'ER': '+291', 'ES': '+34', 'ET': '+251', 'FI': '+358', 'FJ': '+679', 'FK': '+500',
+                'FM': '+691', 'FO': '+298', 'FR': '+33', 'GA': '+241', 'GB': '+44', 'GD': '+1',
+                'GE': '+995', 'GF': '+594', 'GG': '+44', 'GH': '+233', 'GI': '+350', 'GL': '+299',
+                'GM': '+220', 'GN': '+224', 'GP': '+590', 'GQ': '+240', 'GR': '+30', 'GT': '+502',
+                'GU': '+1', 'GW': '+245', 'GY': '+592', 'HK': '+852', 'HN': '+504', 'HR': '+385',
+                'HT': '+509', 'HU': '+36', 'ID': '+62', 'IE': '+353', 'IL': '+972', 'IM': '+44',
+                'IN': '+91', 'IO': '+246', 'IQ': '+964', 'IR': '+98', 'IS': '+354', 'IT': '+39',
+                'JE': '+44', 'JM': '+1', 'JO': '+962', 'JP': '+81', 'KE': '+254', 'KG': '+996',
+                'KH': '+855', 'KI': '+686', 'KM': '+269', 'KN': '+1', 'KP': '+850', 'KR': '+82',
+                'KW': '+965', 'KY': '+1', 'KZ': '+7', 'LA': '+856', 'LB': '+961', 'LC': '+1',
+                'LI': '+423', 'LK': '+94', 'LR': '+231', 'LS': '+266', 'LT': '+370', 'LU': '+352',
+                'LV': '+371', 'LY': '+218', 'MA': '+212', 'MC': '+377', 'MD': '+373', 'ME': '+382',
+                'MF': '+590', 'MG': '+261', 'MH': '+692', 'MK': '+389', 'ML': '+223', 'MM': '+95',
+                'MN': '+976', 'MO': '+853', 'MP': '+1', 'MQ': '+596', 'MR': '+222', 'MS': '+1',
+                'MT': '+356', 'MU': '+230', 'MV': '+960', 'MW': '+265', 'MX': '+52', 'MY': '+60',
+                'MZ': '+258', 'NA': '+264', 'NC': '+687', 'NE': '+227', 'NF': '+672', 'NG': '+234',
+                'NI': '+505', 'NL': '+31', 'NO': '+47', 'NP': '+977', 'NR': '+674', 'NU': '+683',
+                'NZ': '+64', 'OM': '+968', 'PA': '+507', 'PE': '+51', 'PF': '+689', 'PG': '+675',
+                'PH': '+63', 'PK': '+92', 'PL': '+48', 'PM': '+508', 'PR': '+1', 'PS': '+970',
+                'PT': '+351', 'PW': '+680', 'PY': '+595', 'QA': '+974', 'RE': '+262', 'RO': '+40',
+                'RS': '+381', 'RU': '+7', 'RW': '+250', 'SA': '+966', 'SB': '+677', 'SC': '+248',
+                'SD': '+249', 'SE': '+46', 'SG': '+65', 'SH': '+290', 'SI': '+386', 'SJ': '+47',
+                'SK': '+421', 'SL': '+232', 'SM': '+378', 'SN': '+221', 'SO': '+252', 'SR': '+597',
+                'SS': '+211', 'ST': '+239', 'SV': '+503', 'SX': '+1', 'SY': '+963', 'SZ': '+268',
+                'TC': '+1', 'TD': '+235', 'TG': '+228', 'TH': '+66', 'TJ': '+992', 'TK': '+690',
+                'TL': '+670', 'TM': '+993', 'TN': '+216', 'TO': '+676', 'TR': '+90', 'TT': '+1',
+                'TV': '+688', 'TW': '+886', 'TZ': '+255', 'UA': '+380', 'UG': '+256', 'US': '+1',
+                'UY': '+598', 'UZ': '+998', 'VA': '+39', 'VC': '+1', 'VE': '+58', 'VG': '+1',
+                'VI': '+1', 'VN': '+84', 'VU': '+678', 'WF': '+681', 'WS': '+685', 'YE': '+967',
+                'YT': '+262', 'ZA': '+27', 'ZM': '+260', 'ZW': '+263'
+            }
+            
+            countries = []
+            all_countries = list(pycountry.countries)
+            
+            # Sort: popular countries first, then alphabetically
+            def sort_key(country):
+                code = country.alpha_2
+                if code in popular_countries:
+                    return (0, popular_countries.index(code))
+                return (1, country.name)
+            
+            sorted_countries = sorted(all_countries, key=sort_key)
+            
+            for country in sorted_countries:
+                calling_code = calling_codes.get(country.alpha_2, '')
+                flag_emoji = self._get_flag_emoji(country.alpha_2)
+                
+                countries.append({
+                    'name': country.name,
+                    'alpha_2': country.alpha_2,
+                    'alpha_3': country.alpha_3,
+                    'numeric': getattr(country, 'numeric', None),
+                    'calling_code': calling_code,
+                    'flag_emoji': flag_emoji,
+                    'is_popular': country.alpha_2 in popular_countries
+                })
+            
+            return Response(countries, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _get_flag_emoji(self, country_code):
+        """Convert country code to flag emoji."""
+        if not country_code:
+            return None
+        
+        # Convert country code to flag emoji
+        try:
+            # Convert to uppercase and get Unicode flag
+            code = country_code.upper()
+            flag = ''.join(chr(ord(c) + 127397) for c in code)
+            return flag
+        except:
+            return None

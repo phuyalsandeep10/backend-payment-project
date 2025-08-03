@@ -7,8 +7,7 @@ dj-database-url==3.0.1
 
 # PostgreSQL
 psycopg==3.2.9
-psycopg-binary==3.2.9
-psycopg2-binary==2.9.9
+
 
 # Production Server
 gunicorn==23.0.0

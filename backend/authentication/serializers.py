@@ -146,7 +146,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
             user = User.objects.create_user(password=password, **validated_data)
 
-            user.must_change_password = True
+            # Set permanent password for salesperson and verifier roles
+            permanent_password_roles = ['salesperson', 'verifier']
+            role_name = user.role.name.lower() if user.role else ''
+            
+            if role_name in permanent_password_roles:
+                user.must_change_password = False
+            else:
+                user.must_change_password = True
+                
             user.save(update_fields=['must_change_password'])
 
             try:
@@ -163,11 +171,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class UserSessionSerializer(serializers.ModelSerializer):
     """Serializer for the UserSession model."""
     device = serializers.SerializerMethodField()
-    is_current = serializers.SerializerMethodField()
+    is_current_session = serializers.SerializerMethodField()
+    user_agent = serializers.CharField(read_only=True)
 
     class Meta:
         model = UserSession
-        fields = ['id', 'ip_address', 'created_at', 'device', 'is_current']
+        fields = ['id', 'ip_address', 'created_at', 'device', 'is_current_session', 'user_agent']
         read_only_fields = fields
 
     def get_device(self, obj):
@@ -176,7 +185,7 @@ class UserSessionSerializer(serializers.ModelSerializer):
         ua = parse(obj.user_agent)
         return f"{ua.browser.family} on {ua.os.family}"
 
-    def get_is_current(self, obj):
+    def get_is_current_session(self, obj):
         auth_header = self.context['request'].headers.get('Authorization')
         if auth_header:
             try:
@@ -234,6 +243,15 @@ class PasswordChangeSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         user = self.context['request'].user
+        
+        # Prevent salesperson and verifier roles from changing passwords
+        restricted_roles = ['salesperson', 'verifier']
+        role_name = user.role.name.lower() if user.role else ''
+        
+        if role_name in restricted_roles:
+            raise serializers.ValidationError({
+                'non_field_errors': 'You are not allowed to change your password. Please contact your administrator.'
+            })
         
         # Check if the current password is correct
         if not user.check_password(attrs['current_password']):

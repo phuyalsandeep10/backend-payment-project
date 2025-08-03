@@ -284,9 +284,9 @@ class Payment(models.Model):
         if self.received_amount is not None and self.received_amount <= 0:
             raise ValidationError({'received_amount': 'Payment amount must be greater than 0'})
         
-        # Validate payment date is not in the future
-        if self.payment_date and self.payment_date > timezone.now().date():
-            raise ValidationError({'payment_date': 'Payment date cannot be in the future'})
+        # Validate payment date is not in the past (allow current and future dates)
+        if self.payment_date and self.payment_date < timezone.now().date():
+            raise ValidationError({'payment_date': 'Payment date cannot be in the past'})
         
         # Validate payment doesn't exceed deal value for additional payments
         if self.deal_id and self.received_amount:
