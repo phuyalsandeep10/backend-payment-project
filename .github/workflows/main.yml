@@ -1,0 +1,46 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Build Docker image inside GitHub Actions runner
+      - name: Build Docker image
+        run: |
+          docker build -t PRS-deploy-back:latest .
+          docker save PRS-deploy-back:latest > PRS-deploy-back.tar
+          chmod 664 PRS-deploy-back.tar
+
+      # 3. Copy image tarball to VPS
+      - name: Transfer Docker image to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "PRS-deploy-back.tar"
+          target: "/root/PRS-site"
+
+      # 4. Load & run container on VPS
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker load < /root/PRS-site/PRS-deploy-back.tar
+            docker stop PRS-deploy-back || true
+            docker rm PRS-deploy-back || true
+            docker compose up -d --build
