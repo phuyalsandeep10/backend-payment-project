@@ -504,18 +504,19 @@ def super_admin_verify_view(request):
         # Continue anyway
     
     print("🔄 Preparing response...")
-    try:
-        response_data = AuthSuccessResponseSerializer({
-            'token': token.key, 
-            'user': user,
-            'requires_otp': False
-        }).data
-        print("✅ Response prepared successfully")
-        return Response(response_data, status=status.HTTP_200_OK)
-    except Exception as e:
-        print(f"❌ Response serialization failed: {e}")
-        # Fallback simple response
-        return Response({'token': token.key, 'user': {'email': user.email}}, status=status.HTTP_200_OK)
+    # Use simple response to avoid UserProfile serialization issues
+    return Response({
+        'token': token.key,
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'role': {'name': user.role.name} if user.role else None,
+            'is_superuser': user.is_superuser
+        },
+        'requires_otp': False
+    }, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
