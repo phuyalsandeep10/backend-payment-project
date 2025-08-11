@@ -33,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
     teams = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    profile = UserProfileSerializer(required=False)
+    profile = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -58,6 +58,23 @@ class UserSerializer(serializers.ModelSerializer):
                 return 'org-admin'
             return name
         return None
+
+    def get_profile(self, obj):
+        """Safely retrieve user profile, creating it if missing."""
+        try:
+            if hasattr(obj, 'profile'):
+                return UserProfileSerializer(obj.profile).data
+            else:
+                # Create profile if it doesn't exist
+                from .models import UserProfile
+                profile, created = UserProfile.objects.get_or_create(user=obj)
+                return UserProfileSerializer(profile).data
+        except Exception as e:
+            # Return empty profile data on any error
+            return {
+                'profile_picture': None,
+                'bio': None
+            }
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a new user (by an admin).
