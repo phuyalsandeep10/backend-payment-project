@@ -55,7 +55,7 @@ class CommissionViewSet(viewsets.ModelViewSet):
 
         organization_queryset = queryset.filter(organization=user.organization)
 
-        is_org_admin = user.role and user.role.name == 'Org Admin'
+        is_org_admin = user.role and user.role.name == 'Organization Admin'
         can_view_all = user.role and user.role.permissions.filter(codename='view_all_commissions').exists()
         
         if is_org_admin or can_view_all:
