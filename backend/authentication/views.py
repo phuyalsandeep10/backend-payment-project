@@ -35,7 +35,7 @@ from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from permissions.models import Role
 from permissions.permissions import IsOrgAdminOrSuperAdmin
 from Sales_dashboard.utils import calculate_streaks_for_user_login
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -78,6 +78,9 @@ def _create_user_session(request, user, token_key):
 
 class LoginRateThrottle(AnonRateThrottle):
     scope = 'login'
+
+class OTPThrottle(AnonRateThrottle):
+    scope = 'otp'
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -292,7 +295,7 @@ def logout_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([LoginRateThrottle])
 def login_view(request):
     """
     Unified login endpoint that handles different user roles:
@@ -303,18 +306,16 @@ def login_view(request):
     if serializer.is_valid():
         user = serializer.validated_data['user']
         
-        print(f"🔐 Direct login attempt for: {user.email}")
-        print(f"👤 User role: {user.role.name if user.role else 'None'}")
-        print(f"🔑 Must change password: {user.must_change_password}")
+        security_logger.info(f"Login attempt for user with role: {user.role.name if user.role else 'None'}")
         
         # Check if user is a super admin or org admin and should use OTP flow
         if user.role and ('super' in user.role.name.lower() or user.role.name.lower() == 'organization admin'):
-            print(f"🚫 Super/Org Admin user detected, redirecting to admin login flow")
+            security_logger.info("Admin user redirected to admin login flow")
             return Response({'error': 'Admin users must use admin login endpoints'}, status=status.HTTP_401_UNAUTHORIZED)
         
         # Check if user must change password
         if user.must_change_password:
-            print(f"🔑 User must change password, generating temporary token for password change")
+            security_logger.info("User requires password change")
             tmp_token = secrets.token_urlsafe(32)
             cache.set(f'tmp:{user.id}', tmp_token, timeout=600)  # 10 minutes
             return Response({
@@ -323,7 +324,7 @@ def login_view(request):
                 'user_type': 'regular_user'
             }, status=status.HTTP_200_OK)
         
-        print(f"✅ Regular user login successful for {user.role.name if user.role else 'No Role'}")
+        security_logger.info(f"Login successful for user with role: {user.role.name if user.role else 'No Role'}")
         user.last_login = timezone.now()
         user.login_count += 1
         user.save(update_fields=['last_login', 'login_count'])
@@ -340,7 +341,7 @@ def login_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([OTPThrottle])
 def verify_otp_view(request):
     """
     Verify OTP for admin users and complete login process
@@ -405,7 +406,7 @@ def verify_otp_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([LoginRateThrottle])
 def super_admin_login_view(request):
     """Step 1: Super-admin submits email & password – system emails OTP."""
     email = request.data.get('email')
@@ -425,25 +426,23 @@ def super_admin_login_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([LoginRateThrottle])
 def super_admin_verify_view(request):
     """Step 2: Super-admin submits OTP – system returns token or requests password change."""
     email = request.data.get('email')
     otp = request.data.get('otp')
     
-    print(f"🔐 Super Admin OTP verification for: {email}")
-    print(f"🔢 OTP received: {otp}")
+    security_logger.info("Super Admin OTP verification request received")
     
     if not all([email, otp]):
-        print(f"❌ Missing email or OTP")
+        security_logger.warning("OTP verification failed: missing email or OTP")
         return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         user = User.objects.get(email=email)
-        print(f"👤 User found: {user.email}, role: {user.role.name if user.role else 'None'}")
-        print(f"🔍 is_superuser: {user.is_superuser}")
+        security_logger.info(f"User found with role: {user.role.name if user.role else 'None'}")
     except User.DoesNotExist:
-        print(f"❌ User not found: {email}")
+        security_logger.warning("OTP verification failed: user not found")
         return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Verify user is actually an admin
@@ -455,18 +454,14 @@ def super_admin_verify_view(request):
         ))
     )
     
-    print(f"🔍 Admin validation result: {is_admin}")
-    
     if not is_admin:
-        print(f"❌ Admin validation failed")
+        security_logger.warning("OTP verification failed: admin validation failed")
         return Response({'error': 'OTP verification is only for admin users'}, status=status.HTTP_400_BAD_REQUEST)
 
     cached_otp = cache.get(f'otp:{user.id}')
-    print(f"🔍 Cached OTP: {cached_otp}")
-    print(f"🔍 Cache key: otp:{user.id}")
     
     if cached_otp != otp:
-        print(f"❌ OTP mismatch or expired")
+        security_logger.warning("OTP verification failed: invalid or expired OTP")
         return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
     
     cache.delete(f'otp:{user.id}')
@@ -483,27 +478,17 @@ def super_admin_verify_view(request):
         }, status=status.HTTP_200_OK)
 
     # Complete login process
-    print("🔄 Creating token...")
     token, _ = Token.objects.get_or_create(user=user)
-    print("✅ Token created successfully")
     
-    print("🔄 Creating user session...")
     try:
         _create_user_session(request, user, token.key)
-        print("✅ User session created successfully")
     except Exception as e:
-        print(f"❌ Session creation failed: {e}")
-        # Continue anyway
+        security_logger.error(f"Session creation failed: {e}")
     
-    print("🔄 Calculating streaks...")
     try:
         calculate_streaks_for_user_login(user)
-        print("✅ Streaks calculated successfully")
     except Exception as e:
-        print(f"❌ Streak calculation failed: {e}")
-        # Continue anyway
-    
-    print("🔄 Preparing response...")
+        security_logger.error(f"Streak calculation failed: {e}")
     # Use simple response to avoid UserProfile serialization issues
     return Response({
         'token': token.key,
@@ -521,95 +506,88 @@ def super_admin_verify_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([LoginRateThrottle])
 def org_admin_login_view(request):
     """Step 1: Org Admin submits email & password – system emails OTP."""
     email = request.data.get('email')
     password = request.data.get('password')
     
-    print(f"🔐 Org Admin login attempt for: {email}")
+    security_logger.info("Org Admin login attempt received")
     
     user = authenticate(request, username=email, password=password)
-    print(f"🔍 Authentication result: user={user}, is_active={user.is_active if user else False}")
     
     if not user or not user.is_active:
-        print(f"❌ Authentication failed or user inactive")
+        security_logger.warning("Org Admin authentication failed or user inactive")
         return Response({'error': 'Invalid credentials or user inactive'}, status=status.HTTP_401_UNAUTHORIZED)
     
     if not user.role:
-        print(f"❌ User has no role assigned")
+        security_logger.warning("Org Admin authentication failed: user has no role assigned")
         return Response({'error': 'User has no role assigned'}, status=status.HTTP_401_UNAUTHORIZED)
     
-    print(f"👤 User role: {user.role.name}")
-    print(f"🏢 User organization: {user.organization.name if user.organization else 'None'}")
-    print(f"🔑 Must change password: {user.must_change_password}")
+    security_logger.info(f"Org Admin authentication: role={user.role.name}, organization={user.organization.name if user.organization else 'None'}")
     
     if user.role.name.lower() != 'organization admin':
-        print(f"❌ User role '{user.role.name}' is not an org admin role")
+        security_logger.warning(f"Authentication failed: role '{user.role.name}' is not an org admin role")
         return Response({'error': 'Invalid credentials or not an org admin'}, status=status.HTTP_401_UNAUTHORIZED)
     
-    print(f"✅ Org admin authentication successful, generating OTP")
+    security_logger.info("Org admin authentication successful, generating OTP")
     
     otp = generate_otp()
     cache.set(f'otp:{user.id}', otp, timeout=300)
     send_otp_email(user.email, otp)
     
-    print(f"📧 OTP sent to {user.email}")
+    security_logger.info("OTP sent to user")
     
     return Response({'message': 'OTP sent', 'requires_otp': True, 'user_type': 'org_admin'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([LoginRateThrottle])
 def org_admin_verify_view(request):
     """Step 2: Org Admin submits OTP – system returns token or requests password change."""
     email = request.data.get('email')
     otp = request.data.get('otp')
     
-    print(f"🔐 Org Admin OTP verification for: {email}")
-    print(f"🔢 OTP received: {otp}")
+    security_logger.info("Org Admin OTP verification request received")
     
     if not all([email, otp]):
-        print(f"❌ Missing email or OTP")
+        security_logger.warning("OTP verification failed: missing email or OTP")
         return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         user = User.objects.get(email=email)
-        print(f"👤 User found: {user.email}, role: {user.role.name if user.role else 'None'}")
+        security_logger.info(f"User found with role: {user.role.name if user.role else 'None'}")
     except User.DoesNotExist:
-        print(f"❌ User not found: {email}")
+        security_logger.warning("OTP verification failed: user not found")
         return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
 
     cached_otp = cache.get(f'otp:{user.id}')
-    print(f"🔍 Cached OTP: {cached_otp}")
     
     if cached_otp != otp:
-        print(f"❌ OTP mismatch or expired")
+        security_logger.warning("OTP verification failed: invalid or expired OTP")
         return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
     
     cache.delete(f'otp:{user.id}')
-    print(f"✅ OTP verified successfully")
+    security_logger.info("OTP verified successfully")
 
-    print(f"🔑 Must change password: {user.must_change_password}")
-    
     if user.must_change_password:
-        print(f"🔐 User must change password, generating temporary token")
+        security_logger.info("User must change password, generating temporary token")
         tmp_token = secrets.token_urlsafe(32)
         cache.set(f'tmp:{user.id}', tmp_token, timeout=600)
-        print(f"🎫 Temporary token generated and cached")
+        security_logger.info("Temporary token generated and cached")
         return Response({'requires_password_change': True, 'temporary_token': tmp_token, 'user_type': 'org_admin'}, status=status.HTTP_200_OK)
 
-    print(f"✅ Creating authentication token")
+    security_logger.info("Creating authentication token")
     token, _ = Token.objects.get_or_create(user=user)
     _create_user_session(request, user, token.key)
-    print(f"🎉 Login successful for {user.email}")
+    security_logger.info("Login successful for user")
     return Response({'token': token.key, 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
-@csrf_exempt
+@throttle_classes([LoginRateThrottle])
 def password_change_with_token_view(request):
     """Allow a user with a temporary token to set a new password."""
     email = request.data.get('email')
