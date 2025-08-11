@@ -1,13 +1,16 @@
 from rest_framework import viewsets, status, permissions, generics
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import secrets
+from datetime import timedelta
 from .models import Notification, NotificationSettings, NotificationTemplate
 from .serializers import (
     NotificationSerializer, NotificationSettingsSerializer, 
@@ -309,4 +312,58 @@ class TestNotificationView(APIView):
         return Response({
             'message': 'Test notification created successfully.',
             'notification': NotificationSerializer(notifications[0]).data if notifications else None
-        }) 
+        })
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Generate short-lived WebSocket token for authenticated user",
+    responses={
+        200: openapi.Response(
+            description="WebSocket token generated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'ws_token': openapi.Schema(type=openapi.TYPE_STRING, description="Short-lived WebSocket token"),
+                    'expires_in': openapi.Schema(type=openapi.TYPE_INTEGER, description="Token expiry in seconds"),
+                    'expires_at': openapi.Schema(type=openapi.TYPE_STRING, description="Token expiry timestamp"),
+                }
+            )
+        ),
+        401: "Unauthorized"
+    },
+    tags=['Notifications']
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_websocket_token(request):
+    """
+    Generate a short-lived signed token for WebSocket authentication.
+    This replaces the long-lived DRF token in query params for better security.
+    """
+    import logging
+    security_logger = logging.getLogger('security')
+    
+    # Generate a secure random token
+    ws_token = secrets.token_urlsafe(32)
+    
+    # Set expiry time (5 minutes for WebSocket tokens)
+    expiry_seconds = 300
+    expiry_time = timezone.now() + timedelta(seconds=expiry_seconds)
+    
+    # Store token in cache with user ID as value
+    cache_key = f'ws_token:{ws_token}'
+    cache.set(cache_key, {
+        'user_id': request.user.id,
+        'created_at': timezone.now().isoformat(),
+        'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+        'ip_address': request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+    }, timeout=expiry_seconds)
+    
+    # Log token generation (without exposing the token)
+    security_logger.info(f"WebSocket token generated for user {request.user.id}")
+    
+    return Response({
+        'ws_token': ws_token,
+        'expires_in': expiry_seconds,
+        'expires_at': expiry_time.isoformat(),
+    }) 

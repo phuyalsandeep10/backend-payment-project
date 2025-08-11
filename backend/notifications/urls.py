@@ -4,7 +4,8 @@ from .views import (
     NotificationAdminViewSet, 
     TestNotificationView,
     NotificationDashboardView,
-    NotificationPreferencesView
+    NotificationPreferencesView,
+    get_websocket_token
 )
 from rest_framework.routers import DefaultRouter
 
@@ -17,6 +18,7 @@ urlpatterns = [
     path('preferences/', NotificationPreferencesView.as_view(), name='notification-preferences'),
     path('dashboard/', NotificationDashboardView.as_view(), name='notification-dashboard'),
     path('test/', TestNotificationView.as_view(), name='notification-test'),
+    path('websocket-token/', get_websocket_token, name='websocket-token'),
 ]
 
 urlpatterns += router.urls 
