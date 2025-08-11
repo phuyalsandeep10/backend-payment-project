@@ -18,30 +18,51 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         return get_user_model()
 
     @database_sync_to_async
-    def get_token(self, Token, token_key):
+    def get_user_from_ws_token(self, token_key):
+        """Get user from short-lived WebSocket token stored in cache"""
+        from django.core.cache import cache
+        from django.contrib.auth import get_user_model
+        
         try:
-            return Token.objects.select_related("user").get(key=token_key)
-        except Token.DoesNotExist:
+            cache_key = f'ws_token:{token_key}'
+            token_data = cache.get(cache_key)
+            
+            if not token_data or not isinstance(token_data, dict):
+                return None
+                
+            user_id = token_data.get('user_id')
+            if not user_id:
+                return None
+                
+            User = get_user_model()
+            return User.objects.get(id=user_id)
+            
+        except (User.DoesNotExist, Exception):
             return None
 
     async def connect(self):
-        # Lazy import Token model to avoid AppRegistryNotReady
-        Token = apps.get_model('authtoken', 'Token')
-        # Parse token from query string
+        # Parse WebSocket token from query string
         query_string = self.scope["query_string"].decode()
-        token_key = parse_qs(query_string).get("token", [None])[0]
+        token_key = parse_qs(query_string).get("ws_token", [None])[0]
         self.user = None
 
-        print(f"[NotificationConsumer] Token key: {token_key}")
+        # Log connection attempt without exposing token
+        import logging
+        security_logger = logging.getLogger('security')
+        client_ip = self.scope.get('client', ['unknown'])[0]
+        security_logger.info(f"WebSocket connection attempt from {client_ip}")
 
         if token_key:
             close_old_connections()
-            token = await self.get_token(Token, token_key)
-            if token:
-                self.user = token.user
-            else:
-                self.user = None
-        print(f"[NotificationConsumer] User: {self.user}")
+            # Use short-lived WebSocket token instead of DRF token
+            self.user = await self.get_user_from_ws_token(token_key)
+        else:
+            security_logger.warning("WebSocket connection attempt without token")
+        # Log authentication result without exposing user details
+        if self.user:
+            security_logger.info(f"WebSocket authentication successful for user ID: {self.user.id}")
+        else:
+            security_logger.warning("WebSocket authentication failed")
         if self.user and self.user.is_active:
             # Add user to all appropriate Redis groups
             self.user_groups = await self.group_manager.add_user_to_groups(
@@ -70,7 +91,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 "count": len(batch)
             }, default=str))
         else:
-            print("[NotificationConsumer] WebSocket connection rejected: user not authenticated or inactive.")
+            security_logger.warning("WebSocket connection rejected: user not authenticated or inactive")
             await self.close()
 
     async def disconnect(self, close_code):
@@ -79,7 +100,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.group_manager.remove_user_from_groups(
                 self.user, self.channel_name
             )
-            print(f"[NotificationConsumer] User {self.user.id} disconnected from groups: {self.user_groups}")
+            security_logger.info(f"WebSocket user {self.user.id} disconnected from {len(self.user_groups)} groups")
 
     @database_sync_to_async
     def _get_unread_notifications(self):
@@ -134,13 +155,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 }))
                 
         except json.JSONDecodeError as e:
-            print(f"[NotificationConsumer] Invalid JSON received: {e}")
+            security_logger.warning(f"WebSocket invalid JSON received from user {self.user.id if self.user else 'anonymous'}")
             await self.send(text_data=json.dumps({
                 "type": "error",
                 "message": "Invalid JSON format"
             }))
         except Exception as e:
-            print(f"[NotificationConsumer] Error handling message: {e}")
+            security_logger.error(f"WebSocket error handling message from user {self.user.id if self.user else 'anonymous'}: {str(e)}")
             await self.send(text_data=json.dumps({
                 "type": "error", 
                 "message": "Internal server error"
@@ -161,7 +182,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         except Notification.DoesNotExist:
             return False
         except Exception as e:
-            print(f"Error marking notification as read: {e}")
+            security_logger.error(f"Error marking notification as read for user {self.user.id}: {str(e)}")
             return False
     
     @database_sync_to_async
@@ -174,7 +195,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 is_read=False
             ).count()
         except Exception as e:
-            print(f"Error getting unread count: {e}")
+            security_logger.error(f"Error getting unread count for user {self.user.id}: {str(e)}")
             return 0
 
     async def send_notification(self, event):

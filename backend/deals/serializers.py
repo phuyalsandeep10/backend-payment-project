@@ -129,13 +129,46 @@ class PaymentSerializer(serializers.ModelSerializer):
         return 1  # Default version for payments
 
     def validate(self, data):
-        print("DEBUG: validate method called with data:", data)
         
-        # Validate required fields
-        required_fields = ['payment_date', 'received_amount', 'cheque_number', 'payment_remarks']
+        # Validate core required fields
+        required_fields = ['payment_date', 'received_amount']
         for field in required_fields:
             if field not in data or not data[field]:
                 raise serializers.ValidationError(f"{field} is required")
+        
+        # Conditional validation based on payment type
+        payment_category = data.get('payment_category')
+        payment_type = data.get('payment_type')
+        
+        # For deal context, check the deal's payment method if payment_type not provided
+        if not payment_type and hasattr(self, 'context'):
+            deal_id = data.get('deal_id')
+            if deal_id:
+                try:
+                    from .models import Deal
+                    request = self.context.get('request')
+                    if request and hasattr(request, 'user') and request.user.organization:
+                        deal = Deal.objects.get(deal_id=deal_id, organization=request.user.organization)
+                        payment_type = deal.payment_method
+                except:
+                    pass
+        
+        # Require cheque_number for cheque payments
+        if payment_type == 'cheque' or payment_category == 'cheque':
+            if not data.get('cheque_number'):
+                raise serializers.ValidationError({'cheque_number': 'Cheque number is required for cheque payments'})
+        
+        # Encourage payment_remarks for larger amounts or specific payment types
+        received_amount = data.get('received_amount', 0)
+        if isinstance(received_amount, str):
+            try:
+                received_amount = float(received_amount)
+            except ValueError:
+                received_amount = 0
+        
+        # Require payment_remarks for high-value transactions (>$10,000) or final payments
+        if (received_amount > 10000 or payment_category == 'final') and not data.get('payment_remarks'):
+            raise serializers.ValidationError({'payment_remarks': 'Payment remarks are required for high-value or final payments'})
         
         # Convert received_amount to decimal if it's a string
         if 'received_amount' in data and isinstance(data['received_amount'], str):
@@ -149,14 +182,11 @@ class PaymentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         try:
             # Debug: Log the received data
-            print("DEBUG: Received validated_data:", validated_data)
             
             # Handle deal_id as a direct field (frontend sends it directly)
             deal_id = validated_data.pop('deal_id', None)
             payment_category = validated_data.pop('payment_category', 'partial')
             
-            print("DEBUG: deal_id:", deal_id)
-            print("DEBUG: payment_category:", payment_category)
             
             if not deal_id:
                 raise serializers.ValidationError("deal_id is required.")
@@ -236,14 +266,11 @@ class PaymentSerializer(serializers.ModelSerializer):
             validated_data['payment_category'] = payment_category
             validated_data['deal'] = deal
 
-            print("DEBUG: Final validated_data:", validated_data)
 
             # Try to create the payment and catch any validation errors
             try:
                 payment = Payment.objects.create(**validated_data)
             except Exception as e:
-                print("DEBUG: Payment.objects.create failed with error:", str(e))
-                print("DEBUG: Error type:", type(e))
                 raise serializers.ValidationError(f"Failed to create payment: {str(e)}")
             
             # Create activity log
@@ -259,10 +286,9 @@ class PaymentSerializer(serializers.ModelSerializer):
             # Re-raise validation errors
             raise
         except Exception as e:
-            print("DEBUG: Exception occurred:", str(e))
-            print("DEBUG: Exception type:", type(e))
-            import traceback
-            print("DEBUG: Full traceback:", traceback.format_exc())
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Unexpected error in payment creation: {str(e)}")
             raise serializers.ValidationError(f"Unexpected error: {str(e)}")
 
 class NestedPaymentSerializer(serializers.ModelSerializer):
@@ -316,12 +342,9 @@ class DealSerializer(serializers.ModelSerializer):
     
     def _parse_formdata_payments(self):
         """Parse FormData where all fields come as arrays and handle nested payment structure"""
-        print(f"🔍 DEBUG: _parse_formdata_payments called")
         if not hasattr(self, 'initial_data'):
-            print(f"⚠️  DEBUG: No initial_data found")
             return
             
-        print(f"🔍 DEBUG: initial_data keys: {list(self.initial_data.keys())}")
         
         # Convert QueryDict/FormData to regular dict and extract first value from arrays
         cleaned_data = {}
@@ -354,10 +377,7 @@ class DealSerializer(serializers.ModelSerializer):
         if payment_fields:
             payments_data.append(payment_fields)
             cleaned_data['payments'] = payments_data
-            print(f"✅ DEBUG: Extracted payment fields: {payment_fields}")
-            print(f"✅ DEBUG: payments_data array: {payments_data}")
         else:
-            print(f"⚠️  DEBUG: No payment fields found in FormData")
             
         # Handle client_name to client_id conversion
         if 'client_name' in cleaned_data and 'client_id' not in cleaned_data:
@@ -374,9 +394,6 @@ class DealSerializer(serializers.ModelSerializer):
             except Client.DoesNotExist:
                 pass  # Let the validation handle this error
         
-        print(f"🔍 DEBUG: Final cleaned_data keys: {list(cleaned_data.keys())}")
-        if 'payments' in cleaned_data:
-            print(f"🔍 DEBUG: Final payments data: {cleaned_data['payments']}")
         
         # Replace initial_data with cleaned data
         self.initial_data = cleaned_data
@@ -454,18 +471,13 @@ class DealSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        print(f"🔍 DEBUG: DealSerializer.create called")
-        print(f"🔍 DEBUG: validated_data keys: {list(validated_data.keys())}")
         
         payments_data = validated_data.pop('payments', [])
-        print(f"🔍 DEBUG: Extracted payments_data: {payments_data}")
-        print(f"🔍 DEBUG: Number of payments: {len(payments_data)}")
         
         # Store payment data for model validation but don't pass it to create()
         payment_data_for_validation = None
         if payments_data:
             payment_data_for_validation = payments_data[0]
-            print(f"🔍 DEBUG: First payment data for validation: {payment_data_for_validation}")
         
         # Create deal instance without _payment_data
         try:
@@ -507,18 +519,8 @@ class DealSerializer(serializers.ModelSerializer):
                 })
         
         # Create payments
-        print(f"🔍 DEBUG: About to create {len(payments_data)} payments for deal {deal.deal_id}")
         for i, payment_info in enumerate(payments_data):
-            print(f"🔍 DEBUG: Payment {i+1} data: {payment_info}")
             try:
-                print(f"🔍 DEBUG: About to create Payment with data:")
-                print(f"    - deal: {deal.deal_id}")
-                print(f"    - payment_date: {payment_info.get('payment_date')}")
-                print(f"    - received_amount: {payment_info.get('received_amount')}")
-                print(f"    - cheque_number: {payment_info.get('cheque_number', '')}")
-                print(f"    - payment_type: {payment_info.get('payment_method', deal.payment_method)}")
-                print(f"    - payment_remarks: {payment_info.get('payment_remarks', '')}")
-                print(f"    - receipt_file: {payment_info.get('receipt_file')}")
                 
                 payment = Payment.objects.create(
                     deal=deal,
@@ -530,26 +532,16 @@ class DealSerializer(serializers.ModelSerializer):
                     receipt_file=payment_info.get('receipt_file'),  # Include receipt file
                 )
                 
-                print(f"✅ DEBUG: Payment object created")
-                print(f"✅ DEBUG: Payment pk: {payment.pk}")
-                print(f"✅ DEBUG: Payment id: {payment.id}")
-                print(f"✅ DEBUG: Payment transaction_id: {payment.transaction_id}")
-                print(f"✅ DEBUG: Payment amount: {payment.received_amount}")
                 
                 # Refresh from database to ensure we have the latest data
                 payment.refresh_from_db()
-                print(f"✅ DEBUG: After refresh - Payment id: {payment.id}")
                 
-                print(f"✅ DEBUG: Payment status (via serializer): {PaymentSerializer(payment).data.get('status', 'unknown')}")
                 
                 ActivityLog.objects.create(
                     deal=deal, 
                     message=f"Payment of {payment.received_amount} recorded."
                 )
-                print(f"✅ DEBUG: Activity log created for payment {payment.id}")
             except Exception as e:
-                print(f"❌ DEBUG: Payment creation failed: {str(e)}")
-                print(f"❌ DEBUG: Exception type: {type(e)}")
                 # If payment creation fails, delete the deal and return the error
                 deal.delete()
                 raise serializers.ValidationError({
@@ -557,14 +549,10 @@ class DealSerializer(serializers.ModelSerializer):
                 })
         
         # Debug: Check if payments are actually associated with the deal
-        print(f"🔍 DEBUG: Final deal created with ID: {deal.id}")
-        print(f"🔍 DEBUG: Checking payments for deal {deal.deal_id}")
         
         deal_payments = deal.payments.all()
-        print(f"🔍 DEBUG: Found {deal_payments.count()} payments for deal {deal.deal_id}")
         
         for payment in deal_payments:
-            print(f"🔍 DEBUG: Payment ID: {payment.id}, Amount: {payment.received_amount}")
         
         return deal
 
@@ -614,23 +602,17 @@ class DealSerializer(serializers.ModelSerializer):
     
     def get_payments_read(self, obj):
         """Get payments with proper prefetching and debug info"""
-        print(f"🔍 DEBUG: get_payments_read called for deal {obj.deal_id}")
         
         if not obj.pk:
-            print(f"⚠️  DEBUG: Deal {obj.deal_id} has no pk yet, returning empty payments")
             return []
         
         payments = obj.payments.select_related('deal').prefetch_related('approvals', 'invoice').all()
-        print(f"🔍 DEBUG: Found {payments.count()} payments for deal {obj.deal_id}")
         
         for i, payment in enumerate(payments):
-            print(f"🔍 DEBUG: Payment {i+1}: ID={payment.id}, Amount={payment.received_amount}, Transaction={payment.transaction_id}")
         
         serialized_payments = PaymentSerializer(payments, many=True, context=self.context).data
-        print(f"🔍 DEBUG: Serialized {len(serialized_payments)} payments")
         
         for i, serialized_payment in enumerate(serialized_payments):
-            print(f"🔍 DEBUG: Serialized Payment {i+1}: Status={serialized_payment.get('status', 'unknown')}")
         
         return serialized_payments
 
