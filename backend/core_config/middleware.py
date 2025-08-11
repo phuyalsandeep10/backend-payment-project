@@ -2,6 +2,7 @@
 Security middleware for additional protection measures
 """
 import logging
+import os
 import time
 from django.http import HttpResponse
 from django.core.cache import cache
@@ -28,13 +29,20 @@ class SecurityHeadersMiddleware:
         response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         
         # Content Security Policy
+        import os
+        csp_connect = " ".join([
+            "'self'",
+            os.getenv('FRONTEND_ORIGIN', ''),
+            os.getenv('API_ORIGIN', ''),
+            os.getenv('WS_ORIGIN', ''),
+        ])
         response['Content-Security-Policy'] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "  # TODO: Remove unsafe-inline after refactoring frontend inline styles
             "img-src 'self' data: https:; "
             "font-src 'self'; "
-            "connect-src 'self'; "
+            f"connect-src {csp_connect}; "
             "frame-ancestors 'none';"
         )
         
@@ -193,7 +201,28 @@ class CORSPreflightMiddleware:
         # Handle preflight OPTIONS requests
         if request.method == 'OPTIONS':
             response = HttpResponse()
-            response['Access-Control-Allow-Origin'] = '*'
+            
+            # Get allowed origins from environment
+            frontend_origin = os.getenv('FRONTEND_ORIGIN', 'http://localhost:3000')
+            allowed_origins = [
+                frontend_origin,
+                'http://localhost:3000',
+                'https://localhost:3000'
+            ]
+            
+            # Check origin against allowed list
+            request_origin = request.META.get('HTTP_ORIGIN', '')
+            
+            if settings.DEBUG:
+                # In debug mode, allow all origins
+                response['Access-Control-Allow-Origin'] = '*'
+            elif request_origin in allowed_origins:
+                # In production, only allow specific origins
+                response['Access-Control-Allow-Origin'] = request_origin
+            else:
+                # Deny preflight for unauthorized origins
+                return HttpResponse(status=403)
+            
             response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
             response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken'
             response['Access-Control-Allow-Credentials'] = 'true'
@@ -202,11 +231,19 @@ class CORSPreflightMiddleware:
         
         response = self.get_response(request)
         
-        # Add CORS headers to all responses in debug mode
+        # Add CORS headers to responses
+        frontend_origin = os.getenv('FRONTEND_ORIGIN', 'http://localhost:3000')
+        request_origin = request.META.get('HTTP_ORIGIN', '')
+        
         if settings.DEBUG:
+            # In debug mode, allow all origins
             response['Access-Control-Allow-Origin'] = '*'
-            response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken'
-            response['Access-Control-Allow-Credentials'] = 'true'
+        elif request_origin in [frontend_origin, 'http://localhost:3000', 'https://localhost:3000']:
+            # In production, only allow specific origins
+            response['Access-Control-Allow-Origin'] = request_origin
+        
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken'
+        response['Access-Control-Allow-Credentials'] = 'true'
         
         return response 
