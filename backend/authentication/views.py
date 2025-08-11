@@ -431,12 +431,19 @@ def super_admin_verify_view(request):
     email = request.data.get('email')
     otp = request.data.get('otp')
     
+    print(f"🔐 Super Admin OTP verification for: {email}")
+    print(f"🔢 OTP received: {otp}")
+    
     if not all([email, otp]):
+        print(f"❌ Missing email or OTP")
         return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         user = User.objects.get(email=email)
+        print(f"👤 User found: {user.email}, role: {user.role.name if user.role else 'None'}")
+        print(f"🔍 is_superuser: {user.is_superuser}")
     except User.DoesNotExist:
+        print(f"❌ User not found: {email}")
         return Response({'error': 'Invalid email'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Verify user is actually an admin
@@ -448,10 +455,18 @@ def super_admin_verify_view(request):
         ))
     )
     
+    print(f"🔍 Admin validation result: {is_admin}")
+    
     if not is_admin:
+        print(f"❌ Admin validation failed")
         return Response({'error': 'OTP verification is only for admin users'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if cache.get(f'otp:{user.id}') != otp:
+    cached_otp = cache.get(f'otp:{user.id}')
+    print(f"🔍 Cached OTP: {cached_otp}")
+    print(f"🔍 Cache key: otp:{user.id}")
+    
+    if cached_otp != otp:
+        print(f"❌ OTP mismatch or expired")
         return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
     
     cache.delete(f'otp:{user.id}')

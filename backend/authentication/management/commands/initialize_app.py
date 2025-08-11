@@ -355,7 +355,7 @@ class Command(BaseCommand):
 
         users = {}
         user_data = {
-            "Super Admin": [("superadmin", "shishirkafle44@gmail.com")],
+            "Super Admin": [("superadmin", "seniorprojectmanager123@gmail.com")],
             "Organization Admin": [("orgadmin", "shishirkafle18@gmail.com")],
             "Salesperson": [("salestest", "sales@innovate.com"), ("salespro", "salespro@innovate.com")],
             "Verifier": [("verifier", "verifier@innovate.com")],
