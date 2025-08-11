@@ -483,9 +483,6 @@ def super_admin_verify_view(request):
         }, status=status.HTTP_200_OK)
 
     # Complete login process
-    user.last_login = timezone.now()
-    user.login_count += 1
-    user.save(update_fields=['last_login', 'login_count'])
     token, _ = Token.objects.get_or_create(user=user)
     _create_user_session(request, user, token.key)
     
