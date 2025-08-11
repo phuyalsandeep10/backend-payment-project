@@ -70,22 +70,6 @@ SESSION_COOKIE_AGE = 3600  # 1 hour
 # CSRF Protection
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'Strict'
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:4200',
-    'http://localhost:8080',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:4200',
-    'http://127.0.0.1:8080',
-    # VS Code Dev Tunnels support
-    'https://*.inc1.devtunnels.ms',
-    'https://*.devtunnels.ms',
-    'https://*.tunnel.dev',
-    'https://*.ngrok.io',
-    'https://*.ngrok-free.app',
-])
 
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -132,7 +116,6 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # Keep for admin but not default
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -152,10 +135,12 @@ REST_FRAMEWORK = {
         'login': '5/min',
         'otp': '3/min'
     },
-    'DEFAULT_RENDERER_CLASSES': [
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ) if not DEBUG else (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
+    ),
     'UNAUTHENTICATED_USER': 'django.contrib.auth.models.AnonymousUser',
     'UNAUTHENTICATED_TOKEN': None,
 }
@@ -177,6 +162,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Custom security middleware
     "core_config.middleware.SecurityHeadersMiddleware",
+    # Custom rate limiting middleware (defense in depth with DRF throttling)
+    "core_config.middleware.RateLimitMiddleware",
     "core_config.middleware.SecurityMonitoringMiddleware",
     "core_config.middleware.RequestLoggingMiddleware",
 ]
@@ -310,41 +297,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Channels
 # Channels / WebSocket layer configuration
-# Use `REDIS_URL` provided by the environment when running on Render.
-# Fallback to localhost when running locally.
 REDIS_URL = env('REDIS_URL', default=None)
-
-# Determine the appropriate channel layer backend.
-# Use Redis if (1) a REDIS_URL is provided *and* channels_redis is available.
-# Otherwise fall back to the in-memory layer so the application can still run
-# (e.g. during CI, local dev or when channels_redis cannot compile for the
-# target Python version).
-try:
-    import importlib
-    importlib.import_module('channels_redis')
-    _channel_backend = 'channels_redis.core.RedisChannelLayer'
-except ImportError:
-    # channels_redis is not installed – fall back to the in-memory backend
-    _channel_backend = 'channels.layers.InMemoryChannelLayer'
-
-if _channel_backend == 'channels_redis.core.RedisChannelLayer' and REDIS_URL:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': _channel_backend,
-            'CONFIG': {
-                "hosts": [REDIS_URL],
-            },
-        },
-    }
-else:
-    # Either no REDIS_URL or channels_redis unavailable – use in-memory backend
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': _channel_backend,
-            # In-memory backend does not use CONFIG, but an empty dict is fine.
-            'CONFIG': {},
-        },
-    }
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer' if REDIS_URL else 'channels.layers.InMemoryChannelLayer',
+        'CONFIG': { 'hosts': [REDIS_URL] } if REDIS_URL else {},
+    },
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
@@ -353,45 +312,13 @@ AUTH_USER_MODEL = 'authentication.User'
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
-    CORS_EXPOSE_HEADERS = ['*']
-    CORS_ALLOW_PRIVATE_NETWORK = True
-    # Additional CORS settings for shared development
-    CORS_ORIGIN_ALLOW_ALL = True
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'cache-control',
-        'pragma',
-        'x-api-key',
-        'x-request-id',
-        'x-forwarded-for',
-        'x-forwarded-proto',
-        'x-real-ip',
-        'x-device-id',
-        'x-session-id',
-        'x-client-version',
-        'x-platform',
-        'x-app-version',
-    ]
-    CORS_ALLOW_METHODS = [
-        'DELETE',
-        'GET',
-        'OPTIONS',
-        'PATCH',
-        'POST',
-        'PUT',
-    ]
+    CORS_ALLOWED_ORIGINS = []
 else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 
 
@@ -539,64 +466,4 @@ if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
     print("⚠️  SMTP credentials not provided. Falling back to console email backend.")
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# WebSocket Configuration
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
-}
-
-# Ensure ASGI application is configured
-ASGI_APPLICATION = 'core_config.asgi.application'
-
-# CORS settings for WebSocket
-CORS_ALLOW_ALL_ORIGINS = True  # For development
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'sec-websocket-key',
-    'sec-websocket-protocol',
-    'sec-websocket-version',
-    'upgrade',
-    'connection',
-]
-
-# CSRF settings
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'https://localhost:3000',
-    'http://127.0.0.1:3000',
-]
-
-# API endpoints that need CSRF protection
-CSRF_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'Lax'
-
-# Session security
-SESSION_COOKIE_SECURE = not DEBUG
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_AGE = 86400  # 24 hours
-
-# Security headers
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
 
