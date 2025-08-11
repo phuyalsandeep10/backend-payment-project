@@ -483,19 +483,39 @@ def super_admin_verify_view(request):
         }, status=status.HTTP_200_OK)
 
     # Complete login process
+    print("🔄 Creating token...")
     token, _ = Token.objects.get_or_create(user=user)
-    _create_user_session(request, user, token.key)
+    print("✅ Token created successfully")
     
+    print("🔄 Creating user session...")
+    try:
+        _create_user_session(request, user, token.key)
+        print("✅ User session created successfully")
+    except Exception as e:
+        print(f"❌ Session creation failed: {e}")
+        # Continue anyway
+    
+    print("🔄 Calculating streaks...")
     try:
         calculate_streaks_for_user_login(user)
+        print("✅ Streaks calculated successfully")
     except Exception as e:
-        security_logger.error(f"Streak calculation failed for user {user.email}: {e}")
+        print(f"❌ Streak calculation failed: {e}")
+        # Continue anyway
     
-    return Response(AuthSuccessResponseSerializer({
-        'token': token.key, 
-        'user': user,
-        'requires_otp': False
-    }).data, status=status.HTTP_200_OK)
+    print("🔄 Preparing response...")
+    try:
+        response_data = AuthSuccessResponseSerializer({
+            'token': token.key, 
+            'user': user,
+            'requires_otp': False
+        }).data
+        print("✅ Response prepared successfully")
+        return Response(response_data, status=status.HTTP_200_OK)
+    except Exception as e:
+        print(f"❌ Response serialization failed: {e}")
+        # Fallback simple response
+        return Response({'token': token.key, 'user': {'email': user.email}}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
