@@ -36,6 +36,20 @@ class Deal(models.Model):
         ('rejected', 'Rejected'),
     ]
     
+    # State machine: Valid transitions for verification_status
+    VERIFICATION_STATUS_TRANSITIONS = {
+        'pending': ['verified', 'rejected'],
+        'verified': ['rejected'],  # Can reject verified deals if needed
+        'rejected': [],  # No transitions from rejected (final state)
+    }
+    
+    # State machine: Valid transitions for payment_status
+    PAYMENT_STATUS_TRANSITIONS = {
+        'initial payment': ['partial_payment', 'full_payment'],
+        'partial_payment': ['full_payment'],
+        'full_payment': [],  # Final state
+    }
+    
     VERSION_CHOICES = [
         ('original', 'Original'),
         ('edited', 'Edited'),
@@ -54,7 +68,7 @@ class Deal(models.Model):
         ('bad_debt', 'Bad Debt'),
     ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True )
-    deal_id = models.CharField(max_length=50, blank=True)
+    deal_id = models.CharField(max_length=50, blank=True, db_index=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='deals')
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='deals')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='deals', null=True, blank=True)
@@ -88,6 +102,12 @@ class Deal(models.Model):
             models.Index(fields=['payment_status', 'verification_status']),
             models.Index(fields=['due_date']),
             models.Index(fields=['deal_value']),
+            # Performance critical indexes
+            models.Index(fields=['organization', 'verification_status']),
+            models.Index(fields=['organization', 'payment_status']),
+            models.Index(fields=['source_type']),
+            models.Index(fields=['organization', 'deal_date']),
+            models.Index(fields=['organization', 'created_by']),
         ]
         ordering = ['-created_at']
         unique_together = ('organization','deal_id')
@@ -98,9 +118,86 @@ class Deal(models.Model):
             ("manage_refunds", "Can manage refunds"),
             ("verify_payments", "Can verify payments"),
         ]
+    
+    def validate_verification_status_transition(self, new_status):
+        """
+        Validate that the verification status transition is allowed.
+        Implements state machine pattern for deal lifecycle consistency.
+        """
+        if not self.verification_status:  # New deal
+            return True
+            
+        current_status = self.verification_status
+        allowed_transitions = self.VERIFICATION_STATUS_TRANSITIONS.get(current_status, [])
+        
+        if new_status not in allowed_transitions:
+            from django.core.exceptions import ValidationError
+            raise ValidationError(
+                f"Invalid verification status transition from '{current_status}' to '{new_status}'. "
+                f"Allowed transitions: {allowed_transitions}"
+            )
+        return True
+    
+    def validate_payment_status_transition(self, new_status):
+        """
+        Validate that the payment status transition is allowed.
+        Implements state machine pattern for payment lifecycle consistency.
+        """
+        if not self.payment_status:  # New deal
+            return True
+            
+        current_status = self.payment_status
+        allowed_transitions = self.PAYMENT_STATUS_TRANSITIONS.get(current_status, [])
+        
+        if new_status not in allowed_transitions:
+            from django.core.exceptions import ValidationError
+            raise ValidationError(
+                f"Invalid payment status transition from '{current_status}' to '{new_status}'. "
+                f"Allowed transitions: {allowed_transitions}"
+            )
+        return True
+    
+    def can_transition_verification_status(self, new_status):
+        """
+        Check if verification status transition is allowed without raising exception.
+        Returns True if transition is valid, False otherwise.
+        """
+        try:
+            return self.validate_verification_status_transition(new_status)
+        except ValidationError:
+            return False
+    
+    def can_transition_payment_status(self, new_status):
+        """
+        Check if payment status transition is allowed without raising exception.
+        Returns True if transition is valid, False otherwise.
+        """
+        try:
+            return self.validate_payment_status_transition(new_status)
+        except ValidationError:
+            return False
         
     def save(self,*args,**kwargs):
         is_new = self._state.adding
+        
+        # State machine validation for existing deals
+        if not is_new:
+            try:
+                # Get the current state from database
+                current_deal = Deal.objects.get(pk=self.pk)
+                
+                # Validate verification status transition
+                if current_deal.verification_status != self.verification_status:
+                    self.validate_verification_status_transition(self.verification_status)
+                
+                # Validate payment status transition  
+                if current_deal.payment_status != self.payment_status:
+                    self.validate_payment_status_transition(self.payment_status)
+                    
+            except Deal.DoesNotExist:
+                # Deal doesn't exist yet, skip validation
+                pass
+        
         if not self.deal_id:
             last_deal = Deal.objects.filter(organization = self.organization,deal_id__startswith='DLID').order_by("-deal_id").first()
             
@@ -296,85 +393,115 @@ class Payment(models.Model):
                 raise ValidationError({'received_amount': str(e)})
     
     def save(self, *args, **kwargs):
-        # Validate cheque number for uniqueness before saving
-        if self.cheque_number:
-            # Check for other payments with the same cheque number within the same organization
-            # This check is now more robust by scoping to the organization
-            organization = self.deal.organization
-            if Payment.objects.filter(
-                deal__organization=organization,
-                cheque_number=self.cheque_number
-            ).exclude(pk=self.pk).exists():
-                from django.core.exceptions import ValidationError
-                raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
+        from django.db import transaction
         
-        if not self.transaction_id:
-            last_transaction = Payment.objects.order_by('id').last()
-            if last_transaction and last_transaction.transaction_id:
-                last_id = int(last_transaction.transaction_id.split('-')[1])
-                new_id = last_id + 1
-                self.transaction_id = f'TXN-{new_id:04d}'
-            else:
-                self.transaction_id = 'TXN-0001'
+        print(f"🔍 DEBUG: Payment.save() called for amount {self.received_amount}")
+        print(f"🔍 DEBUG: Payment pk before save: {self.pk}")
+        
+        with transaction.atomic():
+            print(f"🔍 DEBUG: Inside transaction.atomic()")
+            # Validate cheque number for uniqueness before saving
+            if self.cheque_number:
+                # Check for other payments with the same cheque number within the same organization
+                # This check is now more robust by scoping to the organization
+                organization = self.deal.organization
+                if Payment.objects.select_for_update().filter(
+                    deal__organization=organization,
+                    cheque_number=self.cheque_number
+                ).exclude(pk=self.pk).exists():
+                    from django.core.exceptions import ValidationError
+                    print(f"❌ DEBUG: Cheque number validation failed: {self.cheque_number}")
+                    raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
+                else:
+                    print(f"✅ DEBUG: Cheque number validation passed: {self.cheque_number}")
+            
+            if not self.transaction_id:
+                print(f"🔍 DEBUG: Generating transaction_id")
+                # Use select_for_update to prevent race conditions
+                last_transaction = Payment.objects.select_for_update().order_by('id').last()
+                if last_transaction and last_transaction.transaction_id:
+                    last_id = int(last_transaction.transaction_id.split('-')[1])
+                    new_id = last_id + 1
+                    self.transaction_id = f'TXN-{new_id:04d}'
+                    print(f"✅ DEBUG: Generated transaction_id: {self.transaction_id}")
+                else:
+                    self.transaction_id = 'TXN-0001'
+                    print(f"✅ DEBUG: Generated first transaction_id: {self.transaction_id}")
 
-        # Enhanced image compression with security checks
-        if self.receipt_file and hasattr(self.receipt_file, 'size') and self.receipt_file.size > 1024 * 1024: # 1MB
-            try:
-                # Security: Verify file is actually an image before processing
-                img = Image.open(self.receipt_file)
-                
-                # Additional security: Check image format
-                if img.format.lower() not in ['jpeg', 'jpg', 'png']:
-                    # If not a supported image format, don't process but allow save
-                    # (other validation will catch non-image files)
-                    super().save(*args, **kwargs)
-                    return
+            print(f"🔍 DEBUG: Checking image processing...")
+            # Enhanced image compression with security checks - TEMPORARILY DISABLED FOR DEBUG
+            if False and self.receipt_file and hasattr(self.receipt_file, 'size') and self.receipt_file.size > 1024 * 1024: # 1MB
+                try:
+                    # Security: Validate file before processing
+                    # Note: validate_file_security is already called by the FileField validator
+                    
+                    # Additional security: Open image with verification
+                    with Image.open(self.receipt_file) as img:
+                        # Verify image integrity first
+                        img.verify()
+                    
+                    # Reopen for processing (verify() closes the file)
+                    img = Image.open(self.receipt_file)
+                    
+                    # Additional security: Check image format
+                    if img.format.lower() not in ['jpeg', 'jpg', 'png']:
+                        # If not a supported image format, don't process but allow save
+                        # (other validation will catch non-image files)
+                        super().save(*args, **kwargs)
+                        return
 
-                # Check if it's an image that can be compressed
-                if img.format.lower() in ['jpeg', 'jpg', 'png']:
-                    # Create a buffer to hold the compressed image
-                    buffer = io.BytesIO()
-                    
-                    # Convert to RGB if necessary (for JPEG)
-                    if img.mode in ['RGBA', 'P'] and img.format.lower() in ['jpeg', 'jpg']:
-                        # Create a white background for transparency
-                        background = Image.new('RGB', img.size, (255, 255, 255))
-                        if img.mode == 'P':
-                            img = img.convert('RGBA')
-                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-                        img = background
-                    
-                    # Compress with quality optimization
-                    quality = 85
-                    if self.receipt_file.size > 5 * 1024 * 1024:  # If > 5MB, compress more
-                        quality = 70
+                    # Check if it's an image that can be compressed
+                    if img.format.lower() in ['jpeg', 'jpg', 'png']:
+                        # Create a buffer to hold the compressed image
+                        buffer = io.BytesIO()
                         
-                    # Save the image to the buffer with optimization
-                    img.save(buffer, format=img.format, optimize=True, quality=quality)
-                    
-                    # Rewind the buffer
-                    buffer.seek(0)
-                    
-                    # Create a new Django ContentFile
-                    new_file = ContentFile(buffer.read())
+                        # Convert to RGB if necessary (for JPEG)
+                        if img.mode in ['RGBA', 'P'] and img.format.lower() in ['jpeg', 'jpg']:
+                            # Create a white background for transparency
+                            background = Image.new('RGB', img.size, (255, 255, 255))
+                            if img.mode == 'P':
+                                img = img.convert('RGBA')
+                            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                            img = background
+                        
+                        # Compress with quality optimization
+                        quality = 85
+                        if self.receipt_file.size > 5 * 1024 * 1024:  # If > 5MB, compress more
+                            quality = 70
+                            
+                        # Save the image to the buffer with optimization
+                        img.save(buffer, format=img.format, optimize=True, quality=quality)
+                        
+                        # Rewind the buffer
+                        buffer.seek(0)
+                        
+                        # Create a new Django ContentFile
+                        new_file = ContentFile(buffer.read())
 
-                    # Get the original file name and extension
-                    file_name, file_ext = os.path.splitext(self.receipt_file.name)
-                    
-                    # Save the compressed file
-                    self.receipt_file.save(f"{file_name}_optimized{file_ext}", new_file, save=False)
-                
+                        # Get the original file name and extension
+                        file_name, file_ext = os.path.splitext(self.receipt_file.name)
+                        
+                        # Save the compressed file
+                        self.receipt_file.save(f"{file_name}_optimized{file_ext}", new_file, save=False)
+                        
+                        # Clean up
+                        img.close()
 
-            except Exception as e:
-                # Security: Log the exception but don't expose details to user
-                import logging
-                logger = logging.getLogger('security')
-                logger.warning(f"File processing error for payment {self.id}: {str(e)}")
-                
-                # Continue with save - validation will catch any real issues
-                pass 
-                
-        super().save(*args, **kwargs)
+                except Exception as e:
+                    # Security: Log the exception but don't expose details to user
+                    import logging
+                    logger = logging.getLogger('security')
+                    logger.warning(f"File processing error for payment {self.id}: {str(e)}")
+                    
+                    # Continue with save - validation will catch any real issues
+                    pass 
+                    
+            # Complete the save operation within the atomic transaction
+            print(f"🔍 DEBUG: About to call super().save()")
+            super().save(*args, **kwargs)
+            print(f"🔍 DEBUG: super().save() completed")
+            print(f"🔍 DEBUG: Payment pk after save: {self.pk}")
+            print(f"🔍 DEBUG: Payment id after save: {self.id}")
     
     
 ##
@@ -397,7 +524,12 @@ class PaymentInvoice(models.Model):
     due_date = models.DateField(null=True, blank=True)
     invoice_status = models.CharField(max_length=20, default='pending')
     deal = models.ForeignKey(Deal, on_delete=models.CASCADE, related_name='invoices')
-    receipt_file = models.FileField(upload_to='receipts/', null=True, blank=True)
+    receipt_file = models.FileField(
+        upload_to='receipts/', 
+        null=True, 
+        blank=True,
+        validators=[validate_file_security]
+    )
 
     def __str__(self):
         return f"Invoice for {self.deal.deal_id} - {self.invoice_date}"

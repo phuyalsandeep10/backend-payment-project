@@ -40,6 +40,11 @@ class PaymentSerializer(serializers.ModelSerializer):
     def get_status(self, obj):
         """Get payment status from the related invoice or latest approval"""
         try:
+            # Check if payment has been saved to database yet
+            if not obj.pk:
+                # Payment not saved yet, return default status
+                return 'pending'
+                
             # First try to get status from the invoice
             if hasattr(obj, 'invoice') and obj.invoice:
                 return obj.invoice.invoice_status
@@ -58,12 +63,16 @@ class PaymentSerializer(serializers.ModelSerializer):
             # Log the error for debugging
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"Error getting payment status for payment {obj.id}: {e}")
+            logger.warning(f"Error getting payment status for payment {obj.pk or 'None'}: {e}")
             return 'pending'
     
     def get_verified_amount(self, obj):
         """Get the verified amount from the latest approval"""
         try:
+            # Check if payment has been saved to database yet
+            if not obj.pk:
+                return obj.received_amount
+                
             latest_approval = obj.approvals.order_by('-approval_date').first()
             if latest_approval and latest_approval.amount_in_invoice and latest_approval.amount_in_invoice > 0:
                 return latest_approval.amount_in_invoice
@@ -74,6 +83,10 @@ class PaymentSerializer(serializers.ModelSerializer):
     def get_verified_by(self, obj):
         """Get the verifier information from the latest approval - only for verified/rejected payments"""
         try:
+            # Check if payment has been saved to database yet
+            if not obj.pk:
+                return None
+                
             # First check if payment is actually verified/rejected
             payment_status = 'pending'
             if hasattr(obj, 'invoice') and obj.invoice:
@@ -102,6 +115,10 @@ class PaymentSerializer(serializers.ModelSerializer):
     def get_verification_remarks(self, obj):
         """Get verification remarks from the latest approval"""
         try:
+            # Check if payment has been saved to database yet
+            if not obj.pk:
+                return None
+                
             latest_approval = obj.approvals.order_by('-approval_date').first()
             return latest_approval.verifier_remarks if latest_approval else None
         except:
@@ -299,9 +316,13 @@ class DealSerializer(serializers.ModelSerializer):
     
     def _parse_formdata_payments(self):
         """Parse FormData where all fields come as arrays and handle nested payment structure"""
+        print(f"🔍 DEBUG: _parse_formdata_payments called")
         if not hasattr(self, 'initial_data'):
+            print(f"⚠️  DEBUG: No initial_data found")
             return
             
+        print(f"🔍 DEBUG: initial_data keys: {list(self.initial_data.keys())}")
+        
         # Convert QueryDict/FormData to regular dict and extract first value from arrays
         cleaned_data = {}
         payments_data = []
@@ -333,6 +354,10 @@ class DealSerializer(serializers.ModelSerializer):
         if payment_fields:
             payments_data.append(payment_fields)
             cleaned_data['payments'] = payments_data
+            print(f"✅ DEBUG: Extracted payment fields: {payment_fields}")
+            print(f"✅ DEBUG: payments_data array: {payments_data}")
+        else:
+            print(f"⚠️  DEBUG: No payment fields found in FormData")
             
         # Handle client_name to client_id conversion
         if 'client_name' in cleaned_data and 'client_id' not in cleaned_data:
@@ -348,6 +373,10 @@ class DealSerializer(serializers.ModelSerializer):
                     cleaned_data['client_id'] = client.id
             except Client.DoesNotExist:
                 pass  # Let the validation handle this error
+        
+        print(f"🔍 DEBUG: Final cleaned_data keys: {list(cleaned_data.keys())}")
+        if 'payments' in cleaned_data:
+            print(f"🔍 DEBUG: Final payments data: {cleaned_data['payments']}")
         
         # Replace initial_data with cleaned data
         self.initial_data = cleaned_data
@@ -425,12 +454,18 @@ class DealSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        print(f"🔍 DEBUG: DealSerializer.create called")
+        print(f"🔍 DEBUG: validated_data keys: {list(validated_data.keys())}")
+        
         payments_data = validated_data.pop('payments', [])
+        print(f"🔍 DEBUG: Extracted payments_data: {payments_data}")
+        print(f"🔍 DEBUG: Number of payments: {len(payments_data)}")
         
         # Store payment data for model validation but don't pass it to create()
         payment_data_for_validation = None
         if payments_data:
             payment_data_for_validation = payments_data[0]
+            print(f"🔍 DEBUG: First payment data for validation: {payment_data_for_validation}")
         
         # Create deal instance without _payment_data
         try:
@@ -472,8 +507,19 @@ class DealSerializer(serializers.ModelSerializer):
                 })
         
         # Create payments
-        for payment_info in payments_data:
+        print(f"🔍 DEBUG: About to create {len(payments_data)} payments for deal {deal.deal_id}")
+        for i, payment_info in enumerate(payments_data):
+            print(f"🔍 DEBUG: Payment {i+1} data: {payment_info}")
             try:
+                print(f"🔍 DEBUG: About to create Payment with data:")
+                print(f"    - deal: {deal.deal_id}")
+                print(f"    - payment_date: {payment_info.get('payment_date')}")
+                print(f"    - received_amount: {payment_info.get('received_amount')}")
+                print(f"    - cheque_number: {payment_info.get('cheque_number', '')}")
+                print(f"    - payment_type: {payment_info.get('payment_method', deal.payment_method)}")
+                print(f"    - payment_remarks: {payment_info.get('payment_remarks', '')}")
+                print(f"    - receipt_file: {payment_info.get('receipt_file')}")
+                
                 payment = Payment.objects.create(
                     deal=deal,
                     payment_date=payment_info.get('payment_date'),
@@ -483,16 +529,42 @@ class DealSerializer(serializers.ModelSerializer):
                     payment_remarks=payment_info.get('payment_remarks', ''),
                     receipt_file=payment_info.get('receipt_file'),  # Include receipt file
                 )
+                
+                print(f"✅ DEBUG: Payment object created")
+                print(f"✅ DEBUG: Payment pk: {payment.pk}")
+                print(f"✅ DEBUG: Payment id: {payment.id}")
+                print(f"✅ DEBUG: Payment transaction_id: {payment.transaction_id}")
+                print(f"✅ DEBUG: Payment amount: {payment.received_amount}")
+                
+                # Refresh from database to ensure we have the latest data
+                payment.refresh_from_db()
+                print(f"✅ DEBUG: After refresh - Payment id: {payment.id}")
+                
+                print(f"✅ DEBUG: Payment status (via serializer): {PaymentSerializer(payment).data.get('status', 'unknown')}")
+                
                 ActivityLog.objects.create(
                     deal=deal, 
                     message=f"Payment of {payment.received_amount} recorded."
                 )
+                print(f"✅ DEBUG: Activity log created for payment {payment.id}")
             except Exception as e:
+                print(f"❌ DEBUG: Payment creation failed: {str(e)}")
+                print(f"❌ DEBUG: Exception type: {type(e)}")
                 # If payment creation fails, delete the deal and return the error
                 deal.delete()
                 raise serializers.ValidationError({
                     'payments': f"Failed to create payment: {str(e)}"
                 })
+        
+        # Debug: Check if payments are actually associated with the deal
+        print(f"🔍 DEBUG: Final deal created with ID: {deal.id}")
+        print(f"🔍 DEBUG: Checking payments for deal {deal.deal_id}")
+        
+        deal_payments = deal.payments.all()
+        print(f"🔍 DEBUG: Found {deal_payments.count()} payments for deal {deal.deal_id}")
+        
+        for payment in deal_payments:
+            print(f"🔍 DEBUG: Payment ID: {payment.id}, Amount: {payment.received_amount}")
         
         return deal
 
@@ -541,7 +613,26 @@ class DealSerializer(serializers.ModelSerializer):
         return (total_paid / deal_value * 100) if deal_value > 0 else 0
     
     def get_payments_read(self, obj):
-        return PaymentSerializer(obj.payments.all(), many=True).data
+        """Get payments with proper prefetching and debug info"""
+        print(f"🔍 DEBUG: get_payments_read called for deal {obj.deal_id}")
+        
+        if not obj.pk:
+            print(f"⚠️  DEBUG: Deal {obj.deal_id} has no pk yet, returning empty payments")
+            return []
+        
+        payments = obj.payments.select_related('deal').prefetch_related('approvals', 'invoice').all()
+        print(f"🔍 DEBUG: Found {payments.count()} payments for deal {obj.deal_id}")
+        
+        for i, payment in enumerate(payments):
+            print(f"🔍 DEBUG: Payment {i+1}: ID={payment.id}, Amount={payment.received_amount}, Transaction={payment.transaction_id}")
+        
+        serialized_payments = PaymentSerializer(payments, many=True, context=self.context).data
+        print(f"🔍 DEBUG: Serialized {len(serialized_payments)} payments")
+        
+        for i, serialized_payment in enumerate(serialized_payments):
+            print(f"🔍 DEBUG: Serialized Payment {i+1}: Status={serialized_payment.get('status', 'unknown')}")
+        
+        return serialized_payments
 
 
 class SalespersonDealSerializer(DealSerializer):
@@ -584,6 +675,10 @@ class DealPaymentHistorySerializer(serializers.ModelSerializer):
     def get_verification_status(self, obj):
         """Get payment status from the related invoice or latest approval"""
         try:
+            # Check if payment has been saved to database yet
+            if not obj.pk:
+                return 'pending'
+                
             # First try to get status from the invoice
             if hasattr(obj, 'invoice') and obj.invoice:
                 return obj.invoice.invoice_status
@@ -602,12 +697,16 @@ class DealPaymentHistorySerializer(serializers.ModelSerializer):
             # Log the error for debugging
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"Error getting payment status for payment {obj.id}: {e}")
+            logger.warning(f"Error getting payment status for payment {obj.pk or 'None'}: {e}")
             return 'pending'
     
     def get_verified_by(self, obj):
         """Get the name of the person who verified this specific payment - only for verified/rejected payments"""
         try:
+            # Check if payment has been saved to database yet
+            if not obj.pk:
+                return None
+                
             # First check if payment is actually verified/rejected
             payment_status = 'pending'
             if hasattr(obj, 'invoice') and obj.invoice:

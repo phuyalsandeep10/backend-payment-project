@@ -1,6 +1,9 @@
 from rest_framework import viewsets, status, filters
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Q
 from .models import Deal, Payment, ActivityLog, PaymentInvoice, PaymentApproval
 from .serializers import (
     DealSerializer, SalespersonDealSerializer, PaymentSerializer, ActivityLogSerializer, DealExpandedViewSerializer,
@@ -266,3 +269,105 @@ class PaymentApprovalViewSet(viewsets.ModelViewSet):
             return PaymentApproval.objects.filter(deal__organization=self.request.user.organization)
         
         return PaymentApproval.objects.none()
+
+
+class ChunkedFileUploadView(APIView):
+    """
+    Handle chunked file uploads for large receipts and invoices.
+    Optimizes server performance by processing files in chunks.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        import os
+        import tempfile
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+        
+        try:
+            # Get upload parameters
+            chunk_number = int(request.data.get('chunk_number', 0))
+            total_chunks = int(request.data.get('total_chunks', 1))
+            file_name = request.data.get('file_name', 'upload')
+            chunk_data = request.FILES.get('chunk')
+            upload_id = request.data.get('upload_id')  # Unique identifier for this upload
+            
+            if not chunk_data or not upload_id:
+                return Response(
+                    {'error': 'Missing chunk data or upload_id'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create temporary directory for chunks
+            temp_dir = os.path.join(tempfile.gettempdir(), 'chunked_uploads', upload_id)
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Save chunk to temporary file
+            chunk_path = os.path.join(temp_dir, f'chunk_{chunk_number:04d}')
+            with open(chunk_path, 'wb') as chunk_file:
+                for chunk in chunk_data.chunks():
+                    chunk_file.write(chunk)
+            
+            # Check if all chunks are received
+            if chunk_number + 1 == total_chunks:
+                # Reassemble file from chunks
+                final_file_path = os.path.join(temp_dir, 'final_file')
+                
+                with open(final_file_path, 'wb') as final_file:
+                    for i in range(total_chunks):
+                        chunk_file_path = os.path.join(temp_dir, f'chunk_{i:04d}')
+                        if os.path.exists(chunk_file_path):
+                            with open(chunk_file_path, 'rb') as chunk_file:
+                                final_file.write(chunk_file.read())
+                            # Clean up chunk file
+                            os.remove(chunk_file_path)
+                
+                # Validate the reassembled file
+                try:
+                    with open(final_file_path, 'rb') as f:
+                        file_content = ContentFile(f.read(), name=file_name)
+                        
+                    # Apply security validation
+                    from .validators import validate_file_security
+                    validate_file_security(file_content)
+                    
+                    # Save to proper storage
+                    file_path = default_storage.save(f'chunked_uploads/{file_name}', file_content)
+                    file_url = default_storage.url(file_path)
+                    
+                    # Clean up temporary directory
+                    os.remove(final_file_path)
+                    os.rmdir(temp_dir)
+                    
+                    return Response({
+                        'status': 'complete',
+                        'file_path': file_path,
+                        'file_url': file_url,
+                        'message': 'File uploaded successfully'
+                    }, status=status.HTTP_201_CREATED)
+                    
+                except Exception as e:
+                    # Clean up on validation failure
+                    if os.path.exists(final_file_path):
+                        os.remove(final_file_path)
+                    if os.path.exists(temp_dir):
+                        import shutil
+                        shutil.rmtree(temp_dir)
+                    
+                    return Response({
+                        'error': f'File validation failed: {str(e)}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            else:
+                # Return progress for partial upload
+                return Response({
+                    'status': 'chunk_received',
+                    'chunk_number': chunk_number,
+                    'total_chunks': total_chunks,
+                    'progress': ((chunk_number + 1) / total_chunks) * 100
+                }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            return Response({
+                'error': f'Upload failed: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

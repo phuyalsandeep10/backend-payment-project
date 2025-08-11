@@ -15,8 +15,8 @@ class Client(models.Model):
         ('bad_debt', 'Bad Debt'),
         ('clear', 'Clear'),
     ]
-    client_name = models.CharField(max_length=255)
-    email = models.EmailField()
+    client_name = models.CharField(max_length=255, db_index=True)
+    email = models.EmailField(db_index=True)
     phone_number = models.CharField(max_length=30, validators=[RegexValidator(r'^\+?\d{10,15}$', 'Enter a valid phone number.')],)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -26,13 +26,17 @@ class Client(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='clients_created')
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='clients_updated')
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='clients')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='clients', db_index=True)
     
     class Meta:
         ordering = ["client_name"]
         verbose_name = ("Client")
         verbose_name_plural = ("Clients")
         unique_together = ('email', 'organization')
+        indexes = [
+            models.Index(fields=['organization', 'created_by']),
+            models.Index(fields=['status']),
+        ]
         permissions = [
             ("view_all_clients", "Can view all clients"),
             ("view_own_clients", "Can view own clients"),

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
@@ -262,20 +262,22 @@ class OrgAdminCommissionView(APIView):
             if not organization:
                 return Response({'error': 'User must belong to an organization'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Get all salespeople in the organization
+            # Get all salespeople with their total sales annotated to eliminate N+1 queries
             salespeople = User.objects.filter(
                 organization=organization,
                 role__name__in=['Salesperson', 'Senior Salesperson']
-            ).select_related('role')
+            ).select_related('role').annotate(
+                total_verified_sales=Sum(
+                    'created_deals__deal_value',
+                    filter=Q(created_deals__verification_status='verified')
+                )
+            )
 
             commission_data = []
             
             for salesperson in salespeople:
-                # Calculate total sales for this salesperson (ONLY VERIFIED DEALS)
-                total_sales = Deal.objects.filter(
-                    created_by=salesperson,
-                    verification_status='verified'  # Only verified deals count
-                ).aggregate(Sum('deal_value'))['deal_value__sum'] or Decimal('0.00')
+                # Use annotated value to avoid N+1 query
+                total_sales = salesperson.total_verified_sales or Decimal('0.00')
                 
                 # Get existing commission record or create default values
                 commission_record = Commission.objects.filter(

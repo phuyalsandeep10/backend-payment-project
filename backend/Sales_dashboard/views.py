@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Sum, Q, Count, Avg
+from django.db.models import Sum, Q, Count, Avg, Max
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -887,11 +887,20 @@ def get_individual_standings(user, start_date, end_date, limit, request):
     if not organization:
         return [], 0, None
 
+    # Optimize with annotations to eliminate N+1 queries
     all_salespersons = User.objects.filter(
         organization=organization,
         role__name__icontains='salesperson'
-    ).annotate(
+    ).select_related('role').annotate(
         total_sales=Sum(
+            'created_deals__deal_value',
+            filter=Q(created_deals__deal_date__range=(start_date, end_date), created_deals__verification_status='verified')
+        ),
+        deals_count=Count(
+            'created_deals',
+            filter=Q(created_deals__deal_date__range=(start_date, end_date), created_deals__verification_status='verified')
+        ),
+        max_deal_value=Max(
             'created_deals__deal_value',
             filter=Q(created_deals__deal_date__range=(start_date, end_date), created_deals__verification_status='verified')
         )
@@ -908,19 +917,13 @@ def get_individual_standings(user, start_date, end_date, limit, request):
         if rank > limit:
             continue
 
-        top_deal = Deal.objects.filter(
-            created_by=person,
-            deal_date__range=(start_date, end_date),
-            verification_status='verified'
-        ).order_by('-deal_value').first()
-
         standings.append({
             'rank': rank,
             'user_id': person.id,
             'username': f"{person.first_name} {person.last_name}".strip(),
             'sales_amount': person.total_sales or Decimal('0.00'),
             'profile_picture': get_profile_picture_url(person, request),
-            'deals_count': Deal.objects.filter(created_by=person, deal_date__range=(start_date, end_date), verification_status='verified').count(),
+            'deals_count': person.deals_count or 0,
             'streak': person.streak,
             'performance_score': 0, # Placeholder
             'is_current_user': person.id == user.id
@@ -936,11 +939,20 @@ def get_team_standings(user, start_date, end_date, limit, request):
     if not organization:
         return [], 0, None
     
-    all_teams = Team.objects.filter(organization=organization).annotate(
+    # Optimize with annotations to eliminate N+1 queries
+    all_teams = Team.objects.filter(organization=organization).select_related(
+        'team_lead'
+    ).prefetch_related('members').annotate(
         total_sales=Sum(
             'members__created_deals__deal_value',
             filter=Q(members__created_deals__deal_date__range=(start_date, end_date), members__created_deals__verification_status='verified')
-        )
+        ),
+        member_count=Count('members'),
+        team_deals_count=Count(
+            'members__created_deals',
+            filter=Q(members__created_deals__deal_date__range=(start_date, end_date), members__created_deals__verification_status='verified')
+        ),
+        avg_streak=Avg('members__streak')
     ).order_by('-total_sales')
     
     total_participants = all_teams.count()
@@ -960,9 +972,9 @@ def get_team_standings(user, start_date, end_date, limit, request):
             'team_id': team.id,
             'team_name': team.name,
             'sales_amount': team.total_sales or Decimal('0.00'),
-            'member_count': team.members.count(),
-            'team_deals': Deal.objects.filter(created_by__in=team.members.all(), deal_date__range=(start_date, end_date), verification_status='verified').count(),
-            'avg_streak': team.members.aggregate(Avg('streak'))['streak__avg'] or 0,
+            'member_count': team.member_count or 0,
+            'team_deals': team.team_deals_count or 0,
+            'avg_streak': team.avg_streak or 0,
             'team_lead_profile_picture': get_profile_picture_url(team.team_lead, request) if team.team_lead else None,
             'is_user_team': user_team and team.id == user_team.id
         })

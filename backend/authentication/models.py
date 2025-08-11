@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from deals.validators import validate_file_security
 
 class CustomUserManager(BaseUserManager):
     """
@@ -74,13 +75,15 @@ class User(AbstractUser):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='users'
+        related_name='users',
+        db_index=True
     )
     role = models.ForeignKey(
         'permissions.Role', 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True,
+        db_index=True,
         related_name='users'
     )
     team = models.ForeignKey('team.Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_users')
@@ -119,6 +122,12 @@ class User(AbstractUser):
         """Alternative alias for contact_number"""
         return self.contact_number
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['organization', 'status']),
+            models.Index(fields=['status']),
+        ]
+
 
 class UserSession(models.Model):
     """
@@ -139,7 +148,12 @@ class UserProfile(models.Model):
     Stores user profile information, including profile picture.
     """
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
-    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    profile_picture = models.ImageField(
+        upload_to='profile_pics/', 
+        null=True, 
+        blank=True,
+        validators=[validate_file_security]
+    )
     bio = models.TextField(blank=True, null=True, max_length=500)
 
     def __str__(self):

@@ -88,12 +88,15 @@ class Commission(models.Model):
         self.converted_amount = total_sales * exchange_rate
 
     def save(self, *args, **kwargs):
-        if not self.organization_id:
-            # Ensure organization is set, assuming user has one.
-            if self.user and hasattr(self.user, 'organization') and self.user.organization:
-                self.organization = self.user.organization
-            elif self.created_by and hasattr(self.created_by, 'organization') and self.created_by.organization:
-                self.organization = self.created_by.organization
+        from django.db import transaction
+        
+        with transaction.atomic():
+            if not self.organization_id:
+                # Ensure organization is set, assuming user has one.
+                if self.user and hasattr(self.user, 'organization') and self.user.organization:
+                    self.organization = self.user.organization
+                elif self.created_by and hasattr(self.created_by, 'organization') and self.created_by.organization:
+                    self.organization = self.created_by.organization
 
-        self._calculate_amounts()
-        super().save(*args, **kwargs)
+            self._calculate_amounts()
+            super().save(*args, **kwargs)
