@@ -199,16 +199,21 @@ class Deal(models.Model):
                 pass
         
         if not self.deal_id:
-            last_deal = Deal.objects.filter(organization = self.organization,deal_id__startswith='DLID').order_by("-deal_id").first()
-            
-            if last_deal:
-                last_number = int(last_deal.deal_id[4:])
-                new_number = last_number + 1
+            from django.db import transaction
+            # Use select_for_update to prevent race conditions in ID generation
+            with transaction.atomic():
+                last_deal = Deal.objects.select_for_update().filter(
+                    organization=self.organization,
+                    deal_id__startswith='DLID'
+                ).order_by("-deal_id").first()
                 
-            else:
-                new_number = 1
-                
-            self.deal_id = f"DLID{new_number:04d}"    #zero padded to 4 digits... fro eg. DLID0001\
+                if last_deal:
+                    last_number = int(last_deal.deal_id[4:])
+                    new_number = last_number + 1
+                else:
+                    new_number = 1
+                    
+                self.deal_id = f"DLID{new_number:04d}"  # zero padded to 4 digits
         
         if not is_new:
             self.version = 'edited'
@@ -381,9 +386,13 @@ class Payment(models.Model):
         if self.received_amount is not None and self.received_amount <= 0:
             raise ValidationError({'received_amount': 'Payment amount must be greater than 0'})
         
-        # Validate payment date is not in the past (allow current and future dates)
-        if self.payment_date and self.payment_date < timezone.now().date():
-            raise ValidationError({'payment_date': 'Payment date cannot be in the past'})
+        # Allow back-dated entries for business needs (e.g., recording delayed payments)
+        # Only restrict extremely old dates (more than 1 year ago) to prevent data entry errors
+        if self.payment_date:
+            from datetime import timedelta
+            one_year_ago = timezone.now().date() - timedelta(days=365)
+            if self.payment_date < one_year_ago:
+                raise ValidationError({'payment_date': 'Payment date cannot be more than one year in the past'})
         
         # Validate payment doesn't exceed deal value for additional payments
         if self.deal_id and self.received_amount:
@@ -395,11 +404,8 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         from django.db import transaction
         
-        print(f"🔍 DEBUG: Payment.save() called for amount {self.received_amount}")
-        print(f"🔍 DEBUG: Payment pk before save: {self.pk}")
         
         with transaction.atomic():
-            print(f"🔍 DEBUG: Inside transaction.atomic()")
             # Validate cheque number for uniqueness before saving
             if self.cheque_number:
                 # Check for other payments with the same cheque number within the same organization
@@ -410,25 +416,27 @@ class Payment(models.Model):
                     cheque_number=self.cheque_number
                 ).exclude(pk=self.pk).exists():
                     from django.core.exceptions import ValidationError
-                    print(f"❌ DEBUG: Cheque number validation failed: {self.cheque_number}")
                     raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
                 else:
-                    print(f"✅ DEBUG: Cheque number validation passed: {self.cheque_number}")
             
             if not self.transaction_id:
-                print(f"🔍 DEBUG: Generating transaction_id")
-                # Use select_for_update to prevent race conditions
-                last_transaction = Payment.objects.select_for_update().order_by('id').last()
+                # Use select_for_update with proper ordering to prevent race conditions
+                last_transaction = Payment.objects.select_for_update().filter(
+                    transaction_id__startswith='TXN-'
+                ).order_by('-id').first()
+                
                 if last_transaction and last_transaction.transaction_id:
-                    last_id = int(last_transaction.transaction_id.split('-')[1])
-                    new_id = last_id + 1
-                    self.transaction_id = f'TXN-{new_id:04d}'
-                    print(f"✅ DEBUG: Generated transaction_id: {self.transaction_id}")
+                    try:
+                        last_id = int(last_transaction.transaction_id.split('-')[1])
+                        new_id = last_id + 1
+                    except (ValueError, IndexError):
+                        # Fallback if parsing fails
+                        new_id = 1
                 else:
-                    self.transaction_id = 'TXN-0001'
-                    print(f"✅ DEBUG: Generated first transaction_id: {self.transaction_id}")
+                    new_id = 1
+                
+                self.transaction_id = f'TXN-{new_id:04d}'
 
-            print(f"🔍 DEBUG: Checking image processing...")
             # Enhanced image compression with security checks - TEMPORARILY DISABLED FOR DEBUG
             if False and self.receipt_file and hasattr(self.receipt_file, 'size') and self.receipt_file.size > 1024 * 1024: # 1MB
                 try:
@@ -497,11 +505,7 @@ class Payment(models.Model):
                     pass 
                     
             # Complete the save operation within the atomic transaction
-            print(f"🔍 DEBUG: About to call super().save()")
             super().save(*args, **kwargs)
-            print(f"🔍 DEBUG: super().save() completed")
-            print(f"🔍 DEBUG: Payment pk after save: {self.pk}")
-            print(f"🔍 DEBUG: Payment id after save: {self.id}")
     
     
 ##
@@ -537,13 +541,24 @@ class PaymentInvoice(models.Model):
     def save(self, *args, **kwargs):
         user = kwargs.pop('user', None) # Pop user to avoid passing it to super().save()
         if not self.invoice_id:
-            last_invoice = PaymentInvoice.objects.order_by('id').last()
-            if last_invoice:
-                last_id = int(last_invoice.invoice_id.split('-')[1])
-                new_id = last_id + 1
+            from django.db import transaction
+            # Use select_for_update to prevent race conditions in invoice ID generation
+            with transaction.atomic():
+                last_invoice = PaymentInvoice.objects.select_for_update().filter(
+                    invoice_id__startswith='INV-'
+                ).order_by('-id').first()
+                
+                if last_invoice and last_invoice.invoice_id:
+                    try:
+                        last_id = int(last_invoice.invoice_id.split('-')[1])
+                        new_id = last_id + 1
+                    except (ValueError, IndexError):
+                        # Fallback if parsing fails
+                        new_id = 1
+                else:
+                    new_id = 1
+                
                 self.invoice_id = f'INV-{new_id:04d}'
-            else:
-                self.invoice_id = 'INV-0001'
         
         super(PaymentInvoice, self).save(*args, **kwargs)
     
