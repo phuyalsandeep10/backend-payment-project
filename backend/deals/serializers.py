@@ -378,6 +378,7 @@ class DealSerializer(serializers.ModelSerializer):
             payments_data.append(payment_fields)
             cleaned_data['payments'] = payments_data
         else:
+            pass
             
         # Handle client_name to client_id conversion
         if 'client_name' in cleaned_data and 'client_id' not in cleaned_data:
@@ -552,7 +553,8 @@ class DealSerializer(serializers.ModelSerializer):
         
         deal_payments = deal.payments.all()
         
-        for payment in deal_payments:
+        # for payment in deal_payments:
+        #     pass  # TODO: Add payment processing logic if needed
         
         return deal
 
@@ -608,11 +610,13 @@ class DealSerializer(serializers.ModelSerializer):
         
         payments = obj.payments.select_related('deal').prefetch_related('approvals', 'invoice').all()
         
-        for i, payment in enumerate(payments):
+        # for i, payment in enumerate(payments):
+        #     pass  # TODO: Add payment processing logic if needed
         
         serialized_payments = PaymentSerializer(payments, many=True, context=self.context).data
         
-        for i, serialized_payment in enumerate(serialized_payments):
+        # for i, serialized_payment in enumerate(serialized_payments):
+        #     pass  # TODO: Add serialized payment processing logic if needed
         
         return serialized_payments
 

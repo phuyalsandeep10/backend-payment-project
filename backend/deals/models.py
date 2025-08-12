@@ -418,6 +418,7 @@ class Payment(models.Model):
                     from django.core.exceptions import ValidationError
                     raise ValidationError(f"Cheque number '{self.cheque_number}' has already been used in this organization.")
                 else:
+                    pass
             
             if not self.transaction_id:
                 # Use select_for_update with proper ordering to prevent race conditions

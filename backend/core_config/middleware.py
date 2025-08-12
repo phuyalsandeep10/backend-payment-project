@@ -39,9 +39,9 @@ class SecurityHeadersMiddleware:
         response['Content-Security-Policy'] = (
             "default-src 'self'; "
             "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "  # TODO: Remove unsafe-inline after refactoring frontend inline styles
-            "img-src 'self' data: https:; "
-            "font-src 'self'; "
+            "style-src 'self' https://fonts.googleapis.com; "  # Removed unsafe-inline after frontend consolidation
+            "img-src 'self' data: blob: https:; "
+            "font-src 'self' https://fonts.gstatic.com; "
             f"connect-src {csp_connect}; "
             "frame-ancestors 'none';"
         )

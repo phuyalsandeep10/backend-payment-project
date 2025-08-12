@@ -106,24 +106,59 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
     
     def validate(self, data):
+        from .utils import validate_user_email
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        
         # For non-superusers (e.g., org admins), 'role' is required.
         requesting_user = self.context['request'].user
         logger = logging.getLogger('django')
         logger.info(f"[UserCreateSerializer] Incoming data: {data}")
+        
         try:
+            # Validate role requirement for non-superusers
             if not requesting_user.is_superuser:
                 if not data.get('role'):
                     logger.error('[UserCreateSerializer] Validation error: role is required')
-                    raise serializers.ValidationError({'role': 'This field is required.'})
+                    raise serializers.ValidationError('This field is required.')
+            
+            # Enhanced email validation with normalization and duplicate checking
+            email = data.get('email')
+            if email:
+                try:
+                    # Get organization context for validation
+                    organization = data.get('organization') or getattr(requesting_user, 'organization', None)
+                    
+                    # Use the comprehensive email validation utility
+                    validated_email = validate_user_email(email, organization=organization)
+                    data['email'] = validated_email
+                    
+                    logger.info(f"[UserCreateSerializer] Email validation successful: {email} -> {validated_email}")
+                    
+                except DjangoValidationError as e:
+                    logger.error(f'[UserCreateSerializer] Email validation failed: {str(e)}')
+                    # Convert Django ValidationError to DRF ValidationError with single message
+                    raise serializers.ValidationError(str(e))
+                except Exception as e:
+                    logger.error(f'[UserCreateSerializer] Unexpected error during email validation: {str(e)}')
+                    raise serializers.ValidationError('An error occurred while validating the email address. Please try again.')
+            
             return data
+            
+        except serializers.ValidationError:
+            # Re-raise DRF ValidationErrors as-is
+            raise
         except Exception as e:
             logger.error(f"[UserCreateSerializer] Validation error: {e}")
-            raise
+            raise serializers.ValidationError('An error occurred during validation. Please try again.')
 
     def create(self, validated_data):
         from django.utils.crypto import get_random_string
+        from django.db import IntegrityError
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        
         logger = logging.getLogger('django')
         logger.info("[UserCreateSerializer] Creating user with data: %r", validated_data)
+        
         try:
             # Convert organization id to Organization instance if needed
             organization = validated_data.get('organization')
@@ -150,17 +185,21 @@ class UserCreateSerializer(serializers.ModelSerializer):
                     try:
                         role = Role.objects.get(name__iexact=role_name, organization__isnull=True)
                     except Role.DoesNotExist:
-                        logger.error(f"[UserCreateSerializer] Validation error: Role '{role_name}' not found.")
-                        raise serializers.ValidationError({'role': f"Role '{role_name}' not found."})
+                        logger.error(f"[UserCreateSerializer] Role not found: {role_name}")
+                        raise serializers.ValidationError(f"Role '{role_name}' not found.")
                 validated_data['role'] = role
             # If role_data is None, it's because a super-admin is creating a user,
             # and the view has already injected the correct Role object into validated_data.
 
             password = validated_data.pop('password', None) or get_random_string(length=12)
 
+            # Use normalized email for username if username is not provided
             if not validated_data.get('username'):
                 validated_data['username'] = validated_data['email']
 
+            # Email has already been validated and normalized in validate() method
+            logger.info(f"[UserCreateSerializer] Creating user with normalized email: {validated_data['email']}")
+            
             user = User.objects.create_user(password=password, **validated_data)
 
             # Set permanent password for salesperson and verifier roles
@@ -179,11 +218,28 @@ class UserCreateSerializer(serializers.ModelSerializer):
                 send_temporary_password_email(user.email, password)
             except Exception as e:
                 logger.warning(f'Failed to send temp password email: {e}')
+                
             logger.info(f"[UserCreateSerializer] User created successfully: {user.email}")
             return user
-        except Exception as e:
-            logger.error(f"[UserCreateSerializer] Exception during user creation: {e}")
+            
+        except IntegrityError as e:
+            logger.error(f"[UserCreateSerializer] Database integrity error: {e}")
+            if 'email' in str(e).lower():
+                raise serializers.ValidationError('A user with this email address already exists.')
+            else:
+                raise serializers.ValidationError('A user with these details already exists.')
+                
+        except DjangoValidationError as e:
+            logger.error(f"[UserCreateSerializer] Django validation error: {e}")
+            raise serializers.ValidationError(str(e))
+            
+        except serializers.ValidationError:
+            # Re-raise DRF ValidationErrors as-is
             raise
+            
+        except Exception as e:
+            logger.error(f"[UserCreateSerializer] Unexpected error during user creation: {e}")
+            raise serializers.ValidationError('An error occurred while creating the user. Please try again.')
 
 class UserSessionSerializer(serializers.ModelSerializer):
     """Serializer for the UserSession model."""
