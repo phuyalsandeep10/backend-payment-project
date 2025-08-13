@@ -66,6 +66,9 @@ urlpatterns = [
     # Authentication endpoints
     path('api/auth/', include('authentication.urls', namespace='authentication')),
     
+    # JWT Authentication endpoints
+    path('api/auth/', include('core_config.jwt_urls')),
+    
     # Main API endpoints
     path('api/', include((api_urlpatterns, 'api'))),
     # path('api/v1/', include((api_urlpatterns, 'api-v1'))),

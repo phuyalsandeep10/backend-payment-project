@@ -50,6 +50,11 @@ pyngrok==7.2.11
 ngrok==1.4.0
 shortuuid==1.0.11
 
+# Security Libraries
+bleach==6.1.0
+python-magic==0.4.27
+PyJWT==2.10.1
+
 # Supporting Libraries
 asgiref==3.8.1
 certifi==2025.6.15

@@ -4,7 +4,7 @@ import mimetypes
 from organization.models import Organization
 from clients.models import Client
 from django.conf import settings
-from .validators import validate_file_security
+from core_config.file_security import validate_file_security_enhanced as validate_file_security
 from PIL import Image
 from django.core.files.base import ContentFile
 import io

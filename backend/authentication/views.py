@@ -19,6 +19,7 @@ from .serializers import (
     ErrorResponseSerializer,
     MessageResponseSerializer
 )
+from core_config.error_handling import StandardErrorResponse, security_event_logger
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -221,7 +222,28 @@ def test_email_outbox_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
-    """Handles new user registration."""
+    """Handles new user registration with enhanced input validation."""
+    from core_config.security import input_validator
+    from core_config.validation_schemas import ValidationSchemas
+    
+    try:
+        # Apply comprehensive input validation
+        schema = ValidationSchemas.get_endpoint_schema('auth/register', 'POST')
+        if schema and request.data:
+            validated_data = input_validator.validate_and_sanitize(request.data, schema)
+            # Update request data with validated data
+            request._mutable = True
+            request.data.update(validated_data)
+            request._mutable = False
+    except ValidationError as e:
+        security_logger.warning(f"Registration validation failed: {str(e)}")
+        error_response = StandardErrorResponse(
+            error_code='VALIDATION_ERROR',
+            message='Input validation failed',
+            details=e.message_dict if hasattr(e, 'message_dict') else str(e)
+        )
+        return Response(error_response.to_dict(), status=status.HTTP_400_BAD_REQUEST)
+    
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
@@ -306,12 +328,21 @@ def login_view(request):
     if serializer.is_valid():
         user = serializer.validated_data['user']
         
+        # Log authentication attempt
+        security_event_logger.log_authentication_attempt(
+            request, user.email, True
+        )
+        
         security_logger.info(f"Login attempt for user with role: {user.role.name if user.role else 'None'}")
         
         # Check if user is a super admin or org admin and should use OTP flow
         if user.role and ('super' in user.role.name.lower() or user.role.name.lower() == 'organization admin'):
             security_logger.info("Admin user redirected to admin login flow")
-            return Response({'error': 'Admin users must use admin login endpoints'}, status=status.HTTP_401_UNAUTHORIZED)
+            error_response = StandardErrorResponse(
+                error_code='AUTHENTICATION_ERROR',
+                message='Admin users must use admin login endpoints'
+            )
+            return Response(error_response.to_dict(), status=status.HTTP_401_UNAUTHORIZED)
         
         # Check if user must change password
         if user.must_change_password:
@@ -335,7 +366,18 @@ def login_view(request):
         except Exception as e:
             security_logger.error(f"Streak calculation failed for user {user.email}: {e}")
         return Response(AuthSuccessResponseSerializer({'token': token.key, 'user': user}).data, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Log failed authentication attempt
+    email = request.data.get('email', 'unknown')
+    security_event_logger.log_authentication_attempt(
+        request, email, False, 'Invalid credentials'
+    )
+    
+    error_response = StandardErrorResponse(
+        error_code='AUTHENTICATION_ERROR',
+        message='Invalid credentials'
+    )
+    return Response(error_response.to_dict(), status=status.HTTP_401_UNAUTHORIZED)
 
 @swagger_auto_schema(method='post', request_body=OTPSerializer, responses={200: AuthSuccessResponseSerializer, 400: ErrorResponseSerializer}, tags=['Authentication'])
 @api_view(['POST'])

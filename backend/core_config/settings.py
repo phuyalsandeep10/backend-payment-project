@@ -115,7 +115,8 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'core_config.jwt_auth.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',  # Fallback for compatibility
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -143,6 +144,8 @@ REST_FRAMEWORK = {
     ),
     'UNAUTHENTICATED_USER': 'django.contrib.auth.models.AnonymousUser',
     'UNAUTHENTICATED_TOKEN': None,
+    # Enhanced error handling
+    'EXCEPTION_HANDLER': 'core_config.error_handling.custom_exception_handler',
 }
 
 
@@ -155,15 +158,17 @@ MIDDLEWARE = [
     "core_config.middleware.CORSPreflightMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    # Enhanced input validation middleware (before authentication)
+    "core_config.validation_middleware.InputValidationMiddleware",
     # Token authentication middleware (after CORS but before auth)
     "core_config.token_middleware.TokenAuthMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # Custom security middleware
-    "core_config.middleware.SecurityHeadersMiddleware",
-    # Custom rate limiting middleware (defense in depth with DRF throttling)
-    "core_config.middleware.RateLimitMiddleware",
+    # Enhanced security headers middleware
+    "core_config.validation_middleware.SecurityHeadersMiddleware",
+    # Enhanced rate limiting middleware (defense in depth with DRF throttling)
+    "core_config.validation_middleware.RateLimitMiddleware",
     "core_config.middleware.SecurityMonitoringMiddleware",
     "core_config.middleware.RequestLoggingMiddleware",
 ]
@@ -351,6 +356,10 @@ SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'drf_yasg.inspectors.SwaggerAutoSchema',
 }
 
+# JWT Authentication Settings
+JWT_SECRET_KEY = env('JWT_SECRET_KEY', default=SECRET_KEY + '_jwt')
+JWT_REFRESH_SECRET_KEY = env('JWT_REFRESH_SECRET_KEY', default=SECRET_KEY + '_jwt_refresh')
+
 # Custom settings for management commands
 ADMIN_USER = env('ADMIN_USER', default='admin')
 ADMIN_PASS = env('ADMIN_PASS', default='Admin123')
@@ -379,7 +388,7 @@ else:
         }
     }
 
-# Security Logging
+# Enhanced Security Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -392,31 +401,68 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
+        'json': {
+            'format': '{"level": "{levelname}", "time": "{asctime}", "module": "{module}", "message": "{message}"}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'secure_logging': {
+            '()': 'core_config.error_handling.SecureLoggingFilter',
+        },
     },
     'handlers': {
         'security_file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': BASE_DIR / 'logs' / 'security.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10MB
+            'backupCount': 5,
+            'formatter': 'json',
+            'filters': ['secure_logging'],
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'errors.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10MB
+            'backupCount': 5,
             'formatter': 'verbose',
+            'filters': ['secure_logging'],
         },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+            'filters': ['secure_logging'],
         },
     },
     'loggers': {
         'security': {
             'handlers': ['security_file', 'console'],
-            'level': 'WARNING',
-            'propagate': True,
+            'level': 'INFO',
+            'propagate': False,
         },
         'django.security': {
             'handlers': ['security_file'],
             'level': 'WARNING',
             'propagate': False,
         },
+        'django.request': {
+            'handlers': ['error_file', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'filters': ['secure_logging'],
+        },
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console'],
+        'filters': ['secure_logging'],
     },
 }
 
