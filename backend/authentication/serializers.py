@@ -317,14 +317,19 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate(self, attrs):
         user = self.context['request'].user
         
-        # Prevent salesperson and verifier roles from changing passwords
-        restricted_roles = ['salesperson', 'verifier']
-        role_name = user.role.name.lower() if user.role else ''
-        
-        if role_name in restricted_roles:
-            raise serializers.ValidationError({
-                'non_field_errors': 'You are not allowed to change your password. Please contact your administrator.'
-            })
+        # Business requirement: Restrict password changes for certain roles
+        # Keep your original business logic - only restrict specific roles that were originally restricted
+        if user.role:
+            role_name = user.role.name.lower()
+            restricted_roles = ['salesperson', 'verifier']  # Your original restrictions
+            
+            if role_name in restricted_roles:
+                # Send notification to Organization Admin about password change request
+                self._notify_org_admin_password_request(user)
+                
+                raise serializers.ValidationError({
+                    'non_field_errors': 'You are not allowed to change your password directly. Your Organization Admin has been notified of your request.'
+                })
         
         # Check if the current password is correct
         if not user.check_password(attrs['current_password']):
@@ -337,6 +342,73 @@ class PasswordChangeSerializer(serializers.Serializer):
         # Add password strength validation here if needed (optional)
         
         return attrs
+    
+    def _notify_org_admin_password_request(self, user):
+        """Send notification to Organization Admin about password change request"""
+        try:
+            # Find Organization Admin for this user's organization
+            if user.organization:
+                org_admin_role = Role.objects.filter(
+                    name='Organization Admin',
+                    organization=user.organization
+                ).first()
+                
+                if org_admin_role:
+                    org_admins = User.objects.filter(
+                        role=org_admin_role,
+                        organization=user.organization,
+                        is_active=True
+                    )
+                    
+                    # Send email notification to all org admins
+                    for org_admin in org_admins:
+                        self._send_password_request_email(org_admin, user)
+                        
+                    # Log the notification
+                    logging.getLogger('security').info(
+                        f"Password change request notification sent for user {user.email} to org admins"
+                    )
+        except Exception as e:
+            # Log error but don't fail the validation
+            logging.getLogger('security').error(
+                f"Failed to notify org admin about password request for {user.email}: {str(e)}"
+            )
+    
+    def _send_password_request_email(self, org_admin, requesting_user):
+        """Send email to org admin about password change request"""
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        subject = f"Password Change Request - {requesting_user.first_name} {requesting_user.last_name}"
+        message = f"""
+Dear {org_admin.first_name},
+
+{requesting_user.first_name} {requesting_user.last_name} ({requesting_user.email}) has requested a password change.
+
+User Details:
+- Name: {requesting_user.first_name} {requesting_user.last_name}
+- Email: {requesting_user.email}
+- Role: {requesting_user.role.name if requesting_user.role else 'No Role'}
+- Organization: {requesting_user.organization.name if requesting_user.organization else 'No Organization'}
+
+Please log into the admin panel to assign a new password for this user.
+
+Best regards,
+PRS System
+        """
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [org_admin.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            logging.getLogger('security').error(
+                f"Failed to send password request email to {org_admin.email}: {str(e)}"
+            )
 
 class UserDetailSerializer(serializers.ModelSerializer):
     """Serializer for comprehensive user details."""

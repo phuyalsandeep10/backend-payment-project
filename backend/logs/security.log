@@ -3,3 +3,48 @@ WARNING 2025-08-12 10:23:45,872 views 86784 6133690368 Org Admin authentication 
 WARNING 2025-08-12 15:33:51,474 file_security 7184 8761499840 python-magic not available. File type detection will be limited.
 WARNING 2025-08-12 15:35:20,119 file_security 7332 8761499840 python-magic not available. File type detection will be limited.
 WARNING 2025-08-12 15:47:27,418 file_security 8074 8761499840 python-magic not available. File type detection will be limited.
+{"level": "WARNING", "time": "2025-08-13 05:54:48,927", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 05:58:22,816", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 05:58:38,200", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 06:12:26,543", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 06:12:42,004", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 06:14:12,306", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 06:15:10,146", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 08:23:12,594", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 08:37:41,902", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 10:19:38,726", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 10:26:51,019", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:27:41,660", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:28:02,600", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:28:42,826", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:38:46,823", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:41:22,105", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:54:36,382", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 14:54:57,389", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:01:02,389", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:01:02,486", "module": "enhanced_file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "ERROR", "time": "2025-08-13 19:01:02,603", "module": "malware_scanner", "message": "Malware scan error for test.jpg: 'float' object has no attribute 'bit_length'"}
+{"level": "ERROR", "time": "2025-08-13 19:01:02,604", "module": "enhanced_file_security", "message": "File validation error: test.jpg - ["Error during malware scan: 'float' object has no attribute 'bit_length'"]"}
+{"level": "WARNING", "time": "2025-08-13 19:16:02,004", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:16:02,085", "module": "enhanced_file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "INFO", "time": "2025-08-13 19:16:02,145", "module": "malware_scanner", "message": "Malware scan clean: test.jpg"}
+{"level": "INFO", "time": "2025-08-13 19:16:02,145", "module": "enhanced_file_security", "message": "File validation passed: test.jpg"}
+{"level": "INFO", "time": "2025-08-13 19:16:02,146", "module": "malware_scanner", "message": "Malware scan clean: malicious.php.jpg"}
+{"level": "WARNING", "time": "2025-08-13 19:16:02,146", "module": "enhanced_file_security", "message": "File validation failed: malicious.php.jpg - Threat level: MEDIUM"}
+{"level": "WARNING", "time": "2025-08-13 19:35:03,431", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:35:37,624", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:54:01,761", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:57:20,257", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:58:07,935", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:58:24,481", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:58:47,428", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:59:36,200", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 19:59:50,196", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:11:39,080", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:12:34,209", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:29:05,875", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:30:24,756", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:31:40,429", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:32:54,098", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:33:28,074", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}
+{"level": "WARNING", "time": "2025-08-13 20:34:15,533", "module": "file_security", "message": "python-magic not available. File type detection will be limited."}

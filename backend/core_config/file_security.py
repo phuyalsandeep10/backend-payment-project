@@ -1,6 +1,7 @@
 """
 Enhanced File Security Validator
 Comprehensive file validation with bypass prevention and malware detection
+Enhanced for security-performance-overhaul task 1.1.2
 """
 
 import os
@@ -8,12 +9,16 @@ import re
 import hashlib
 import logging
 import mimetypes
-from typing import List, Dict, Optional, Tuple
+import tempfile
+import subprocess
+from typing import List, Dict, Optional, Tuple, Union
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from PIL import Image
 import zipfile
 import io
+import json
+from datetime import datetime, timedelta
 
 # Security logger
 security_logger = logging.getLogger('security')
@@ -29,6 +34,7 @@ except ImportError:
 class EnhancedFileSecurityValidator:
     """
     Enhanced file security validator with comprehensive threat detection
+    and bypass prevention capabilities
     """
     
     # Maximum file sizes by type (in bytes)
@@ -37,6 +43,13 @@ class EnhancedFileSecurityValidator:
         'pdf': 25 * 1024 * 1024,    # 25MB for PDFs
         'document': 50 * 1024 * 1024, # 50MB for documents
         'default': 5 * 1024 * 1024   # 5MB default
+    }
+    
+    # Rate limiting for file uploads (per IP per hour)
+    UPLOAD_RATE_LIMITS = {
+        'max_files_per_hour': 100,
+        'max_total_size_per_hour': 500 * 1024 * 1024,  # 500MB
+        'max_failed_attempts_per_hour': 10
     }
     
     # Allowed file extensions and their categories
@@ -124,59 +137,190 @@ class EnhancedFileSecurityValidator:
         b'Rar!',  # RAR archive
     ]
     
-    # Suspicious content patterns
+    # Enhanced suspicious content patterns with bypass prevention
     SUSPICIOUS_PATTERNS = [
-        # Script patterns
+        # Script patterns (including obfuscated variants)
         rb'<script[^>]*>',
+        rb'<SCRIPT[^>]*>',  # Case variations
+        rb'<ScRiPt[^>]*>',
+        rb'<\s*script[^>]*>',  # Whitespace variations
         rb'javascript:',
+        rb'JAVASCRIPT:',
         rb'vbscript:',
+        rb'VBSCRIPT:',
         rb'data:text/html',
         rb'data:application/javascript',
+        rb'data:text/javascript',
         
         # Executable patterns
-        rb'exec\(',
-        rb'eval\(',
-        rb'system\(',
-        rb'shell_exec\(',
-        rb'passthru\(',
-        rb'proc_open\(',
+        rb'exec\s*\(',
+        rb'eval\s*\(',
+        rb'system\s*\(',
+        rb'shell_exec\s*\(',
+        rb'passthru\s*\(',
+        rb'proc_open\s*\(',
+        rb'popen\s*\(',
+        rb'file_get_contents\s*\(',
+        rb'file_put_contents\s*\(',
+        rb'fopen\s*\(',
+        rb'fwrite\s*\(',
         
-        # PHP patterns
+        # PHP patterns (including obfuscated)
         rb'<\?php',
+        rb'<\?PHP',
+        rb'<\?\s*php',
         rb'<\?=',
         rb'<%',
+        rb'<\s*\?',
+        rb'\$_GET',
+        rb'\$_POST',
+        rb'\$_REQUEST',
+        rb'\$_COOKIE',
+        rb'\$_SESSION',
+        rb'\$_SERVER',
+        rb'base64_decode\s*\(',
+        rb'gzinflate\s*\(',
+        rb'str_rot13\s*\(',
+        rb'gzuncompress\s*\(',
         
         # SQL patterns
         rb'DROP\s+TABLE',
         rb'DELETE\s+FROM',
         rb'INSERT\s+INTO',
         rb'UPDATE\s+SET',
+        rb'UNION\s+SELECT',
+        rb'SELECT\s+.*\s+FROM',
+        rb'CREATE\s+TABLE',
+        rb'ALTER\s+TABLE',
+        rb'TRUNCATE\s+TABLE',
         
         # Command injection patterns
         rb';\s*rm\s+-rf',
         rb';\s*cat\s+/etc/passwd',
         rb';\s*wget\s+',
         rb';\s*curl\s+',
+        rb';\s*nc\s+',
+        rb';\s*netcat\s+',
+        rb';\s*bash\s+',
+        rb';\s*sh\s+',
+        rb';\s*python\s+',
+        rb';\s*perl\s+',
+        rb';\s*ruby\s+',
+        rb';\s*node\s+',
+        
+        # Bypass attempt patterns
+        rb'null\x00',  # Null byte injection
+        rb'%00',  # URL encoded null byte
+        rb'\.\./',  # Path traversal
+        rb'\.\.\\',  # Windows path traversal
+        rb'%2e%2e%2f',  # URL encoded path traversal
+        rb'%2e%2e%5c',  # URL encoded Windows path traversal
+        rb'..%2f',  # Mixed encoding
+        rb'..%5c',  # Mixed encoding
+        
+        # Polyglot file patterns
+        rb'%PDF-.*<html',  # PDF with HTML
+        rb'\xff\xd8\xff.*<script',  # JPEG with script
+        rb'\x89PNG.*<\?php',  # PNG with PHP
+        rb'GIF8.*<script',  # GIF with script
+        
+        # Archive bomb patterns
+        rb'PK\x03\x04.*PK\x03\x04.*PK\x03\x04',  # Multiple ZIP headers
+        rb'BZh[0-9]1AY&SY.*BZh[0-9]1AY&SY',  # Multiple BZIP2 headers
+        
+        # Steganography indicators
+        rb'-----BEGIN PGP',  # PGP encrypted content
+        rb'-----BEGIN CERTIFICATE',  # Certificate content
+        rb'-----BEGIN PRIVATE KEY',  # Private key content
+        rb'ssh-rsa\s+[A-Za-z0-9+/=]+',  # SSH public key
+        rb'ssh-dss\s+[A-Za-z0-9+/=]+',  # SSH DSA key
     ]
     
-    def __init__(self, allowed_extensions: Optional[List[str]] = None):
+    # File extension bypass patterns
+    BYPASS_EXTENSIONS = [
+        # Double extensions
+        r'\.php\.',
+        r'\.asp\.',
+        r'\.jsp\.',
+        r'\.exe\.',
+        r'\.bat\.',
+        r'\.cmd\.',
+        r'\.scr\.',
+        r'\.com\.',
+        r'\.pif\.',
+        
+        # Null byte injection
+        r'\.php%00',
+        r'\.asp%00',
+        r'\.jsp%00',
+        r'\x00',
+        
+        # Case variations
+        r'\.PHP$',
+        r'\.ASP$',
+        r'\.JSP$',
+        r'\.EXE$',
+        
+        # Unicode variations
+        r'\.ph\u0070',  # Unicode 'p'
+        r'\.as\u0070',  # Unicode 'p'
+        
+        # Alternative extensions
+        r'\.phtml$',
+        r'\.php3$',
+        r'\.php4$',
+        r'\.php5$',
+        r'\.php7$',
+        r'\.phps$',
+        r'\.pht$',
+        r'\.phar$',
+        r'\.inc$',
+        r'\.aspx$',
+        r'\.ashx$',
+        r'\.asmx$',
+        r'\.cfm$',
+        r'\.cgi$',
+        r'\.pl$',
+        r'\.py$',
+        r'\.rb$',
+        r'\.sh$',
+        r'\.bash$',
+        r'\.zsh$',
+        r'\.fish$',
+    ]
+    
+    def __init__(self, allowed_extensions: Optional[List[str]] = None, 
+                 enable_rate_limiting: bool = True):
         """
         Initialize the validator
         
         Args:
             allowed_extensions: List of allowed extensions (overrides default)
+            enable_rate_limiting: Enable rate limiting for uploads
         """
         if allowed_extensions:
             self.allowed_extensions = {ext.lower(): 'custom' for ext in allowed_extensions}
         else:
             self.allowed_extensions = self.ALLOWED_EXTENSIONS
+        
+        self.enable_rate_limiting = enable_rate_limiting
+        self.bypass_patterns = [re.compile(pattern, re.IGNORECASE) 
+                               for pattern in self.BYPASS_EXTENSIONS]
+        
+        # Initialize quarantine directory
+        self.quarantine_dir = getattr(settings, 'FILE_QUARANTINE_DIR', 
+                                    os.path.join(settings.MEDIA_ROOT, 'quarantine'))
+        os.makedirs(self.quarantine_dir, exist_ok=True)
     
-    def validate_file_comprehensive(self, file_obj) -> Dict[str, any]:
+    def validate_file_comprehensive(self, file_obj, client_ip: str = None, 
+                                  user_id: str = None) -> Dict[str, any]:
         """
-        Comprehensive file validation with detailed results
+        Comprehensive file validation with detailed results and bypass prevention
         
         Args:
             file_obj: Django UploadedFile object
+            client_ip: Client IP address for rate limiting
+            user_id: User ID for tracking
             
         Returns:
             Dict with validation results and metadata
@@ -192,39 +336,61 @@ class EnhancedFileSecurityValidator:
             'file_hash': None,
             'is_safe': False,
             'warnings': [],
-            'checks_passed': []
+            'checks_passed': [],
+            'bypass_attempts': [],
+            'quarantined': False,
+            'scan_timestamp': datetime.now().isoformat()
         }
         
         try:
+            # Step 0: Rate limiting check
+            if self.enable_rate_limiting and client_ip:
+                self._check_rate_limits(client_ip, file_obj.size, validation_result)
+            
             # Step 1: Basic file information validation
             self._validate_basic_info(file_obj, validation_result)
             
-            # Step 2: File extension validation
-            self._validate_extension(file_obj, validation_result)
+            # Step 2: Bypass attempt detection
+            self._detect_bypass_attempts(file_obj, validation_result)
             
-            # Step 3: File size validation
+            # Step 3: File extension validation (enhanced)
+            self._validate_extension_enhanced(file_obj, validation_result)
+            
+            # Step 4: File size validation
             self._validate_file_size(file_obj, validation_result)
             
-            # Step 4: File signature validation
-            self._validate_file_signature(file_obj, validation_result)
+            # Step 5: File signature validation (enhanced)
+            self._validate_file_signature_enhanced(file_obj, validation_result)
             
-            # Step 5: MIME type validation
-            self._validate_mime_type(file_obj, validation_result)
+            # Step 6: MIME type validation (enhanced)
+            self._validate_mime_type_enhanced(file_obj, validation_result)
             
-            # Step 6: Content analysis
-            self._analyze_file_content(file_obj, validation_result)
+            # Step 7: Content analysis (enhanced)
+            self._analyze_file_content_enhanced(file_obj, validation_result)
             
-            # Step 7: Malware signature detection
+            # Step 8: Malware signature detection
             self._detect_malware_signatures(file_obj, validation_result)
             
-            # Step 8: Type-specific validation
+            # Step 9: Type-specific validation
             self._validate_by_type(file_obj, validation_result)
             
-            # Step 9: Generate file hash for integrity
+            # Step 10: Polyglot file detection
+            self._detect_polyglot_files(file_obj, validation_result)
+            
+            # Step 11: Archive bomb detection
+            self._detect_archive_bombs(file_obj, validation_result)
+            
+            # Step 12: Steganography detection
+            self._detect_steganography(file_obj, validation_result)
+            
+            # Step 13: Generate file hash for integrity
             validation_result['file_hash'] = self._generate_file_hash(file_obj)
             
-            # Step 10: Final security assessment
-            validation_result['is_safe'] = len(validation_result['warnings']) == 0
+            # Step 14: Final security assessment
+            validation_result['is_safe'] = (
+                len(validation_result['warnings']) == 0 and 
+                len(validation_result['bypass_attempts']) == 0
+            )
             
             # Log successful validation
             security_logger.info(
@@ -270,6 +436,94 @@ class EnhancedFileSecurityValidator:
         
         result['checks_passed'].append('basic_info')
     
+    def _check_rate_limits(self, client_ip: str, file_size: int, result: Dict):
+        """Check upload rate limits to prevent abuse"""
+        try:
+            import redis
+            from django.conf import settings
+            
+            # Connect to Redis
+            redis_client = redis.Redis(
+                host=getattr(settings, 'REDIS_HOST', 'localhost'),
+                port=getattr(settings, 'REDIS_PORT', 6379),
+                db=getattr(settings, 'REDIS_DB', 0)
+            )
+            
+            current_hour = datetime.now().strftime('%Y%m%d%H')
+            
+            # Keys for tracking
+            files_key = f"upload_files:{client_ip}:{current_hour}"
+            size_key = f"upload_size:{client_ip}:{current_hour}"
+            failed_key = f"upload_failed:{client_ip}:{current_hour}"
+            
+            # Get current counts
+            files_count = int(redis_client.get(files_key) or 0)
+            total_size = int(redis_client.get(size_key) or 0)
+            failed_count = int(redis_client.get(failed_key) or 0)
+            
+            # Check limits
+            if files_count >= self.UPLOAD_RATE_LIMITS['max_files_per_hour']:
+                raise ValidationError(
+                    f"Upload rate limit exceeded: {files_count} files uploaded this hour"
+                )
+            
+            if total_size + file_size > self.UPLOAD_RATE_LIMITS['max_total_size_per_hour']:
+                raise ValidationError(
+                    f"Upload size limit exceeded: {total_size + file_size} bytes this hour"
+                )
+            
+            if failed_count >= self.UPLOAD_RATE_LIMITS['max_failed_attempts_per_hour']:
+                raise ValidationError(
+                    f"Too many failed upload attempts: {failed_count} this hour"
+                )
+            
+            # Update counters
+            redis_client.incr(files_key)
+            redis_client.expire(files_key, 3600)  # 1 hour
+            redis_client.incrby(size_key, file_size)
+            redis_client.expire(size_key, 3600)
+            
+            result['checks_passed'].append('rate_limiting')
+            
+        except redis.RedisError as e:
+            security_logger.warning(f"Rate limiting check failed: {str(e)}")
+            # Continue without rate limiting if Redis is unavailable
+            pass
+        except ValidationError:
+            # Re-raise rate limit violations
+            raise
+    
+    def _detect_bypass_attempts(self, file_obj, result: Dict):
+        """Detect various bypass attempts"""
+        filename = file_obj.name.lower()
+        
+        # Check for extension bypass patterns
+        for pattern in self.bypass_patterns:
+            if pattern.search(filename):
+                result['bypass_attempts'].append(f"Extension bypass pattern: {pattern.pattern}")
+        
+        # Check for null byte injection
+        if '\x00' in file_obj.name or '%00' in file_obj.name:
+            result['bypass_attempts'].append("Null byte injection in filename")
+        
+        # Check for Unicode bypass attempts
+        try:
+            normalized = file_obj.name.encode('ascii', 'ignore').decode('ascii')
+            if normalized != file_obj.name:
+                result['bypass_attempts'].append("Non-ASCII characters in filename")
+        except Exception:
+            result['bypass_attempts'].append("Invalid filename encoding")
+        
+        # Check for excessive filename length
+        if len(file_obj.name) > 255:
+            result['bypass_attempts'].append("Excessively long filename")
+        
+        # Check for hidden file indicators
+        if file_obj.name.startswith('.') and len(file_obj.name) > 1:
+            result['warnings'].append("Hidden file detected")
+        
+        result['checks_passed'].append('bypass_detection')
+    
     def _validate_extension(self, file_obj, result: Dict):
         """Validate file extension"""
         filename = file_obj.name.lower()
@@ -295,6 +549,52 @@ class EnhancedFileSecurityValidator:
         
         result['extension'] = ext
         result['checks_passed'].append('extension')
+    
+    def _validate_extension_enhanced(self, file_obj, result: Dict):
+        """Enhanced extension validation with bypass prevention"""
+        filename = file_obj.name.lower()
+        
+        # Get all extensions (handle multiple dots)
+        parts = filename.split('.')
+        if len(parts) < 2:
+            raise ValidationError("File must have an extension")
+        
+        # Check each extension part
+        extensions = [f'.{part}' for part in parts[1:]]
+        final_ext = extensions[-1]
+        
+        # Validate final extension
+        if final_ext not in self.allowed_extensions:
+            allowed_list = ', '.join(self.allowed_extensions.keys())
+            raise ValidationError(
+                f"File extension '{final_ext}' not allowed. "
+                f"Allowed extensions: {allowed_list}"
+            )
+        
+        # Check for dangerous intermediate extensions
+        dangerous_intermediate = [
+            '.php', '.asp', '.jsp', '.exe', '.bat', '.cmd', '.scr', 
+            '.com', '.pif', '.vbs', '.js', '.jar', '.py', '.pl', 
+            '.rb', '.sh', '.bash', '.cgi', '.htaccess'
+        ]
+        
+        for ext in extensions[:-1]:  # All except the last one
+            if ext in dangerous_intermediate:
+                result['bypass_attempts'].append(
+                    f"Dangerous intermediate extension: {ext}"
+                )
+        
+        # Check for case variation bypass attempts
+        original_ext = os.path.splitext(file_obj.name)[1]
+        if original_ext != original_ext.lower():
+            result['warnings'].append(f"Mixed case extension: {original_ext}")
+        
+        # Check for whitespace in extension
+        if ' ' in original_ext or '\t' in original_ext:
+            result['bypass_attempts'].append("Whitespace in file extension")
+        
+        result['extension'] = final_ext
+        result['checks_passed'].append('extension_enhanced')
     
     def _validate_file_size(self, file_obj, result: Dict):
         """Validate file size"""
@@ -339,6 +639,90 @@ class EnhancedFileSecurityValidator:
             )
         
         result['checks_passed'].append('file_signature')
+    
+    def _validate_file_signature_enhanced(self, file_obj, result: Dict):
+        """Enhanced file signature validation with deeper analysis"""
+        ext = result['extension']
+        expected_signatures = self.FILE_SIGNATURES.get(ext, [])
+        
+        if not expected_signatures:
+            result['checks_passed'].append('file_signature_enhanced')
+            return
+        
+        # Read more of the file header for better detection
+        file_obj.seek(0)
+        header = file_obj.read(1024)  # Read first 1KB instead of 32 bytes
+        file_obj.seek(0)
+        
+        # Check primary signature
+        signature_match = False
+        matched_signature = None
+        
+        for signature in expected_signatures:
+            if header.startswith(signature):
+                signature_match = True
+                matched_signature = signature
+                break
+        
+        if not signature_match:
+            raise ValidationError(
+                f"Enhanced signature validation failed for extension '{ext}'. "
+                f"File may be corrupted or disguised."
+            )
+        
+        # Additional signature validation for specific file types
+        if ext in ['.jpg', '.jpeg']:
+            # JPEG files should end with FFD9
+            file_obj.seek(-2, 2)  # Seek to last 2 bytes
+            end_marker = file_obj.read(2)
+            file_obj.seek(0)
+            if end_marker != b'\xff\xd9':
+                result['warnings'].append("JPEG file missing proper end marker")
+        
+        elif ext == '.png':
+            # PNG files should have IHDR chunk after signature
+            if b'IHDR' not in header[:50]:
+                raise ValidationError("PNG file missing IHDR chunk")
+            # PNG files should end with IEND
+            file_obj.seek(-12, 2)
+            end_chunk = file_obj.read(12)
+            file_obj.seek(0)
+            if b'IEND' not in end_chunk:
+                result['warnings'].append("PNG file missing IEND chunk")
+        
+        elif ext == '.pdf':
+            # Check PDF structure more thoroughly
+            if b'%%EOF' not in header and file_obj.size > 1024:
+                # Check end of file for EOF marker
+                file_obj.seek(-1024, 2)
+                tail = file_obj.read(1024)
+                file_obj.seek(0)
+                if b'%%EOF' not in tail:
+                    result['warnings'].append("PDF file missing EOF marker")
+        
+        elif ext == '.gif':
+            # GIF files should have proper trailer
+            file_obj.seek(-1, 2)
+            trailer = file_obj.read(1)
+            file_obj.seek(0)
+            if trailer != b'\x3b':
+                result['warnings'].append("GIF file missing proper trailer")
+        
+        # Check for embedded signatures (polyglot detection)
+        other_signatures = []
+        for other_ext, sigs in self.FILE_SIGNATURES.items():
+            if other_ext != ext:
+                for sig in sigs:
+                    if sig in header and len(sig) > 2:
+                        other_signatures.append(other_ext)
+        
+        if other_signatures:
+            result['warnings'].append(
+                f"File contains signatures for other formats: {', '.join(other_signatures)}"
+            )
+        
+        result['matched_signature'] = matched_signature.hex() if matched_signature else None
+        result['checks_passed'].append('file_signature_enhanced')
     
     def _validate_mime_type(self, file_obj, result: Dict):
         """Validate MIME type"""

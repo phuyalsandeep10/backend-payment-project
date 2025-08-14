@@ -295,6 +295,428 @@ class SecureUserSession(models.Model):
         return 0
 
 
+class SecurityEvent(models.Model):
+    """
+    Comprehensive security event logging model for audit trails
+    """
+    # Event types
+    EVENT_TYPE_CHOICES = [
+        ('authentication_attempt', 'Authentication Attempt'),
+        ('authentication_success', 'Authentication Success'),
+        ('authentication_failure', 'Authentication Failure'),
+        ('permission_denied', 'Permission Denied'),
+        ('suspicious_activity', 'Suspicious Activity'),
+        ('file_upload_threat', 'File Upload Threat'),
+        ('rate_limit_exceeded', 'Rate Limit Exceeded'),
+        ('session_created', 'Session Created'),
+        ('session_terminated', 'Session Terminated'),
+        ('password_changed', 'Password Changed'),
+        ('account_locked', 'Account Locked'),
+        ('account_unlocked', 'Account Unlocked'),
+        ('data_access', 'Data Access'),
+        ('data_modification', 'Data Modification'),
+        ('admin_action', 'Admin Action'),
+        ('security_violation', 'Security Violation'),
+        ('malware_detected', 'Malware Detected'),
+        ('intrusion_attempt', 'Intrusion Attempt'),
+        ('privilege_escalation', 'Privilege Escalation'),
+        ('data_export', 'Data Export'),
+    ]
+    
+    # Severity levels
+    SEVERITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
+    
+    # Core fields
+    event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES, db_index=True)
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default='medium', db_index=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    # User information
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='security_events'
+    )
+    user_email = models.EmailField(blank=True, null=True)  # Store email even if user is deleted
+    user_role = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Request context
+    ip_address = models.GenericIPAddressField(db_index=True)
+    user_agent = models.TextField(blank=True, null=True)
+    user_agent_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    request_path = models.CharField(max_length=500, blank=True, null=True)
+    request_method = models.CharField(max_length=10, blank=True, null=True)
+    
+    # Event details
+    event_description = models.TextField()
+    event_data = models.JSONField(default=dict, blank=True)  # Additional structured data
+    
+    # Geographic information (optional)
+    country = models.CharField(max_length=2, blank=True, null=True)  # ISO country code
+    city = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Response information
+    response_status = models.IntegerField(blank=True, null=True)
+    response_time_ms = models.IntegerField(blank=True, null=True)
+    
+    # Correlation and tracking
+    correlation_id = models.CharField(max_length=36, blank=True, null=True, db_index=True)
+    session_id = models.CharField(max_length=128, blank=True, null=True, db_index=True)
+    
+    # Risk assessment
+    risk_score = models.IntegerField(default=0, db_index=True)  # 0-100 risk score
+    is_blocked = models.BooleanField(default=False, db_index=True)
+    
+    # Investigation status
+    is_investigated = models.BooleanField(default=False, db_index=True)
+    investigated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='investigated_events'
+    )
+    investigated_at = models.DateTimeField(blank=True, null=True)
+    investigation_notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        indexes = [
+            # Primary lookup indexes
+            models.Index(fields=['event_type', 'timestamp']),
+            models.Index(fields=['severity', 'timestamp']),
+            models.Index(fields=['user', 'timestamp']),
+            models.Index(fields=['ip_address', 'timestamp']),
+            
+            # Security monitoring indexes
+            models.Index(fields=['risk_score', 'timestamp']),
+            models.Index(fields=['is_blocked', 'timestamp']),
+            models.Index(fields=['user_agent_hash', 'timestamp']),
+            models.Index(fields=['correlation_id']),
+            
+            # Investigation indexes
+            models.Index(fields=['is_investigated', 'timestamp']),
+            models.Index(fields=['investigated_by', 'investigated_at']),
+            
+            # Analytics indexes
+            models.Index(fields=['event_type', 'severity', 'timestamp']),
+            models.Index(fields=['country', 'timestamp']),
+            models.Index(fields=['session_id', 'timestamp']),
+        ]
+        
+        ordering = ['-timestamp']
+        verbose_name = 'Security Event'
+        verbose_name_plural = 'Security Events'
+    
+    def __str__(self):
+        return f"{self.event_type} - {self.severity} - {self.timestamp}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-populate user information if user is provided
+        if self.user and not self.user_email:
+            self.user_email = self.user.email
+            if hasattr(self.user, 'role') and self.user.role:
+                self.user_role = self.user.role.name
+        
+        # Generate correlation ID if not provided
+        if not self.correlation_id:
+            import uuid
+            self.correlation_id = str(uuid.uuid4())
+        
+        # Hash user agent if provided
+        if self.user_agent and not self.user_agent_hash:
+            import hashlib
+            self.user_agent_hash = hashlib.sha256(self.user_agent.encode()).hexdigest()
+        
+        super().save(*args, **kwargs)
+    
+    def mark_investigated(self, investigator, notes=None):
+        """Mark event as investigated"""
+        from django.utils import timezone
+        self.is_investigated = True
+        self.investigated_by = investigator
+        self.investigated_at = timezone.now()
+        if notes:
+            self.investigation_notes = notes
+        self.save(update_fields=['is_investigated', 'investigated_by', 'investigated_at', 'investigation_notes'])
+    
+    def calculate_risk_score(self):
+        """Calculate risk score based on event characteristics"""
+        score = 0
+        
+        # Base score by event type
+        high_risk_events = ['intrusion_attempt', 'privilege_escalation', 'malware_detected', 'security_violation']
+        medium_risk_events = ['suspicious_activity', 'file_upload_threat', 'authentication_failure']
+        
+        if self.event_type in high_risk_events:
+            score += 50
+        elif self.event_type in medium_risk_events:
+            score += 25
+        else:
+            score += 10
+        
+        # Severity multiplier
+        severity_multipliers = {'low': 1.0, 'medium': 1.5, 'high': 2.0, 'critical': 3.0}
+        score = int(score * severity_multipliers.get(self.severity, 1.0))
+        
+        # Recent similar events increase score
+        recent_events = SecurityEvent.objects.filter(
+            ip_address=self.ip_address,
+            event_type=self.event_type,
+            timestamp__gte=timezone.now() - timezone.timedelta(hours=1)
+        ).count()
+        
+        if recent_events > 1:
+            score += min(recent_events * 10, 30)  # Cap at 30 additional points
+        
+        # Cap at 100
+        self.risk_score = min(score, 100)
+        return self.risk_score
+    
+    @classmethod
+    def get_security_dashboard_data(cls, days=7):
+        """Get security dashboard data for the last N days"""
+        from django.utils import timezone
+        from django.db.models import Count, Q
+        
+        start_date = timezone.now() - timezone.timedelta(days=days)
+        
+        events = cls.objects.filter(timestamp__gte=start_date)
+        
+        return {
+            'total_events': events.count(),
+            'critical_events': events.filter(severity='critical').count(),
+            'high_risk_events': events.filter(risk_score__gte=70).count(),
+            'blocked_events': events.filter(is_blocked=True).count(),
+            'uninvestigated_events': events.filter(is_investigated=False, severity__in=['high', 'critical']).count(),
+            
+            'events_by_type': dict(events.values('event_type').annotate(count=Count('id')).values_list('event_type', 'count')),
+            'events_by_severity': dict(events.values('severity').annotate(count=Count('id')).values_list('severity', 'count')),
+            'events_by_day': list(events.extra({'day': 'date(timestamp)'}).values('day').annotate(count=Count('id')).order_by('day')),
+            
+            'top_ips': list(events.values('ip_address').annotate(count=Count('id')).order_by('-count')[:10]),
+            'top_users': list(events.filter(user__isnull=False).values('user__email').annotate(count=Count('id')).order_by('-count')[:10]),
+            
+            'authentication_failures': events.filter(event_type='authentication_failure').count(),
+            'suspicious_activities': events.filter(event_type='suspicious_activity').count(),
+            'malware_detections': events.filter(event_type='malware_detected').count(),
+        }
+    
+    @classmethod
+    def cleanup_old_events(cls, days=90):
+        """Clean up old security events (keep for 90 days by default)"""
+        from django.utils import timezone
+        
+        cutoff_date = timezone.now() - timezone.timedelta(days=days)
+        deleted_count = cls.objects.filter(timestamp__lt=cutoff_date).delete()[0]
+        
+        return deleted_count
+
+
+class OTPToken(models.Model):
+    """
+    Enhanced OTP token model with comprehensive security features
+    """
+    # OTP purposes
+    PURPOSE_CHOICES = [
+        ('login', 'Login Verification'),
+        ('password_reset', 'Password Reset'),
+        ('email_verification', 'Email Verification'),
+        ('admin_action', 'Admin Action Verification'),
+        ('sensitive_operation', 'Sensitive Operation'),
+    ]
+    
+    # Core fields
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='otp_tokens')
+    token = models.CharField(max_length=10)  # Store plain token temporarily
+    token_hash = models.CharField(max_length=64, db_index=True)  # SHA256 hash for security
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, db_index=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(db_index=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    
+    # Security and rate limiting
+    attempts = models.IntegerField(default=0)
+    max_attempts = models.IntegerField(default=3)
+    is_used = models.BooleanField(default=False, db_index=True)
+    is_locked = models.BooleanField(default=False, db_index=True)
+    locked_until = models.DateTimeField(null=True, blank=True)
+    
+    # Request context for security
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent_hash = models.CharField(max_length=64, null=True, blank=True)
+    
+    # Delivery tracking
+    delivery_method = models.CharField(max_length=20, default='email')
+    delivery_status = models.CharField(max_length=20, default='pending')
+    delivery_attempts = models.IntegerField(default=0)
+    last_delivery_attempt = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        indexes = [
+            # Primary lookup indexes
+            models.Index(fields=['user', 'purpose', 'is_used']),
+            models.Index(fields=['token_hash']),
+            models.Index(fields=['expires_at']),
+            
+            # Security monitoring indexes
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['ip_address', 'created_at']),
+            models.Index(fields=['is_locked', 'locked_until']),
+            
+            # Rate limiting indexes
+            models.Index(fields=['user', 'purpose', 'created_at']),
+            models.Index(fields=['attempts', 'max_attempts']),
+        ]
+        
+        ordering = ['-created_at']
+        verbose_name = 'OTP Token'
+        verbose_name_plural = 'OTP Tokens'
+    
+    def __str__(self):
+        return f"OTP for {self.user.email} ({self.purpose}) - {'Used' if self.is_used else 'Active'}"
+    
+    def save(self, *args, **kwargs):
+        # Hash the token before saving
+        if self.token and not self.token_hash:
+            import hashlib
+            self.token_hash = hashlib.sha256(self.token.encode()).hexdigest()
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if OTP is expired"""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if OTP is valid (not used, not expired, not locked)"""
+        return (
+            not self.is_used and 
+            not self.is_expired() and 
+            not self.is_locked and
+            (not self.locked_until or timezone.now() > self.locked_until)
+        )
+    
+    def verify_token(self, provided_token: str, request=None) -> bool:
+        """
+        Verify the provided token against this OTP
+        
+        Args:
+            provided_token: Token provided by user
+            request: HTTP request for security context
+            
+        Returns:
+            bool: True if token is valid and matches
+        """
+        # Check if OTP is valid
+        if not self.is_valid():
+            return False
+        
+        # Increment attempt counter
+        self.attempts += 1
+        
+        # Check if max attempts exceeded
+        if self.attempts >= self.max_attempts:
+            self.is_locked = True
+            self.locked_until = timezone.now() + timezone.timedelta(minutes=15)  # 15 minute lockout
+            self.save(update_fields=['attempts', 'is_locked', 'locked_until'])
+            return False
+        
+        # Verify token hash
+        import hashlib
+        provided_hash = hashlib.sha256(provided_token.encode()).hexdigest()
+        
+        if provided_hash == self.token_hash:
+            # Token matches - mark as used
+            self.is_used = True
+            self.used_at = timezone.now()
+            
+            # Store request context if provided
+            if request:
+                self.ip_address = self._get_client_ip(request)
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+                if user_agent:
+                    self.user_agent_hash = hashlib.sha256(user_agent.encode()).hexdigest()
+            
+            self.save(update_fields=['attempts', 'is_used', 'used_at', 'ip_address', 'user_agent_hash'])
+            return True
+        else:
+            # Token doesn't match - save attempt count
+            self.save(update_fields=['attempts'])
+            return False
+    
+    def mark_delivery_attempt(self, status='sent'):
+        """Mark a delivery attempt"""
+        self.delivery_attempts += 1
+        self.delivery_status = status
+        self.last_delivery_attempt = timezone.now()
+        self.save(update_fields=['delivery_attempts', 'delivery_status', 'last_delivery_attempt'])
+    
+    def _get_client_ip(self, request):
+        """Get client IP address from request"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR', 'unknown')
+        return ip
+    
+    @classmethod
+    def cleanup_expired_tokens(cls):
+        """Clean up expired and used tokens"""
+        expired_count = cls.objects.filter(
+            expires_at__lt=timezone.now()
+        ).delete()[0]
+        
+        # Also clean up old used tokens (older than 24 hours)
+        old_used_count = cls.objects.filter(
+            is_used=True,
+            used_at__lt=timezone.now() - timezone.timedelta(hours=24)
+        ).delete()[0]
+        
+        return expired_count + old_used_count
+    
+    @classmethod
+    def get_user_rate_limit_status(cls, user, purpose, time_window_minutes=60):
+        """
+        Check rate limit status for user and purpose
+        
+        Args:
+            user: User instance
+            purpose: OTP purpose
+            time_window_minutes: Time window for rate limiting
+            
+        Returns:
+            dict: Rate limit status information
+        """
+        time_threshold = timezone.now() - timezone.timedelta(minutes=time_window_minutes)
+        
+        recent_tokens = cls.objects.filter(
+            user=user,
+            purpose=purpose,
+            created_at__gte=time_threshold
+        )
+        
+        total_attempts = recent_tokens.count()
+        failed_attempts = recent_tokens.filter(is_used=False).count()
+        locked_tokens = recent_tokens.filter(is_locked=True).count()
+        
+        return {
+            'total_attempts': total_attempts,
+            'failed_attempts': failed_attempts,
+            'locked_tokens': locked_tokens,
+            'is_rate_limited': total_attempts >= 5,  # Max 5 OTPs per hour
+            'next_allowed_at': None  # Could implement more sophisticated rate limiting
+        }
+
+
 class UserProfile(models.Model):
     """
     Stores user profile information, including profile picture.

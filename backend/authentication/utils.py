@@ -9,12 +9,35 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as django_validate_email
 
 def generate_otp(length: int = 6) -> str:
-    """Generate a numeric one-time password (OTP)."""
+    """
+    Generate a numeric one-time password (OTP).
+    
+    DEPRECATED: Use SecureOTPService.generate_otp() for enhanced security.
+    This function is kept for backward compatibility.
+    """
+    import warnings
+    warnings.warn(
+        "generate_otp() is deprecated. Use SecureOTPService.generate_otp() for enhanced security.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     return ''.join(random.choices('0123456789', k=length))
 
 
 def send_otp_email(email: str, otp: str) -> None:
-    """Send an email containing a one-time password."""
+    """
+    Send an email containing a one-time password.
+    
+    DEPRECATED: Use SecureOTPService.send_otp_email() for enhanced security.
+    This function is kept for backward compatibility.
+    """
+    import warnings
+    warnings.warn(
+        "send_otp_email() is deprecated. Use SecureOTPService.send_otp_email() for enhanced security.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     subject = 'Your PRS verification code'
     message = (
         f'Your one-time verification code is: {otp}\n\n'
@@ -27,6 +50,58 @@ def send_otp_email(email: str, otp: str) -> None:
         print(f"❌ Failed to send OTP email to {email}: {e}")
         # Fallback to console output
         print(f"📧 OTP for {email}: {otp}")
+
+
+def generate_secure_otp(user, purpose='login', request=None, length=6, expiry_minutes=5):
+    """
+    Generate a secure OTP using the enhanced OTP service.
+    
+    Args:
+        user: User instance
+        purpose: OTP purpose ('login', 'password_reset', etc.)
+        request: HTTP request for security context
+        length: OTP length (default: 6)
+        expiry_minutes: Expiry time in minutes (default: 5)
+        
+    Returns:
+        tuple: (OTPToken instance, plain OTP string)
+    """
+    from core_config.otp_service import secure_otp_service
+    return secure_otp_service.generate_otp(user, purpose, request, length, expiry_minutes)
+
+
+def verify_secure_otp(user, provided_otp, purpose='login', request=None):
+    """
+    Verify OTP using the enhanced OTP service.
+    
+    Args:
+        user: User instance
+        provided_otp: OTP provided by user
+        purpose: OTP purpose
+        request: HTTP request for security context
+        
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    from core_config.otp_service import secure_otp_service
+    return secure_otp_service.verify_otp(user, provided_otp, purpose, request)
+
+
+def send_secure_otp_email(user, otp, purpose='login', otp_token=None):
+    """
+    Send OTP email using the enhanced OTP service.
+    
+    Args:
+        user: User instance
+        otp: OTP string
+        purpose: OTP purpose
+        otp_token: OTPToken instance for delivery tracking
+        
+    Returns:
+        bool: True if sent successfully
+    """
+    from core_config.otp_service import secure_otp_service
+    return secure_otp_service.send_otp_email(user, otp, purpose, otp_token)
 
 
 def send_temporary_password_email(email: str, temp_password: str) -> None:

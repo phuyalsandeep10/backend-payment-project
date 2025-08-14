@@ -34,7 +34,7 @@ from .filters import UserFilter
 from organization.models import Organization
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from permissions.models import Role
-from permissions.permissions import IsOrgAdminOrSuperAdmin
+from permissions.permissions import IsOrgAdminOrSuperAdmin, CanManageUserPasswords
 from Sales_dashboard.utils import calculate_streaks_for_user_login
 from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from django.contrib.auth.decorators import login_required
@@ -147,6 +147,124 @@ class UserViewSet(viewsets.ModelViewSet):
             # For non-superusers (like org admins), the organization is derived from their profile
             # and the role is taken from the request data.
             serializer.save(organization=user.organization)
+    
+    @swagger_auto_schema(
+        method='post',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'new_password': openapi.Schema(type=openapi.TYPE_STRING, description='New password for the user'),
+                'must_change_password': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Whether user must change password on next login', default=False),
+            },
+            required=['new_password']
+        ),
+        responses={
+            200: openapi.Response('Password assigned successfully'),
+            400: openapi.Response('Bad request - invalid password or missing data'),
+            403: openapi.Response('Forbidden - insufficient permissions'),
+            500: openapi.Response('Internal server error')
+        },
+        tags=['User Management']
+    )
+    @action(detail=True, methods=['post'], permission_classes=[CanManageUserPasswords])
+    def assign_password(self, request, pk=None):
+        """
+        Allow Organization Admin to assign a new password to a user in their organization.
+        Only Organization Admins and Superusers can use this endpoint.
+        """
+        target_user = self.get_object()
+        requesting_user = request.user
+        
+        # Validate that the requesting user can assign passwords to this target user
+        if not requesting_user.is_superuser:
+            # Organization Admin can only assign passwords within their organization
+            if not requesting_user.organization or requesting_user.organization != target_user.organization:
+                return Response(
+                    {'error': 'You can only assign passwords to users in your organization.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check if requesting user is Organization Admin
+            if not requesting_user.role or requesting_user.role.name != 'Organization Admin':
+                return Response(
+                    {'error': 'Only Organization Admins can assign passwords.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Get new password from request
+        new_password = request.data.get('new_password')
+        if not new_password:
+            return Response(
+                {'error': 'new_password is required.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate password strength (basic validation)
+        if len(new_password) < 8:
+            return Response(
+                {'error': 'Password must be at least 8 characters long.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Set the new password
+            target_user.set_password(new_password)
+            target_user.must_change_password = request.data.get('must_change_password', False)
+            target_user.save(update_fields=['password', 'must_change_password'])
+            
+            # Log the password assignment
+            security_logger.info(
+                f"Password assigned to user {target_user.email} by {requesting_user.email}"
+            )
+            
+            # Send notification email to the target user
+            self._send_password_assigned_email(target_user, requesting_user, new_password)
+            
+            return Response({
+                'message': f'Password successfully assigned to {target_user.first_name} {target_user.last_name}',
+                'user_notified': True
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            security_logger.error(
+                f"Failed to assign password to {target_user.email} by {requesting_user.email}: {str(e)}"
+            )
+            return Response(
+                {'error': 'Failed to assign password. Please try again.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _send_password_assigned_email(self, target_user, assigning_admin, new_password):
+        """Send email notification to user about their new password"""
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        subject = "Your Password Has Been Updated"
+        message = f"""
+Dear {target_user.first_name},
+
+Your password has been updated by your Organization Admin ({assigning_admin.first_name} {assigning_admin.last_name}).
+
+Your new temporary password is: {new_password}
+
+For security reasons, please log in and change this password immediately.
+
+Best regards,
+PRS System
+        """
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [target_user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            security_logger.error(
+                f"Failed to send password assignment email to {target_user.email}: {str(e)}"
+            )
 
 class UserSessionViewSet(viewsets.ModelViewSet):
     """

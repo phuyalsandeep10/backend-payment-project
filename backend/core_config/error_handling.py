@@ -411,91 +411,296 @@ class SecureLoggingFilter(logging.Filter):
 
 class SecurityEventLogger:
     """
-    Specialized logger for security events with structured logging
+    Enhanced security event logger with database persistence and structured logging
     """
     
     def __init__(self):
         self.logger = logging.getLogger('security')
     
+    def log_security_event(self, request, event_type: str, event_data: Dict[str, Any] = None,
+                          severity: str = 'medium', user=None, description: str = None) -> 'SecurityEvent':
+        """
+        Log a comprehensive security event to both database and logs
+        
+        Args:
+            request: HTTP request object
+            event_type: Type of security event
+            event_data: Additional structured data
+            severity: Event severity (low, medium, high, critical)
+            user: User associated with the event
+            description: Human-readable description
+            
+        Returns:
+            SecurityEvent instance
+        """
+        # Import here to avoid circular imports
+        try:
+            from authentication.models import SecurityEvent
+        except ImportError:
+            # Fallback to logging only if model not available
+            self.logger.error(f"SecurityEvent model not available, logging only: {event_type}")
+            return None
+        
+        # Extract request information
+        ip_address = self._get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
+        # Determine user from request if not provided
+        if not user and hasattr(request, 'user') and request.user.is_authenticated:
+            user = request.user
+        
+        # Generate description if not provided
+        if not description:
+            description = self._generate_description(event_type, event_data)
+        
+        # Create security event
+        security_event = SecurityEvent.objects.create(
+            event_type=event_type,
+            severity=severity,
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            request_path=request.path,
+            request_method=request.method,
+            event_description=description,
+            event_data=event_data or {},
+        )
+        
+        # Calculate and update risk score
+        security_event.calculate_risk_score()
+        security_event.save(update_fields=['risk_score'])
+        
+        # Log to traditional logging system as well
+        log_level = self._get_log_level(severity)
+        self.logger.log(log_level, description, extra={
+            'event_id': security_event.id,
+            'event_type': event_type,
+            'severity': severity,
+            'user_id': user.id if user else None,
+            'ip_address': ip_address,
+            'risk_score': security_event.risk_score,
+        })
+        
+        return security_event
+    
     def log_authentication_attempt(self, request, user_identifier: str, success: bool, 
-                                 failure_reason: str = None):
-        """Log authentication attempt"""
+                                 failure_reason: str = None, user=None):
+        """Log authentication attempt with enhanced tracking"""
+        event_type = 'authentication_success' if success else 'authentication_failure'
+        severity = 'low' if success else 'medium'
+        
         event_data = {
-            'event_type': 'authentication_attempt',
             'user_identifier': user_identifier,
             'success': success,
-            'ip_address': self._get_client_ip(request),
-            'user_agent': request.META.get('HTTP_USER_AGENT', 'unknown'),
-            'path': request.path,
         }
         
         if not success and failure_reason:
             event_data['failure_reason'] = failure_reason
+            # Increase severity for certain failure types
+            if any(keyword in failure_reason.lower() for keyword in ['brute force', 'locked', 'suspicious']):
+                severity = 'high'
         
-        level = logging.INFO if success else logging.WARNING
-        self.logger.log(level, f"Authentication {'successful' if success else 'failed'}", extra=event_data)
+        description = f"Authentication {'successful' if success else 'failed'} for {user_identifier}"
+        if failure_reason:
+            description += f": {failure_reason}"
+        
+        return self.log_security_event(
+            request=request,
+            event_type=event_type,
+            event_data=event_data,
+            severity=severity,
+            user=user,
+            description=description
+        )
     
     def log_permission_denied(self, request, user, resource: str, action: str):
-        """Log permission denied event"""
+        """Log permission denied event with detailed context"""
         event_data = {
-            'event_type': 'permission_denied',
-            'user_id': getattr(user, 'id', None),
-            'user_email': getattr(user, 'email', 'anonymous'),
             'resource': resource,
             'action': action,
-            'ip_address': self._get_client_ip(request),
-            'path': request.path,
+            'user_role': user.role.name if hasattr(user, 'role') and user.role else None,
         }
         
-        self.logger.warning("Permission denied", extra=event_data)
+        description = f"Permission denied for user {user.email if user else 'anonymous'} accessing {resource} ({action})"
+        
+        return self.log_security_event(
+            request=request,
+            event_type='permission_denied',
+            event_data=event_data,
+            severity='medium',
+            user=user,
+            description=description
+        )
     
     def log_suspicious_activity(self, request, activity_type: str, details: Dict[str, Any]):
-        """Log suspicious activity"""
+        """Log suspicious activity with risk assessment"""
         event_data = {
-            'event_type': 'suspicious_activity',
             'activity_type': activity_type,
-            'ip_address': self._get_client_ip(request),
-            'user_agent': request.META.get('HTTP_USER_AGENT', 'unknown'),
-            'path': request.path,
             'details': details,
         }
         
-        user = getattr(request, 'user', None)
-        if user and user.is_authenticated:
-            event_data['user_id'] = user.id
-            event_data['user_email'] = user.email
+        # Determine severity based on activity type
+        high_risk_activities = ['sql_injection', 'xss_attempt', 'path_traversal', 'command_injection']
+        critical_activities = ['privilege_escalation', 'data_exfiltration', 'malware_upload']
         
-        self.logger.error("Suspicious activity detected", extra=event_data)
+        if activity_type in critical_activities:
+            severity = 'critical'
+        elif activity_type in high_risk_activities:
+            severity = 'high'
+        else:
+            severity = 'medium'
+        
+        description = f"Suspicious activity detected: {activity_type}"
+        
+        return self.log_security_event(
+            request=request,
+            event_type='suspicious_activity',
+            event_data=event_data,
+            severity=severity,
+            description=description
+        )
     
     def log_file_upload_threat(self, request, filename: str, threat_type: str, details: str):
         """Log file upload threat detection"""
         event_data = {
-            'event_type': 'file_upload_threat',
             'filename': filename,
             'threat_type': threat_type,
             'details': details,
-            'ip_address': self._get_client_ip(request),
-            'user_agent': request.META.get('HTTP_USER_AGENT', 'unknown'),
         }
         
-        user = getattr(request, 'user', None)
-        if user and user.is_authenticated:
-            event_data['user_id'] = user.id
-            event_data['user_email'] = user.email
+        # Determine severity based on threat type
+        severity = 'critical' if threat_type == 'malware' else 'high'
         
-        self.logger.error("File upload threat detected", extra=event_data)
+        description = f"File upload threat detected: {threat_type} in {filename}"
+        
+        return self.log_security_event(
+            request=request,
+            event_type='file_upload_threat',
+            event_data=event_data,
+            severity=severity,
+            description=description
+        )
     
     def log_rate_limit_exceeded(self, request, limit_type: str, limit_value: int):
         """Log rate limit exceeded event"""
         event_data = {
-            'event_type': 'rate_limit_exceeded',
             'limit_type': limit_type,
             'limit_value': limit_value,
-            'ip_address': self._get_client_ip(request),
-            'path': request.path,
         }
         
-        self.logger.warning("Rate limit exceeded", extra=event_data)
+        description = f"Rate limit exceeded: {limit_type} (limit: {limit_value})"
+        
+        return self.log_security_event(
+            request=request,
+            event_type='rate_limit_exceeded',
+            event_data=event_data,
+            severity='medium',
+            description=description
+        )
+    
+    def log_session_event(self, request, session_action: str, session_data: Dict[str, Any] = None):
+        """Log session-related security events"""
+        event_type = f'session_{session_action}'
+        
+        event_data = session_data or {}
+        
+        description = f"Session {session_action}"
+        
+        severity = 'low' if session_action == 'created' else 'medium'
+        
+        return self.log_security_event(
+            request=request,
+            event_type=event_type,
+            event_data=event_data,
+            severity=severity,
+            description=description
+        )
+    
+    def log_data_access(self, request, resource: str, action: str, record_count: int = None):
+        """Log data access events for audit trails"""
+        event_data = {
+            'resource': resource,
+            'action': action,
+        }
+        
+        if record_count is not None:
+            event_data['record_count'] = record_count
+        
+        description = f"Data access: {action} on {resource}"
+        if record_count:
+            description += f" ({record_count} records)"
+        
+        # Higher severity for bulk data access
+        severity = 'high' if record_count and record_count > 100 else 'low'
+        
+        return self.log_security_event(
+            request=request,
+            event_type='data_access',
+            event_data=event_data,
+            severity=severity,
+            description=description
+        )
+    
+    def log_admin_action(self, request, action: str, target: str, details: Dict[str, Any] = None):
+        """Log administrative actions"""
+        event_data = {
+            'action': action,
+            'target': target,
+            'details': details or {},
+        }
+        
+        description = f"Admin action: {action} on {target}"
+        
+        # Higher severity for sensitive admin actions
+        sensitive_actions = ['delete_user', 'change_permissions', 'system_config', 'data_export']
+        severity = 'high' if action in sensitive_actions else 'medium'
+        
+        return self.log_security_event(
+            request=request,
+            event_type='admin_action',
+            event_data=event_data,
+            severity=severity,
+            description=description
+        )
+    
+    def _generate_description(self, event_type: str, event_data: Dict[str, Any]) -> str:
+        """Generate human-readable description for event"""
+        descriptions = {
+            'authentication_attempt': 'Authentication attempt',
+            'authentication_success': 'Successful authentication',
+            'authentication_failure': 'Failed authentication',
+            'permission_denied': 'Permission denied',
+            'suspicious_activity': 'Suspicious activity detected',
+            'file_upload_threat': 'File upload threat detected',
+            'rate_limit_exceeded': 'Rate limit exceeded',
+            'session_created': 'Session created',
+            'session_terminated': 'Session terminated',
+            'data_access': 'Data access',
+            'admin_action': 'Administrative action',
+        }
+        
+        base_description = descriptions.get(event_type, f'Security event: {event_type}')
+        
+        # Add context from event_data if available
+        if event_data:
+            if 'user_identifier' in event_data:
+                base_description += f" for {event_data['user_identifier']}"
+            elif 'resource' in event_data:
+                base_description += f" on {event_data['resource']}"
+            elif 'activity_type' in event_data:
+                base_description += f": {event_data['activity_type']}"
+        
+        return base_description
+    
+    def _get_log_level(self, severity: str) -> int:
+        """Convert severity to logging level"""
+        levels = {
+            'low': logging.INFO,
+            'medium': logging.WARNING,
+            'high': logging.ERROR,
+            'critical': logging.CRITICAL,
+        }
+        return levels.get(severity, logging.WARNING)
     
     def _get_client_ip(self, request) -> str:
         """Get client IP address"""

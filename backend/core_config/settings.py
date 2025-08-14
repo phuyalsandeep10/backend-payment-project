@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     
     # Your apps
+    'core_config',  # Security and audit models
     'authentication',
     'clients',
     'organization',
@@ -144,8 +145,8 @@ REST_FRAMEWORK = {
     ),
     'UNAUTHENTICATED_USER': 'django.contrib.auth.models.AnonymousUser',
     'UNAUTHENTICATED_TOKEN': None,
-    # Enhanced error handling
-    'EXCEPTION_HANDLER': 'core_config.error_handling.custom_exception_handler',
+    # Enhanced error handling with sanitization
+    'EXCEPTION_HANDLER': 'core_config.global_exception_handler.global_exception_handler',
 }
 
 
@@ -171,6 +172,9 @@ MIDDLEWARE = [
     "core_config.validation_middleware.RateLimitMiddleware",
     "core_config.middleware.SecurityMonitoringMiddleware",
     "core_config.middleware.RequestLoggingMiddleware",
+    # Error sanitization middleware (should be near the end)
+    "core_config.error_sanitization_middleware.ErrorSanitizationMiddleware",
+    "core_config.error_sanitization_middleware.SecurityEventMiddleware",
 ]
 
 ROOT_URLCONF = "core_config.urls"
@@ -402,14 +406,15 @@ LOGGING = {
             'style': '{',
         },
         'json': {
-            'format': '{"level": "{levelname}", "time": "{asctime}", "module": "{module}", "message": "{message}"}',
+            'format': '{{"level": "{levelname}", "time": "{asctime}", "module": "{module}", "message": "{message}"}}',
             'style': '{',
         },
     },
     'filters': {
-        'secure_logging': {
-            '()': 'core_config.error_handling.SecureLoggingFilter',
-        },
+        # Temporarily disabled due to circular import during migration
+        # 'secure_logging': {
+        #     '()': 'core_config.error_handling.SecureLoggingFilter',
+        # },
     },
     'handlers': {
         'security_file': {
@@ -419,7 +424,7 @@ LOGGING = {
             'maxBytes': 10 * 1024 * 1024,  # 10MB
             'backupCount': 5,
             'formatter': 'json',
-            'filters': ['secure_logging'],
+            # 'filters': ['secure_logging'],
         },
         'error_file': {
             'level': 'ERROR',
@@ -428,13 +433,13 @@ LOGGING = {
             'maxBytes': 10 * 1024 * 1024,  # 10MB
             'backupCount': 5,
             'formatter': 'verbose',
-            'filters': ['secure_logging'],
+            # 'filters': ['secure_logging'],
         },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
-            'filters': ['secure_logging'],
+            # 'filters': ['secure_logging'],
         },
     },
     'loggers': {
@@ -456,13 +461,13 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': 'INFO',
-            'filters': ['secure_logging'],
+            # 'filters': ['secure_logging'],
         },
     },
     'root': {
         'level': 'INFO',
         'handlers': ['console'],
-        'filters': ['secure_logging'],
+        # 'filters': ['secure_logging'],
     },
 }
 
