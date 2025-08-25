@@ -1,0 +1,26 @@
+# Development Requirements - Task 3.3.3
+
+# Include base requirements
+-r base.txt
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-django>=4.5.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=4.0.0
+isort>=5.10.0
+mypy>=0.950
+django-debug-toolbar>=3.2.0
+factory-boy>=3.2.0
+faker>=15.0.0
+coverage>=6.0.0
+
+# API testing
+httpx>=0.23.0
+requests>=2.28.0
+
+# Code quality and linting
+pre-commit>=2.20.0
+bandit>=1.7.0
+safety>=2.0.0

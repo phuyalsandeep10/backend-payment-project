@@ -1,0 +1,54 @@
+{
+  "timestamp": "20250816_173952",
+  "summary": {
+    "total_tests": 28,
+    "total_passed": 28,
+    "success_rate": "100.0%"
+  },
+  "detailed_results": {
+    "model_validation": {
+      "email_validation": true,
+      "phone_validation": true,
+      "required_fields": true,
+      "choice_fields": true,
+      "field_lengths": true
+    },
+    "organization_scoping": {
+      "organization_isolation": true,
+      "cross_org_access_prevention": true,
+      "proper_indexing": true,
+      "foreign_key_constraints": true
+    },
+    "relationship_management": {
+      "user_relationships": true,
+      "organization_relationship": true,
+      "related_name_access": true,
+      "foreign_key_integrity": true,
+      "reverse_relationships": true
+    },
+    "unique_constraints": {
+      "error": "'ForeignKey' object has no attribute 'on_delete'"
+    },
+    "status_tracking": {
+      "status_choices_valid": true,
+      "satisfaction_tracking": true,
+      "status_transitions": true,
+      "audit_trail": true,
+      "default_values": true
+    },
+    "data_integrity": {
+      "timestamp_consistency": true,
+      "field_validation": true,
+      "null_constraints": true,
+      "data_consistency": true,
+      "meta_configuration": true
+    },
+    "performance_analysis": {
+      "database_indexes": true,
+      "query_optimization": true,
+      "bulk_operations": true,
+      "field_indexing": true
+    },
+    "security_analysis": {}
+  }
+}

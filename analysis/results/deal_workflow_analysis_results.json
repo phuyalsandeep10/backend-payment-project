@@ -1,0 +1,85 @@
+{
+  "state_machine_analysis": {},
+  "payment_transitions_analysis": {},
+  "business_rules_analysis": {},
+  "workflow_integrity_analysis": {},
+  "performance_analysis": {
+    "query_optimization": {
+      "tests_performed": [
+        "QueryOptimizer integration: FAILED",
+        "ViewSet query optimization test: ERROR - 'DealWorkflowAnalysisTest' object has no attribute 'test_user'"
+      ],
+      "optimization_active": true
+    },
+    "indexing_strategy": {
+      "tests_performed": [
+        "Critical fields indexed: 5/5",
+        "Total indexes on Deal model: 33",
+        "Total indexes on Payment model: 14"
+      ],
+      "comprehensive_indexing": true
+    },
+    "workflow_automation": {
+      "tests_performed": [
+        "Workflow engine: FUNCTIONAL",
+        "Performance analyzer: FUNCTIONAL"
+      ],
+      "automation_available": true
+    },
+    "performance_monitoring": {
+      "tests_performed": [
+        "Performance logging: CONFIGURED",
+        "Query monitoring: AVAILABLE"
+      ],
+      "monitoring_active": true
+    }
+  },
+  "security_analysis": {},
+  "errors": [
+    "Test environment setup failed: An error occurred in the current transaction. You can't execute queries until the end of the 'atomic' block.",
+    "State machine analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'",
+    "Payment transitions analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'",
+    "Deal workflow analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'",
+    "Relationship integrity analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'"
+  ],
+  "warnings": [],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "category": "Error Resolution",
+      "issue": "5 errors detected during analysis",
+      "recommendation": "Review and fix all detected errors before production deployment",
+      "errors": [
+        "Test environment setup failed: An error occurred in the current transaction. You can't execute queries until the end of the 'atomic' block.",
+        "State machine analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'",
+        "Payment transitions analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'",
+        "Deal workflow analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'",
+        "Relationship integrity analysis failed: 'DealWorkflowAnalysisTest' object has no attribute 'test_client'"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Concurrency",
+      "issue": "Optimistic locking may not be fully implemented",
+      "recommendation": "Implement optimistic locking for all financial operations to prevent race conditions"
+    },
+    {
+      "priority": "LOW",
+      "category": "Monitoring",
+      "issue": "Workflow monitoring capabilities",
+      "recommendation": "Implement comprehensive workflow performance monitoring and alerting"
+    },
+    {
+      "priority": "LOW",
+      "category": "Testing",
+      "issue": "Automated testing coverage",
+      "recommendation": "Expand automated test coverage for edge cases and concurrent scenarios"
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Documentation",
+      "issue": "Workflow documentation",
+      "recommendation": "Create comprehensive workflow documentation for developers and business users"
+    }
+  ]
+}

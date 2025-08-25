@@ -1,0 +1,21 @@
+# Production Requirements - Task 3.3.3
+
+# Include base requirements
+-r base.txt
+
+# Production-specific dependencies
+gunicorn>=20.1.0
+psycopg2-binary>=2.9.0
+redis>=4.0.0
+sentry-sdk[django]>=1.9.0
+django-cors-headers>=3.13.0
+whitenoise>=6.2.0
+
+# Performance and monitoring
+django-cachalot>=2.5.0
+django-redis>=5.2.0
+newrelic>=8.0.0
+
+# Security enhancements
+django-security>=0.16.0
+cryptography>=37.0.0

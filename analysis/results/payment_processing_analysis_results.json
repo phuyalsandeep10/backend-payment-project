@@ -1,0 +1,1228 @@
+{
+  "financial_calculations": {
+    "precision_tests": [
+      {
+        "value": "1000.00",
+        "expected": true,
+        "actual": true,
+        "passed": true,
+        "description": "Valid currency amount",
+        "error": null
+      },
+      {
+        "value": "1000.001",
+        "expected": false,
+        "actual": true,
+        "passed": false,
+        "description": "Too many decimal places",
+        "error": null
+      },
+      {
+        "value": "999999999.99",
+        "expected": true,
+        "actual": true,
+        "passed": true,
+        "description": "Maximum allowed value",
+        "error": null
+      },
+      {
+        "value": "1000000000.00",
+        "expected": false,
+        "actual": false,
+        "passed": true,
+        "description": "Exceeds maximum",
+        "error": "['payment_amount cannot exceed 999999999.99']"
+      },
+      {
+        "value": "0.01",
+        "expected": true,
+        "actual": true,
+        "passed": true,
+        "description": "Minimum valid amount",
+        "error": null
+      },
+      {
+        "value": "0.00",
+        "expected": false,
+        "actual": false,
+        "passed": true,
+        "description": "Zero amount",
+        "error": "['payment_amount must be at least 0.01']"
+      },
+      {
+        "value": "-100.00",
+        "expected": false,
+        "actual": false,
+        "passed": true,
+        "description": "Negative amount",
+        "error": "['payment_amount must be at least 0.01']"
+      }
+    ],
+    "consistency_tests": [
+      {
+        "description": "Exact payment match",
+        "payments": [
+          "2000.00",
+          "3000.00"
+        ],
+        "total_payments": "5000.00",
+        "remaining_balance": "0.00",
+        "is_fully_paid": true,
+        "is_overpaid": false,
+        "expected_fully_paid": true,
+        "expected_overpaid": false,
+        "fully_paid_match": true,
+        "overpaid_match": true
+      },
+      {
+        "description": "Underpayment",
+        "payments": [
+          "2000.00",
+          "2000.00"
+        ],
+        "total_payments": "4000.00",
+        "remaining_balance": "1000.00",
+        "is_fully_paid": false,
+        "is_overpaid": false,
+        "expected_fully_paid": false,
+        "expected_overpaid": false,
+        "fully_paid_match": true,
+        "overpaid_match": true
+      },
+      {
+        "description": "Overpayment",
+        "payments": [
+          "3000.00",
+          "3000.00"
+        ],
+        "total_payments": "6000.00",
+        "remaining_balance": "-1000.00",
+        "is_fully_paid": false,
+        "is_overpaid": true,
+        "expected_fully_paid": true,
+        "expected_overpaid": true,
+        "fully_paid_match": false,
+        "overpaid_match": true
+      }
+    ],
+    "commission_tests": [
+      {
+        "sales_amount": "10000.00",
+        "commission_rate": "5.00",
+        "expected": "500.00",
+        "calculated": "500.00",
+        "accurate": true,
+        "difference": "0.00"
+      },
+      {
+        "sales_amount": "2500.50",
+        "commission_rate": "7.25",
+        "expected": "181.29",
+        "calculated": "181.29",
+        "accurate": true,
+        "difference": "0.00"
+      },
+      {
+        "sales_amount": "100.00",
+        "commission_rate": "0.50",
+        "expected": "0.50",
+        "calculated": "0.50",
+        "accurate": true,
+        "difference": "0.00"
+      }
+    ]
+  },
+  "transaction_analysis": {
+    "total_payments": 50,
+    "transaction_id_patterns": {},
+    "amount_distribution": {},
+    "validation_issues": [],
+    "transaction_ids": {
+      "total_with_ids": 50,
+      "unique_count": 50,
+      "has_duplicates": false,
+      "pattern_analysis": [
+        {
+          "transaction_id": "TXN-0626",
+          "pattern_valid": true,
+          "numeric_part": "0626",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0565",
+          "pattern_valid": true,
+          "numeric_part": "0565",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0159",
+          "pattern_valid": true,
+          "numeric_part": "0159",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0625",
+          "pattern_valid": true,
+          "numeric_part": "0625",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0624",
+          "pattern_valid": true,
+          "numeric_part": "0624",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0175",
+          "pattern_valid": true,
+          "numeric_part": "0175",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0564",
+          "pattern_valid": true,
+          "numeric_part": "0564",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0188",
+          "pattern_valid": true,
+          "numeric_part": "0188",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0584",
+          "pattern_valid": true,
+          "numeric_part": "0584",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0158",
+          "pattern_valid": true,
+          "numeric_part": "0158",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0576",
+          "pattern_valid": true,
+          "numeric_part": "0576",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0570",
+          "pattern_valid": true,
+          "numeric_part": "0570",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0622",
+          "pattern_valid": true,
+          "numeric_part": "0622",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0623",
+          "pattern_valid": true,
+          "numeric_part": "0623",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0621",
+          "pattern_valid": true,
+          "numeric_part": "0621",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0185",
+          "pattern_valid": true,
+          "numeric_part": "0185",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0191",
+          "pattern_valid": true,
+          "numeric_part": "0191",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0355",
+          "pattern_valid": true,
+          "numeric_part": "0355",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0161",
+          "pattern_valid": true,
+          "numeric_part": "0161",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0193",
+          "pattern_valid": true,
+          "numeric_part": "0193",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0537",
+          "pattern_valid": true,
+          "numeric_part": "0537",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0174",
+          "pattern_valid": true,
+          "numeric_part": "0174",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0146",
+          "pattern_valid": true,
+          "numeric_part": "0146",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0552",
+          "pattern_valid": true,
+          "numeric_part": "0552",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0167",
+          "pattern_valid": true,
+          "numeric_part": "0167",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0563",
+          "pattern_valid": true,
+          "numeric_part": "0563",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0150",
+          "pattern_valid": true,
+          "numeric_part": "0150",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0618",
+          "pattern_valid": true,
+          "numeric_part": "0618",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0187",
+          "pattern_valid": true,
+          "numeric_part": "0187",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0539",
+          "pattern_valid": true,
+          "numeric_part": "0539",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0620",
+          "pattern_valid": true,
+          "numeric_part": "0620",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0548",
+          "pattern_valid": true,
+          "numeric_part": "0548",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0583",
+          "pattern_valid": true,
+          "numeric_part": "0583",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0617",
+          "pattern_valid": true,
+          "numeric_part": "0617",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0619",
+          "pattern_valid": true,
+          "numeric_part": "0619",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0616",
+          "pattern_valid": true,
+          "numeric_part": "0616",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0140",
+          "pattern_valid": true,
+          "numeric_part": "0140",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0157",
+          "pattern_valid": true,
+          "numeric_part": "0157",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0349",
+          "pattern_valid": true,
+          "numeric_part": "0349",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0575",
+          "pattern_valid": true,
+          "numeric_part": "0575",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0154",
+          "pattern_valid": true,
+          "numeric_part": "0154",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0569",
+          "pattern_valid": true,
+          "numeric_part": "0569",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0144",
+          "pattern_valid": true,
+          "numeric_part": "0144",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0345",
+          "pattern_valid": true,
+          "numeric_part": "0345",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0550",
+          "pattern_valid": true,
+          "numeric_part": "0550",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0357",
+          "pattern_valid": true,
+          "numeric_part": "0357",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0171",
+          "pattern_valid": true,
+          "numeric_part": "0171",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0385",
+          "pattern_valid": true,
+          "numeric_part": "0385",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0545",
+          "pattern_valid": true,
+          "numeric_part": "0545",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        },
+        {
+          "transaction_id": "TXN-0367",
+          "pattern_valid": true,
+          "numeric_part": "0367",
+          "is_numeric": true,
+          "is_padded": true,
+          "overall_valid": true
+        }
+      ]
+    },
+    "amount_validation": [
+      {
+        "payment_id": 1430,
+        "amount": "50000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1366,
+        "amount": "142.35",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 960,
+        "amount": "210.75",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1429,
+        "amount": "1500.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1428,
+        "amount": "50000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 976,
+        "amount": "1096.72",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1365,
+        "amount": "309.73",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 989,
+        "amount": "3932.10",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1385,
+        "amount": "1201.54",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 959,
+        "amount": "406.97",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1377,
+        "amount": "1375.33",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1371,
+        "amount": "210.59",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1426,
+        "amount": "10000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1427,
+        "amount": "5000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1425,
+        "amount": "1000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 986,
+        "amount": "2610.61",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 992,
+        "amount": "6169.30",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1156,
+        "amount": "693.44",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 962,
+        "amount": "10818.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 994,
+        "amount": "10054.50",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1338,
+        "amount": "2546.18",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 975,
+        "amount": "1812.07",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 947,
+        "amount": "15941.03",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1353,
+        "amount": "12243.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 968,
+        "amount": "1632.50",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1364,
+        "amount": "521.80",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 951,
+        "amount": "14539.15",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1422,
+        "amount": "5000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 988,
+        "amount": "4155.54",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1340,
+        "amount": "3822.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1424,
+        "amount": "3500.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1349,
+        "amount": "2965.41",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1384,
+        "amount": "2955.56",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1421,
+        "amount": "2000.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1423,
+        "amount": "1500.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1420,
+        "amount": "1500.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 941,
+        "amount": "1197.54",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 958,
+        "amount": "371.21",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1150,
+        "amount": "7101.50",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1376,
+        "amount": "2406.40",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 955,
+        "amount": "1995.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1370,
+        "amount": "452.66",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 945,
+        "amount": "13265.17",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1146,
+        "amount": "22635.90",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1351,
+        "amount": "11296.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1158,
+        "amount": "9767.50",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 972,
+        "amount": "8816.50",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1186,
+        "amount": "7833.50",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1346,
+        "amount": "2520.00",
+        "amount_valid": true,
+        "validation_error": null
+      },
+      {
+        "payment_id": 1168,
+        "amount": "1409.50",
+        "amount_valid": true,
+        "validation_error": null
+      }
+    ]
+  },
+  "file_security": {
+    "valid_files": [
+      {
+        "file_type": "JPEG image",
+        "validation_passed": false,
+        "error": "[\"File validation error: 'EnhancedFileSecurityValidator' object has no attribute '_validate_mime_type_enhanced'\"]"
+      },
+      {
+        "file_type": "PDF document",
+        "validation_passed": false,
+        "error": "[\"File validation error: 'EnhancedFileSecurityValidator' object has no attribute '_validate_mime_type_enhanced'\"]"
+      }
+    ],
+    "malicious_files": [
+      {
+        "attack_type": "Executable disguised as image",
+        "filename": "malicious.jpg",
+        "detected": true,
+        "error": "[\"Enhanced signature validation failed for extension '.jpg'. File may be corrupted or disguised.\"]"
+      },
+      {
+        "attack_type": "Script injection in text file",
+        "filename": "script.txt",
+        "detected": true,
+        "error": "[\"File validation error: 'EnhancedFileSecurityValidator' object has no attribute '_validate_mime_type_enhanced'\"]"
+      }
+    ]
+  },
+  "system_validation": {
+    "deal_model": {
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUIDField",
+          "null": false,
+          "blank": false,
+          "max_length": 32,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "deal_id",
+          "type": "CharField",
+          "null": false,
+          "blank": true,
+          "max_length": 50,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "organization",
+          "type": "ForeignKey",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "client",
+          "type": "ForeignKey",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "project",
+          "type": "ForeignKey",
+          "null": true,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "created_by",
+          "type": "ForeignKey",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "updated_by",
+          "type": "ForeignKey",
+          "null": true,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_status",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 50,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "source_type",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 50,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "deal_name",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 255,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "deal_value",
+          "type": "DecimalField",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": 10,
+          "decimal_places": 2
+        },
+        {
+          "name": "currency",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 3,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "deal_date",
+          "type": "DateField",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "due_date",
+          "type": "DateField",
+          "null": true,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_method",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 100,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "deal_remarks",
+          "type": "TextField",
+          "null": true,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "verification_status",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 100,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "client_status",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 100,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "version",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 10,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "created_at",
+          "type": "DateTimeField",
+          "null": false,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "updated_at",
+          "type": "DateTimeField",
+          "null": false,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_count",
+          "type": "IntegerField",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "lock_version",
+          "type": "PositiveIntegerField",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        }
+      ],
+      "has_financial_validation": true,
+      "has_state_machine": true,
+      "has_optimistic_locking": true
+    },
+    "payment_model": {
+      "fields": [
+        {
+          "name": "id",
+          "type": "BigAutoField",
+          "null": false,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "transaction_id",
+          "type": "CharField",
+          "null": true,
+          "blank": true,
+          "max_length": 100,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "deal",
+          "type": "ForeignKey",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_date",
+          "type": "DateField",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "receipt_file",
+          "type": "FileField",
+          "null": true,
+          "blank": true,
+          "max_length": 100,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_remarks",
+          "type": "TextField",
+          "null": true,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "received_amount",
+          "type": "DecimalField",
+          "null": false,
+          "blank": false,
+          "max_length": null,
+          "max_digits": 15,
+          "decimal_places": 2
+        },
+        {
+          "name": "cheque_number",
+          "type": "CharField",
+          "null": true,
+          "blank": true,
+          "max_length": 50,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_type",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 50,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "payment_category",
+          "type": "CharField",
+          "null": false,
+          "blank": false,
+          "max_length": 50,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "created_at",
+          "type": "DateTimeField",
+          "null": false,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        },
+        {
+          "name": "updated_at",
+          "type": "DateTimeField",
+          "null": false,
+          "blank": true,
+          "max_length": null,
+          "max_digits": null,
+          "decimal_places": null
+        }
+      ],
+      "has_financial_validation": true,
+      "has_file_security": true,
+      "has_transaction_id": true
+    },
+    "relationships": {
+      "payment_to_deal": true,
+      "payment_invoice_exists": true,
+      "payment_approval_exists": true,
+      "one_to_one_invoice": true,
+      "many_to_many_approvals": true
+    }
+  },
+  "summary": {
+    "analysis_timestamp": "2025-08-16T17:20:00.796904",
+    "total_tests": 17,
+    "passed_tests": 13,
+    "failed_tests": 4,
+    "success_rate": 76.47058823529412,
+    "recommendations": [
+      "Review decimal precision validation - some test cases failed"
+    ],
+    "critical_issues": true,
+    "overall_status": "FAIL"
+  }
+}

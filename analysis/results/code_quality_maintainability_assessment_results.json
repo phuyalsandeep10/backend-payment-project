@@ -1,0 +1,3454 @@
+{
+  "timestamp": "2025-08-17T03:52:12.820217",
+  "code_organization": {
+    "app_structure": {
+      "core_config": {
+        "files_present": [
+          "test_middleware_basic.py",
+          "cached_api_urls.py",
+          "security_dashboard_views.py",
+          "database_urls.py",
+          "database_optimizer.py",
+          "test_global_exception_handler.py",
+          "cache_tasks.py",
+          "security_monitoring.py",
+          "token_middleware.py",
+          "security_event_service.py",
+          "models.py",
+          "api_response_optimizer.py",
+          "cached_api_views.py",
+          "asgi.py",
+          "query_performance_middleware.py",
+          "security.py",
+          "test_response_monitoring.py",
+          "performance_monitor.py",
+          "emergency_templates.py",
+          "test_middleware_simple.py",
+          "database_performance_middleware.py",
+          "content_rendering_middleware.py",
+          "validation_schemas.py",
+          "apps.py",
+          "malware_scanner.py",
+          "test_response_rendering_middleware.py",
+          "error_handling.py",
+          "alerting_urls.py",
+          "security_urls.py",
+          "response_monitoring_views.py",
+          "background_task_processor.py",
+          "security_views.py",
+          "alerting_system.py",
+          "file_security.py",
+          "validation_middleware.py",
+          "routing.py",
+          "alerting_views.py",
+          "database_dashboard_views.py",
+          "input_validation_service.py",
+          "celery.py",
+          "content_not_rendered_monitor.py",
+          "audit_service.py",
+          "settings.py",
+          "monitoring_views.py",
+          "test_middleware_error_handling_unit.py",
+          "response_processing_monitor.py",
+          "strategic_cache_manager.py",
+          "enhanced_middleware_error_handling.py",
+          "error_response.py",
+          "env_validation.py",
+          "background_task_urls.py",
+          "enhanced_file_upload_views.py",
+          "urls.py",
+          "emergency_response_system.py",
+          "test_exception_handler_simple.py",
+          "test_background_tasks.py",
+          "test_enhanced_middleware_error_handling.py",
+          "error_sanitization_middleware.py",
+          "background_task_views.py",
+          "global_exception_handler.py",
+          "enhanced_file_upload_urls.py",
+          "monitoring_urls.py",
+          "middleware.py",
+          "test_middleware_error_handling_simple.py",
+          "response_rendering_middleware.py",
+          "automated_business_processes.py",
+          "enhanced_file_security.py",
+          "response_monitoring_urls.py",
+          "emergency_middleware.py",
+          "wsgi.py",
+          "decorators.py",
+          "migrations/0001_initial.py",
+          "management/commands/test_secure_token_manager.py",
+          "management/commands/optimize_database.py",
+          "management/commands/check_response_processing.py",
+          "management/commands/manage_cache.py",
+          "management/commands/manage_emergency_system.py",
+          "management/commands/manage_monitoring.py",
+          "management/commands/manage_background_tasks.py"
+        ],
+        "missing_standard_files": [
+          "views.py",
+          "serializers.py",
+          "admin.py"
+        ],
+        "custom_files": [
+          "database_optimizer.py",
+          "cache_tasks.py",
+          "security_monitoring.py",
+          "token_middleware.py",
+          "security_event_service.py",
+          "api_response_optimizer.py",
+          "asgi.py",
+          "query_performance_middleware.py",
+          "security.py",
+          "performance_monitor.py",
+          "emergency_templates.py",
+          "database_performance_middleware.py",
+          "content_rendering_middleware.py",
+          "validation_schemas.py",
+          "malware_scanner.py",
+          "error_handling.py",
+          "background_task_processor.py",
+          "alerting_system.py",
+          "file_security.py",
+          "validation_middleware.py",
+          "routing.py",
+          "input_validation_service.py",
+          "celery.py",
+          "content_not_rendered_monitor.py",
+          "audit_service.py",
+          "settings.py",
+          "response_processing_monitor.py",
+          "strategic_cache_manager.py",
+          "enhanced_middleware_error_handling.py",
+          "error_response.py",
+          "env_validation.py",
+          "emergency_response_system.py",
+          "error_sanitization_middleware.py",
+          "global_exception_handler.py",
+          "middleware.py",
+          "response_rendering_middleware.py",
+          "automated_business_processes.py",
+          "enhanced_file_security.py",
+          "emergency_middleware.py",
+          "wsgi.py",
+          "decorators.py",
+          "management/commands/test_secure_token_manager.py",
+          "management/commands/optimize_database.py",
+          "management/commands/check_response_processing.py",
+          "management/commands/manage_cache.py",
+          "management/commands/manage_emergency_system.py",
+          "management/commands/manage_monitoring.py",
+          "management/commands/manage_background_tasks.py"
+        ],
+        "complexity_score": 290.03999999999996,
+        "lines_of_code": 21104
+      },
+      "authentication": {
+        "files_present": [
+          "verify_decorators.py",
+          "audit_authentication_views.py",
+          "signals.py",
+          "response_validators.py",
+          "response_validation_logger.py",
+          "tasks.py",
+          "password_policy.py",
+          "test_actual_responses.py",
+          "dashboard_urls.py",
+          "models.py",
+          "test_response_decorator_integration.py",
+          "serializers.py",
+          "notification_urls.py",
+          "apps.py",
+          "user_org_optimizer.py",
+          "admin.py",
+          "utils.py",
+          "permissions.py",
+          "user_urls.py",
+          "pagination.py",
+          "urls.py",
+          "test_response_validation.py",
+          "filters.py",
+          "views.py",
+          "password_views.py",
+          "verify_response_decorators.py",
+          "migrations/0002_initial.py",
+          "migrations/0010_add_password_management.py",
+          "migrations/0006_add_secure_user_session.py",
+          "migrations/0009_optimize_organization_indexes.py",
+          "migrations/0007_add_secure_user_session.py",
+          "migrations/0003_initial.py",
+          "migrations/0008_add_otp_token_model.py",
+          "migrations/0004_alter_user_organization_alter_user_role.py",
+          "migrations/0011_user_authenticat_is_acti_b52e8b_idx_and_more.py",
+          "migrations/0005_alter_user_options_alter_userprofile_profile_picture_and_more.py",
+          "migrations/0001_initial.py",
+          "tests/test_response_types.py",
+          "management/commands/setup_superadmin.py",
+          "management/commands/update_superadmin_email.py",
+          "management/commands/setup_permissions.py",
+          "management/commands/create_super_admin.py",
+          "management/commands/generate_dashboard_data.py",
+          "management/commands/fix_migration_conflicts.py",
+          "management/commands/create_all_permissions.py",
+          "management/commands/cleanup_permissions.py",
+          "management/commands/reset_permissions.py",
+          "management/commands/reassign_demo_data.py",
+          "management/commands/reset_db_for_deployment.py",
+          "management/commands/upgrade_to_superadmin.py",
+          "management/commands/seed_demo_data.py",
+          "management/commands/fix_salesperson_permissions.py",
+          "management/commands/nuclear_reset_db.py",
+          "management/commands/create_additional_superadmin.py",
+          "management/commands/fix_deployment_permissions.py",
+          "management/commands/assign_role_permissions.py",
+          "management/commands/analyze_org_queries.py",
+          "management/commands/create_deal_permissions.py",
+          "management/commands/check_password_expiration.py",
+          "management/commands/get_api_url.py",
+          "management/commands/check_response_validation.py",
+          "management/commands/initialize_app.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "verify_decorators.py",
+          "signals.py",
+          "response_validators.py",
+          "response_validation_logger.py",
+          "tasks.py",
+          "password_policy.py",
+          "user_org_optimizer.py",
+          "utils.py",
+          "permissions.py",
+          "pagination.py",
+          "filters.py",
+          "verify_response_decorators.py",
+          "tests/test_response_types.py",
+          "management/commands/update_superadmin_email.py",
+          "management/commands/setup_permissions.py",
+          "management/commands/generate_dashboard_data.py",
+          "management/commands/fix_migration_conflicts.py",
+          "management/commands/create_all_permissions.py",
+          "management/commands/cleanup_permissions.py",
+          "management/commands/reset_permissions.py",
+          "management/commands/reassign_demo_data.py",
+          "management/commands/reset_db_for_deployment.py",
+          "management/commands/seed_demo_data.py",
+          "management/commands/fix_salesperson_permissions.py",
+          "management/commands/nuclear_reset_db.py",
+          "management/commands/fix_deployment_permissions.py",
+          "management/commands/assign_role_permissions.py",
+          "management/commands/analyze_org_queries.py",
+          "management/commands/create_deal_permissions.py",
+          "management/commands/check_password_expiration.py",
+          "management/commands/get_api_url.py",
+          "management/commands/check_response_validation.py",
+          "management/commands/initialize_app.py"
+        ],
+        "complexity_score": 146.05,
+        "lines_of_code": 8405
+      },
+      "clients": {
+        "files_present": [
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0002_alter_client_client_name_alter_client_email_and_more.py",
+          "migrations/0001_initial.py",
+          "management/commands/seed_clients.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "permissions.py",
+          "management/commands/seed_clients.py"
+        ],
+        "complexity_score": 15.190000000000001,
+        "lines_of_code": 519
+      },
+      "organization": {
+        "files_present": [
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0001_initial.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "permissions.py"
+        ],
+        "complexity_score": 11.29,
+        "lines_of_code": 329
+      },
+      "permissions": {
+        "files_present": [
+          "signals.py",
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "utils.py",
+          "permissions.py",
+          "cache_service.py",
+          "urls.py",
+          "views.py",
+          "migrations/0001_initial.py",
+          "management/commands/create_default_roles.py",
+          "management/commands/assign_role_permissions.py",
+          "management/commands/manage_role_cache.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "signals.py",
+          "utils.py",
+          "permissions.py",
+          "cache_service.py",
+          "management/commands/create_default_roles.py",
+          "management/commands/assign_role_permissions.py",
+          "management/commands/manage_role_cache.py"
+        ],
+        "complexity_score": 24.86,
+        "lines_of_code": 1086
+      },
+      "commission": {
+        "files_present": [
+          "calculation_optimizer.py",
+          "tasks.py",
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0002_alter_commission_options_and_more.py",
+          "migrations/0003_commission_lock_version.py",
+          "migrations/0001_initial.py",
+          "management/commands/cleanup_duplicate_commissions.py",
+          "management/commands/optimize_commissions.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "calculation_optimizer.py",
+          "tasks.py",
+          "permissions.py",
+          "management/commands/cleanup_duplicate_commissions.py",
+          "management/commands/optimize_commissions.py"
+        ],
+        "complexity_score": 39.260000000000005,
+        "lines_of_code": 2526
+      },
+      "team": {
+        "files_present": [
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0001_initial.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "permissions.py"
+        ],
+        "complexity_score": 10.56,
+        "lines_of_code": 256
+      },
+      "project": {
+        "files_present": [
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0001_initial.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "permissions.py"
+        ],
+        "complexity_score": 9.8,
+        "lines_of_code": 180
+      },
+      "deals": {
+        "files_present": [
+          "signals.py",
+          "atomic_views.py",
+          "business_logic_tasks.py",
+          "models.py",
+          "workflow_automation.py",
+          "financial_optimizer.py",
+          "validators.py",
+          "serializers.py",
+          "query_optimizer.py",
+          "enhanced_workflow_optimizer.py",
+          "atomic_operations.py",
+          "atomic_urls.py",
+          "apps.py",
+          "business_logic_urls.py",
+          "admin.py",
+          "workflow_views.py",
+          "permissions.py",
+          "optimized_views.py",
+          "urls.py",
+          "views.py",
+          "business_logic_views.py",
+          "migrations/0002_add_payment_count.py",
+          "migrations/0003_alter_deal_options_alter_payment_options_and_more.py",
+          "migrations/0004_alter_deal_deal_id_alter_paymentinvoice_receipt_file_and_more.py",
+          "migrations/0006_deal_lock_version.py",
+          "migrations/0005_optimize_deal_indexes.py",
+          "migrations/0001_initial.py",
+          "management/commands/workflow_maintenance.py",
+          "management/commands/optimize_business_logic.py",
+          "management/commands/seed_deals_data.py",
+          "management/commands/analyze_deal_performance.py",
+          "management/commands/optimize_financial_fields.py",
+          "management/commands/test_atomic_operations.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "signals.py",
+          "business_logic_tasks.py",
+          "workflow_automation.py",
+          "financial_optimizer.py",
+          "validators.py",
+          "query_optimizer.py",
+          "enhanced_workflow_optimizer.py",
+          "atomic_operations.py",
+          "permissions.py",
+          "management/commands/workflow_maintenance.py",
+          "management/commands/optimize_business_logic.py",
+          "management/commands/seed_deals_data.py",
+          "management/commands/analyze_deal_performance.py",
+          "management/commands/optimize_financial_fields.py",
+          "management/commands/test_atomic_operations.py"
+        ],
+        "complexity_score": 109.01,
+        "lines_of_code": 7601
+      },
+      "notifications": {
+        "files_present": [
+          "signals.py",
+          "group_utils.py",
+          "services.py",
+          "models.py",
+          "serializers.py",
+          "consumers.py",
+          "apps.py",
+          "admin.py",
+          "urls.py",
+          "views.py",
+          "migrations/0003_add_notification_types.py",
+          "migrations/0004_alter_notificationtemplate_notification_type.py",
+          "migrations/0001_initial.py",
+          "management/commands/setup_notification_templates.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "signals.py",
+          "group_utils.py",
+          "services.py",
+          "consumers.py",
+          "management/commands/setup_notification_templates.py"
+        ],
+        "complexity_score": 34.72,
+        "lines_of_code": 2072
+      },
+      "Sales_dashboard": {
+        "files_present": [
+          "signals.py",
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "utils.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0002_initial.py",
+          "migrations/0001_initial.py",
+          "management/commands/calculate_streaks.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "signals.py",
+          "utils.py",
+          "permissions.py",
+          "management/commands/calculate_streaks.py"
+        ],
+        "complexity_score": 27.560000000000002,
+        "lines_of_code": 1556
+      },
+      "Verifier_dashboard": {
+        "files_present": [
+          "models.py",
+          "serializers.py",
+          "apps.py",
+          "admin.py",
+          "permissions.py",
+          "urls.py",
+          "views.py",
+          "migrations/0002_initial.py",
+          "migrations/0001_initial.py"
+        ],
+        "missing_standard_files": [],
+        "custom_files": [
+          "permissions.py"
+        ],
+        "complexity_score": 18.17,
+        "lines_of_code": 917
+      }
+    },
+    "file_organization": {
+      "naming_conventions": {
+        "snake_case_files": 216,
+        "camel_case_files": 0,
+        "total_files": 319
+      },
+      "directory_structure": {},
+      "file_size_distribution": {}
+    },
+    "separation_of_concerns": {
+      "business_logic_separation": {
+        "organization": {
+          "has_business_logic": false,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 185
+        },
+        "clients": {
+          "has_business_logic": false,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 98
+        },
+        "commission": {
+          "has_business_logic": true,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 868
+        },
+        "deals": {
+          "has_business_logic": true,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 397
+        },
+        "Sales_dashboard": {
+          "has_business_logic": true,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 1137
+        },
+        "permissions": {
+          "has_business_logic": false,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 373
+        },
+        "project": {
+          "has_business_logic": false,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 67
+        },
+        "team": {
+          "has_business_logic": false,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 77
+        },
+        "Verifier_dashboard": {
+          "has_business_logic": true,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 775
+        },
+        "authentication": {
+          "has_business_logic": true,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 1166
+        },
+        "notifications": {
+          "has_business_logic": false,
+          "uses_serializers": true,
+          "has_permissions": true,
+          "line_count": 369
+        }
+      },
+      "data_access_patterns": {},
+      "presentation_layer_separation": {}
+    },
+    "code_complexity": {}
+  },
+  "model_relationships": {
+    "foreign_key_relationships": {
+      "authentication.User": {
+        "foreign_keys": [
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "role",
+            "related_model": "permissions.Role",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "team",
+            "related_model": "team.Team",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [
+          {
+            "field_name": "groups",
+            "related_model": "auth.Group"
+          },
+          {
+            "field_name": "user_permissions",
+            "related_model": "auth.Permission"
+          }
+        ],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "logentry_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "auth_token",
+            "related_model": "authentication.User",
+            "relationship_type": "OneToOneRel"
+          },
+          {
+            "accessor_name": "securityevent_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "audittrail_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "assigned_security_alerts",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "securityalert_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToManyRel"
+          },
+          {
+            "accessor_name": "compliancereport_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "usersession_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "secure_sessions",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "security_events",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "investigated_events",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "otp_tokens",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "password_history",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "password_expiration",
+            "related_model": "authentication.User",
+            "relationship_type": "OneToOneRel"
+          },
+          {
+            "accessor_name": "profile",
+            "related_model": "authentication.User",
+            "relationship_type": "OneToOneRel"
+          },
+          {
+            "accessor_name": "clients_created",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "clients_updated",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "created_organizations",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "commissions",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "created_commissions",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "updated_commissions",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "led_teams",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "created_teams",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "updated_teams",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "teams",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToManyRel"
+          },
+          {
+            "accessor_name": "created_projects",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "created_deals",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "updated_deals",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "payment_approvals",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "notifications",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "notification_settings",
+            "related_model": "authentication.User",
+            "relationship_type": "OneToOneRel"
+          },
+          {
+            "accessor_name": "created_notification_templates",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "updated_notification_templates",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "streak_records",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "auditlogs_set",
+            "related_model": "authentication.User",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "authentication.UserSession": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "authentication.SecureUserSession": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "authentication.SecurityEvent": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "investigated_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "authentication.OTPToken": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "authentication.PasswordHistory": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "authentication.PasswordExpiration": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "authentication.UserProfile": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "clients.Client": {
+        "foreign_keys": [
+          {
+            "field_name": "created_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "updated_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "deals",
+            "related_model": "clients.Client",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "organization.Organization": {
+        "foreign_keys": [
+          {
+            "field_name": "created_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "users",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "clients",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "roles",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "commissions",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "teams",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "deals",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "notification_set",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "audit_logs",
+            "related_model": "organization.Organization",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "permissions.Role": {
+        "foreign_keys": [
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [
+          {
+            "field_name": "permissions",
+            "related_model": "auth.Permission"
+          }
+        ],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "users",
+            "related_model": "permissions.Role",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "commission.Commission": {
+        "foreign_keys": [
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "created_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "updated_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "team.Team": {
+        "foreign_keys": [
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "team_lead",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "created_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "updated_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [
+          {
+            "field_name": "members",
+            "related_model": "authentication.User"
+          },
+          {
+            "field_name": "projects",
+            "related_model": "project.Project"
+          }
+        ],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "assigned_users",
+            "related_model": "team.Team",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "deals.Deal": {
+        "foreign_keys": [
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "client",
+            "related_model": "clients.Client",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "project",
+            "related_model": "project.Project",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "created_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "updated_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "payments",
+            "related_model": "deals.Deal",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "activity_logs",
+            "related_model": "deals.Deal",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "invoices",
+            "related_model": "deals.Deal",
+            "relationship_type": "ManyToOneRel"
+          },
+          {
+            "accessor_name": "approvals",
+            "related_model": "deals.Deal",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "deals.Payment": {
+        "foreign_keys": [
+          {
+            "field_name": "deal",
+            "related_model": "deals.Deal",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "invoice",
+            "related_model": "deals.Payment",
+            "relationship_type": "OneToOneRel"
+          },
+          {
+            "accessor_name": "approvals",
+            "related_model": "deals.Payment",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "deals.ActivityLog": {
+        "foreign_keys": [
+          {
+            "field_name": "deal",
+            "related_model": "deals.Deal",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "deals.PaymentInvoice": {
+        "foreign_keys": [
+          {
+            "field_name": "payment",
+            "related_model": "deals.Payment",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "deal",
+            "related_model": "deals.Deal",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": [
+          {
+            "accessor_name": "approvals",
+            "related_model": "deals.PaymentInvoice",
+            "relationship_type": "ManyToOneRel"
+          }
+        ]
+      },
+      "deals.PaymentApproval": {
+        "foreign_keys": [
+          {
+            "field_name": "deal",
+            "related_model": "deals.Deal",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "payment",
+            "related_model": "deals.Payment",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "invoice",
+            "related_model": "deals.PaymentInvoice",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "approved_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "notifications.Notification": {
+        "foreign_keys": [
+          {
+            "field_name": "recipient",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "organization",
+            "related_model": "organization.Organization",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "notifications.NotificationSettings": {
+        "foreign_keys": [
+          {
+            "field_name": "user",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      },
+      "notifications.NotificationTemplate": {
+        "foreign_keys": [
+          {
+            "field_name": "created_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          },
+          {
+            "field_name": "updated_by",
+            "related_model": "authentication.User",
+            "on_delete": "CASCADE"
+          }
+        ],
+        "many_to_many": [],
+        "one_to_one": [],
+        "reverse_relationships": []
+      }
+    },
+    "cascade_behaviors": {
+      "authentication.User": {
+        "cascade_deletes": [
+          "organization",
+          "role",
+          "team"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": []
+      },
+      "authentication.UserSession": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "authentication.SecureUserSession": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "authentication.SecurityEvent": {
+        "cascade_deletes": [
+          "user",
+          "investigated_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": []
+      },
+      "authentication.OTPToken": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "authentication.PasswordHistory": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "authentication.PasswordExpiration": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "authentication.UserProfile": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "clients.Client": {
+        "cascade_deletes": [
+          "created_by",
+          "updated_by",
+          "organization"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "created_by",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          },
+          {
+            "field": "organization",
+            "risk": "CASCADE delete without null option",
+            "related_model": "organization.Organization"
+          }
+        ]
+      },
+      "organization.Organization": {
+        "cascade_deletes": [
+          "created_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": []
+      },
+      "permissions.Role": {
+        "cascade_deletes": [
+          "organization"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": []
+      },
+      "commission.Commission": {
+        "cascade_deletes": [
+          "organization",
+          "user",
+          "created_by",
+          "updated_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "organization",
+            "risk": "CASCADE delete without null option",
+            "related_model": "organization.Organization"
+          },
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "team.Team": {
+        "cascade_deletes": [
+          "organization",
+          "team_lead",
+          "created_by",
+          "updated_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "organization",
+            "risk": "CASCADE delete without null option",
+            "related_model": "organization.Organization"
+          }
+        ]
+      },
+      "deals.Deal": {
+        "cascade_deletes": [
+          "organization",
+          "client",
+          "project",
+          "created_by",
+          "updated_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "organization",
+            "risk": "CASCADE delete without null option",
+            "related_model": "organization.Organization"
+          },
+          {
+            "field": "client",
+            "risk": "CASCADE delete without null option",
+            "related_model": "clients.Client"
+          },
+          {
+            "field": "created_by",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "deals.Payment": {
+        "cascade_deletes": [
+          "deal"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "deal",
+            "risk": "CASCADE delete without null option",
+            "related_model": "deals.Deal"
+          }
+        ]
+      },
+      "deals.ActivityLog": {
+        "cascade_deletes": [
+          "deal"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "deal",
+            "risk": "CASCADE delete without null option",
+            "related_model": "deals.Deal"
+          }
+        ]
+      },
+      "deals.PaymentInvoice": {
+        "cascade_deletes": [
+          "payment",
+          "deal"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "payment",
+            "risk": "CASCADE delete without null option",
+            "related_model": "deals.Payment"
+          },
+          {
+            "field": "deal",
+            "risk": "CASCADE delete without null option",
+            "related_model": "deals.Deal"
+          }
+        ]
+      },
+      "deals.PaymentApproval": {
+        "cascade_deletes": [
+          "deal",
+          "payment",
+          "invoice",
+          "approved_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "payment",
+            "risk": "CASCADE delete without null option",
+            "related_model": "deals.Payment"
+          },
+          {
+            "field": "approved_by",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "notifications.Notification": {
+        "cascade_deletes": [
+          "recipient",
+          "organization"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "recipient",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "notifications.NotificationSettings": {
+        "cascade_deletes": [
+          "user"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": [
+          {
+            "field": "user",
+            "risk": "CASCADE delete without null option",
+            "related_model": "authentication.User"
+          }
+        ]
+      },
+      "notifications.NotificationTemplate": {
+        "cascade_deletes": [
+          "created_by",
+          "updated_by"
+        ],
+        "protect_relationships": [],
+        "set_null_relationships": [],
+        "potential_data_loss_risks": []
+      }
+    },
+    "relationship_complexity": {
+      "total_relationships": 47,
+      "models_with_high_coupling": [
+        {
+          "model": "team.Team",
+          "relationship_count": 6
+        }
+      ],
+      "circular_dependency_risk": []
+    },
+    "potential_issues": []
+  },
+  "serializer_analysis": {
+    "serializer_files": {
+      "organization": {
+        "serializer_classes": [
+          "OrganizationSerializer",
+          "OrganizationRegistrationSerializer",
+          "OrganizationWithAdminSerializer"
+        ],
+        "validation_methods": [
+          "validate_name",
+          "validate_admin_email",
+          "validate_admin_email"
+        ],
+        "custom_fields": [],
+        "line_count": 106,
+        "complexity_indicators": {
+          "has_custom_validation": true,
+          "uses_method_fields": true,
+          "has_nested_serializers": false,
+          "uses_write_methods": true
+        }
+      },
+      "clients": {
+        "serializer_classes": [
+          "ProjectNameSerializer",
+          "ClientSerializer",
+          "ClientLiteSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 42,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": false,
+          "has_nested_serializers": false,
+          "uses_write_methods": false
+        }
+      },
+      "commission": {
+        "serializer_classes": [
+          "CommissionSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 169,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": true,
+          "has_nested_serializers": true,
+          "uses_write_methods": true
+        }
+      },
+      "deals": {
+        "serializer_classes": [
+          "ActivityLogSerializer",
+          "PaymentSerializer",
+          "NestedPaymentSerializer",
+          "DealSerializer",
+          "DealPaymentHistorySerializer",
+          "DealExpandedViewSerializer",
+          "DealUpdateSerializer",
+          "PaymentInvoiceSerializer",
+          "PaymentApprovalSerializer"
+        ],
+        "validation_methods": [
+          "validate",
+          "validate_cheque_number",
+          "validate"
+        ],
+        "custom_fields": [],
+        "line_count": 877,
+        "complexity_indicators": {
+          "has_custom_validation": true,
+          "uses_method_fields": true,
+          "has_nested_serializers": true,
+          "uses_write_methods": true
+        }
+      },
+      "Sales_dashboard": {
+        "serializer_classes": [
+          "OutstandingDealSerializer",
+          "DashboardResponseSerializer",
+          "DashboardQuerySerializer",
+          "StreakInfoResponseSerializer",
+          "StreakRecalculationRequestSerializer",
+          "StreakRecalculationResponseSerializer",
+          "LeaderboardEntrySerializer",
+          "StreakLeaderboardResponseSerializer",
+          "LeaderboardQuerySerializer",
+          "StandingsQuerySerializer",
+          "IndividualStandingSerializer",
+          "TeamStandingSerializer",
+          "StandingsResponseSerializer",
+          "CommissionQuerySerializer",
+          "TopClientSerializer",
+          "CompanyGoalChartSerializer",
+          "CommissionOverviewResponseSerializer",
+          "ClientStatusQuerySerializer",
+          "ClientStatusSerializer",
+          "ClientListResponseSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 348,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": false,
+          "has_nested_serializers": false,
+          "uses_write_methods": false
+        }
+      },
+      "permissions": {
+        "serializer_classes": [
+          "PermissionSerializer",
+          "RoleSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 25,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": false,
+          "has_nested_serializers": false,
+          "uses_write_methods": false
+        }
+      },
+      "project": {
+        "serializer_classes": [
+          "ProjectSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 8,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": false,
+          "has_nested_serializers": false,
+          "uses_write_methods": false
+        }
+      },
+      "team": {
+        "serializer_classes": [
+          "TeamSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 44,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": false,
+          "has_nested_serializers": true,
+          "uses_write_methods": false
+        }
+      },
+      "Verifier_dashboard": {
+        "serializer_classes": [
+          "PaymentStatusSerializer",
+          "VerifierInvoiceSerializer",
+          "VerifierDealSerializer",
+          "PaymentFailureReasonSerializer",
+          "PaymentMethodSerializer",
+          "Refund_or_BadDebtSerializer",
+          "InvoiceStatusSerializer",
+          "AuditLogSerializer",
+          "PaymentApprovalSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 123,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": true,
+          "has_nested_serializers": false,
+          "uses_write_methods": false
+        }
+      },
+      "authentication": {
+        "serializer_classes": [
+          "UserLiteSerializer",
+          "UserProfileSerializer",
+          "UserSerializer",
+          "UserCreateSerializer",
+          "UserSessionSerializer",
+          "UserLoginSerializer",
+          "UserRegistrationSerializer",
+          "PasswordChangeSerializer",
+          "UserDetailSerializer",
+          "UserUpdateSerializer",
+          "AuthSuccessResponseSerializer",
+          "OTPSerializer",
+          "PasswordResetSerializer",
+          "SuperUserLoginSerializer",
+          "RoleSerializer",
+          "MessageResponseSerializer",
+          "ErrorResponseSerializer"
+        ],
+        "validation_methods": [
+          "validate",
+          "validate",
+          "validate",
+          "validate",
+          "validate",
+          "validate"
+        ],
+        "custom_fields": [],
+        "line_count": 541,
+        "complexity_indicators": {
+          "has_custom_validation": true,
+          "uses_method_fields": true,
+          "has_nested_serializers": true,
+          "uses_write_methods": true
+        }
+      },
+      "notifications": {
+        "serializer_classes": [
+          "NotificationSerializer",
+          "NotificationSettingsSerializer",
+          "NotificationTemplateSerializer",
+          "MarkAsReadSerializer",
+          "NotificationStatsSerializer"
+        ],
+        "validation_methods": [],
+        "custom_fields": [],
+        "line_count": 93,
+        "complexity_indicators": {
+          "has_custom_validation": false,
+          "uses_method_fields": false,
+          "has_nested_serializers": false,
+          "uses_write_methods": false
+        }
+      }
+    },
+    "validation_patterns": {
+      "field_validation": {
+        "organization": 3,
+        "clients": 0,
+        "commission": 0,
+        "deals": 1,
+        "Sales_dashboard": 0,
+        "permissions": 0,
+        "project": 0,
+        "team": 0,
+        "Verifier_dashboard": 0,
+        "authentication": 0,
+        "notifications": 0
+      },
+      "object_validation": {
+        "organization": 0,
+        "clients": 0,
+        "commission": 0,
+        "deals": 2,
+        "Sales_dashboard": 0,
+        "permissions": 0,
+        "project": 0,
+        "team": 0,
+        "Verifier_dashboard": 0,
+        "authentication": 6,
+        "notifications": 0
+      },
+      "custom_validators": []
+    },
+    "data_transformation": {
+      "method_fields": {
+        "organization": 1,
+        "clients": 0,
+        "commission": 3,
+        "deals": 17,
+        "Sales_dashboard": 0,
+        "permissions": 0,
+        "project": 0,
+        "team": 0,
+        "Verifier_dashboard": 1,
+        "authentication": 8,
+        "notifications": 0
+      },
+      "custom_to_representation": {
+        "organization": false,
+        "clients": false,
+        "commission": false,
+        "deals": false,
+        "Sales_dashboard": false,
+        "permissions": false,
+        "project": false,
+        "team": false,
+        "Verifier_dashboard": false,
+        "authentication": true,
+        "notifications": false
+      },
+      "nested_serialization": {
+        "organization": 1,
+        "clients": 3,
+        "commission": 1,
+        "deals": 9,
+        "Sales_dashboard": 0,
+        "permissions": 2,
+        "project": 1,
+        "team": 1,
+        "Verifier_dashboard": 4,
+        "authentication": 9,
+        "notifications": 3
+      }
+    },
+    "best_practices": {}
+  },
+  "testing_coverage": {
+    "test_files": {
+      "test_organization_null_fix.py": {
+        "test_methods": [
+          "test_null_organization_handling"
+        ],
+        "test_classes": [],
+        "line_count": 60,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "django.contrib.auth",
+          "django.http",
+          "core_config.response_rendering_middleware"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_session_methods.py": {
+        "test_methods": [
+          "test_session_methods",
+          "test_otp_methods",
+          "test_security_event_methods"
+        ],
+        "test_classes": [],
+        "line_count": 157,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.conf",
+          "django.utils",
+          "datetime",
+          "authentication.models",
+          "organization.models",
+          "authentication.models",
+          "authentication.models"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_verification_simple.py": {
+        "test_methods": [
+          "test_verification_system"
+        ],
+        "test_classes": [],
+        "line_count": 235,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "django.contrib.auth",
+          "deals.models",
+          "organization.models",
+          "clients.models",
+          "django.db.models.signals",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": true,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_commission_simple_analysis.py": {
+        "test_methods": [
+          "test_financial_calculations",
+          "test_multi_currency_support",
+          "test_exchange_rate_validation",
+          "test_edge_cases",
+          "test_optimistic_locking",
+          "test_precision_handling"
+        ],
+        "test_classes": [],
+        "line_count": 555,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "json",
+          "django.db",
+          "django.core.exceptions",
+          "commission.models",
+          "deals.financial_optimizer",
+          "authentication.models",
+          "organization.models"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_end_to_end_workflow_simple.py": {
+        "test_methods": [
+          "test_complete_sales_workflow",
+          "test_state_machine_transitions",
+          "test_organization_data_isolation",
+          "test_notification_system",
+          "test_dashboard_analytics"
+        ],
+        "test_classes": [],
+        "line_count": 644,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "django.utils",
+          "django.test",
+          "django.db",
+          "django.core.files.uploadedfile",
+          "django.contrib.auth",
+          "django.core.exceptions",
+          "unittest.mock",
+          "json",
+          "tempfile",
+          "PIL",
+          "io",
+          "authentication.models",
+          "organization.models",
+          "permissions.models",
+          "team.models",
+          "clients.models",
+          "deals.models",
+          "commission.models",
+          "notifications.models",
+          "notifications.services",
+          "Verifier_dashboard.models",
+          "uuid",
+          "uuid",
+          "uuid",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_payment_processing_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 946,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "uuid",
+          "tempfile",
+          "io",
+          "decimal",
+          "datetime",
+          "django.core.files.uploadedfile",
+          "django.core.exceptions",
+          "django.db",
+          "django.test",
+          "django.contrib.auth",
+          "deals.models",
+          "deals.financial_optimizer",
+          "deals.atomic_operations",
+          "clients.models",
+          "organization.models",
+          "authentication.models",
+          "core_config.file_security",
+          "json",
+          "PIL",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_client_management_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 796,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "django.core.exceptions",
+          "django.db",
+          "django.contrib.auth",
+          "decimal",
+          "json",
+          "datetime",
+          "clients.models",
+          "organization.models",
+          "permissions.models",
+          "django.contrib.contenttypes.models",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_code_quality_maintainability_assessment.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 822,
+        "imports": [
+          "os",
+          "sys",
+          "json",
+          "ast",
+          "re",
+          "pathlib",
+          "collections",
+          "datetime",
+          "django",
+          "django.apps",
+          "django.db",
+          "django.core.management",
+          "django.test.utils",
+          "django.conf",
+          "rest_framework",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": true,
+          "model_tests": true,
+          "view_tests": true,
+          "serializer_tests": true
+        }
+      },
+      "test_payment_processing_simple.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 578,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "tempfile",
+          "io",
+          "decimal",
+          "datetime",
+          "django.core.files.uploadedfile",
+          "django.core.exceptions",
+          "deals.models",
+          "deals.financial_optimizer",
+          "core_config.file_security",
+          "json",
+          "PIL",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_verification_workflow_states.py": {
+        "test_methods": [
+          "test_verification_workflow_states",
+          "test_signal_behavior"
+        ],
+        "test_classes": [],
+        "line_count": 284,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "django.test",
+          "django.contrib.auth",
+          "django.db",
+          "deals.models",
+          "organization.models",
+          "clients.models",
+          "deals.signals",
+          "django.db.models.signals",
+          "deals.models",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": true,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_caching_performance_optimization_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 716,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "json",
+          "time",
+          "datetime",
+          "typing",
+          "django.core.cache",
+          "django.utils",
+          "django.test",
+          "django.db",
+          "django.contrib.auth.models",
+          "authentication.models",
+          "organization.models",
+          "permissions.models",
+          "permissions.cache_service",
+          "core_config.strategic_cache_manager",
+          "core_config.performance_monitor",
+          "core_config.alerting_system",
+          "core_config.background_task_processor",
+          "deals.models",
+          "clients.models",
+          "core_config.celery",
+          "core_config.background_task_processor",
+          "core_config.performance_monitor",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": true
+        }
+      },
+      "test_commission_calculation_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 1249,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "json",
+          "time",
+          "threading",
+          "concurrent.futures",
+          "django.test",
+          "django.db",
+          "django.core.exceptions",
+          "django.contrib.auth",
+          "django.utils",
+          "commission.models",
+          "commission.calculation_optimizer",
+          "deals.models",
+          "deals.financial_optimizer",
+          "deals.atomic_operations",
+          "authentication.models",
+          "organization.models",
+          "commission.models",
+          "django.db"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_api_design_error_handling_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 1014,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "json",
+          "requests",
+          "datetime",
+          "typing",
+          "dataclasses",
+          "collections",
+          "re",
+          "django.test",
+          "django.urls",
+          "django.conf",
+          "django.contrib.auth",
+          "rest_framework.test",
+          "rest_framework",
+          "rest_framework.response",
+          "django.http",
+          "django.template.response",
+          "authentication.models",
+          "organization.models",
+          "clients.models",
+          "deals.models",
+          "permissions.models",
+          "core_config.error_handling",
+          "core_config.error_response",
+          "time",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": true
+        }
+      },
+      "test_core_authentication_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 779,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.conf",
+          "json",
+          "datetime",
+          "django.test",
+          "django.contrib.auth",
+          "django.utils",
+          "django.db",
+          "django.core.exceptions",
+          "authentication.models",
+          "permissions.models",
+          "organization.models",
+          "authentication.password_policy",
+          "core_config.security_event_service",
+          "authentication.views",
+          "authentication.serializers",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": true
+        }
+      },
+      "test_email_validation.py": {
+        "test_methods": [
+          "test_email_validation"
+        ],
+        "test_classes": [],
+        "line_count": 170,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "authentication.serializers",
+          "authentication.models",
+          "organization.models",
+          "permissions.models",
+          "django.test",
+          "django.contrib.auth"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": true
+        }
+      },
+      "test_verification_approval_analysis.py": {
+        "test_methods": [
+          "test_dashboard_functionality"
+        ],
+        "test_classes": [],
+        "line_count": 691,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "json",
+          "django.test",
+          "django.contrib.auth",
+          "django.core.exceptions",
+          "django.db",
+          "django.urls",
+          "rest_framework.test",
+          "rest_framework",
+          "deals.models",
+          "Verifier_dashboard.models",
+          "organization.models",
+          "clients.models",
+          "permissions.models"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_client_views_analysis.py": {
+        "test_methods": [
+          "test_client_api_functionality",
+          "test_permission_enforcement",
+          "test_serializer_functionality"
+        ],
+        "test_classes": [],
+        "line_count": 262,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "django.contrib.auth",
+          "django.urls",
+          "json",
+          "clients.models",
+          "organization.models",
+          "permissions.models",
+          "django.contrib.contenttypes.models",
+          "clients.views",
+          "clients.serializers"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": true
+        }
+      },
+      "test_end_to_end_workflow_integration.py": {
+        "test_methods": [
+          "test_complete_sales_workflow",
+          "test_data_flow_validation",
+          "test_notification_system_integration",
+          "test_dashboard_analytics_accuracy",
+          "test_file_upload_security",
+          "test_state_machine_transitions",
+          "test_organization_data_isolation",
+          "test_audit_trail_logging",
+          "test_email_integration",
+          "test_api_workflow_integration"
+        ],
+        "test_classes": [],
+        "line_count": 1070,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "django.utils",
+          "django.test",
+          "django.db",
+          "django.core.files.uploadedfile",
+          "django.contrib.auth",
+          "django.core.exceptions",
+          "unittest.mock",
+          "json",
+          "tempfile",
+          "PIL",
+          "io",
+          "authentication.models",
+          "organization.models",
+          "permissions.models",
+          "team.models",
+          "clients.models",
+          "deals.models",
+          "commission.models",
+          "notifications.models",
+          "notifications.services",
+          "Sales_dashboard.models",
+          "Verifier_dashboard.models",
+          "rest_framework.test",
+          "rest_framework",
+          "django.urls",
+          "uuid",
+          "uuid",
+          "uuid",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": true,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_security_validation.py": {
+        "test_methods": [
+          "test_file_upload_security",
+          "test_sql_injection_protection",
+          "test_xss_protection",
+          "test_csrf_protection",
+          "test_security_headers",
+          "test_input_validation"
+        ],
+        "test_classes": [],
+        "line_count": 221,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "tempfile",
+          "io",
+          "django.test",
+          "django.core.files.uploadedfile",
+          "django.contrib.auth",
+          "django.conf",
+          "core_config.file_security",
+          "core_config.input_validation_service"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_deal_workflow_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 1112,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "datetime",
+          "django.utils",
+          "django.test",
+          "django.core.exceptions",
+          "django.db",
+          "deals.models",
+          "deals.workflow_automation",
+          "deals.atomic_operations",
+          "deals.financial_optimizer",
+          "authentication.models",
+          "organization.models",
+          "clients.models",
+          "project.models",
+          "json",
+          "deals.views",
+          "core_config.database_optimizer",
+          "logging",
+          "traceback",
+          "core_config.database_optimizer"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "test_monitoring_endpoints.py": {
+        "test_methods": [
+          "test_monitoring_endpoints"
+        ],
+        "test_classes": [],
+        "line_count": 125,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "json",
+          "core_config.response_processing_monitor",
+          "django.urls",
+          "django.urls.exceptions",
+          "django.conf",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_monitoring_integration.py": {
+        "test_methods": [
+          "test_response_monitoring"
+        ],
+        "test_classes": [],
+        "line_count": 146,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "django.http",
+          "django.template.response",
+          "time",
+          "core_config.response_processing_monitor",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_workflow_minimal.py": {
+        "test_methods": [
+          "test_end_to_end_workflow",
+          "test_dashboard_analytics",
+          "test_security_and_permissions"
+        ],
+        "test_classes": [],
+        "line_count": 438,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "decimal",
+          "django.utils",
+          "unittest.mock",
+          "authentication.models",
+          "organization.models",
+          "permissions.models",
+          "clients.models",
+          "deals.models",
+          "commission.models",
+          "notifications.models",
+          "notifications.services",
+          "uuid",
+          "traceback",
+          "uuid",
+          "uuid"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": true,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "test_security_implementation_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 678,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "json",
+          "re",
+          "tempfile",
+          "datetime",
+          "pathlib",
+          "django.conf",
+          "django.test",
+          "django.contrib.auth",
+          "django.core.files.uploadedfile",
+          "django.db",
+          "django.utils.html",
+          "django.middleware.csrf",
+          "django.test.utils",
+          "django.core.management",
+          "io",
+          "authentication.models",
+          "organization.models",
+          "core_config.file_security",
+          "core_config.malware_scanner",
+          "core_config.input_validation_service",
+          "core_config.validation_middleware",
+          "core_config.security",
+          "django.db",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": true,
+          "view_tests": false,
+          "serializer_tests": true
+        }
+      },
+      "test_database_performance_indexing_analysis.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 1208,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "time",
+          "json",
+          "decimal",
+          "datetime",
+          "contextlib",
+          "typing",
+          "django.db",
+          "django.db.models",
+          "django.core.cache",
+          "django.test",
+          "django.utils",
+          "django.conf",
+          "authentication.models",
+          "deals.models",
+          "clients.models",
+          "commission.models",
+          "organization.models",
+          "permissions.models",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_middleware_basic.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 1,
+        "imports": [],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_global_exception_handler.py": {
+        "test_methods": [
+          "test_content_not_rendered_error",
+          "test_template_response_conversion",
+          "test_response_validation",
+          "test_exception_handler_robustness"
+        ],
+        "test_classes": [],
+        "line_count": 165,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.conf",
+          "django.test",
+          "django.template.response",
+          "django.http",
+          "rest_framework.response",
+          "rest_framework",
+          "core_config.global_exception_handler",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_response_monitoring.py": {
+        "test_methods": [
+          "test_response_type_recording",
+          "test_template_render_recording",
+          "test_content_not_rendered_error_recording",
+          "test_error_recording",
+          "test_performance_metrics",
+          "test_slow_render_detection",
+          "test_decorator_functionality"
+        ],
+        "test_classes": [],
+        "line_count": 224,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "django.http",
+          "django.template.response",
+          "rest_framework.response",
+          "rest_framework",
+          "time",
+          "core_config.response_processing_monitor",
+          "core_config.response_rendering_middleware",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_middleware_simple.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 1,
+        "imports": [],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_response_rendering_middleware.py": {
+        "test_methods": [
+          "TestResponseRenderingMiddleware.test_regular_http_response_passthrough",
+          "TestResponseRenderingMiddleware.test_drf_response_passthrough",
+          "TestResponseRenderingMiddleware.test_template_response_rendering",
+          "TestResponseRenderingMiddleware.test_already_rendered_template_response",
+          "TestResponseRenderingMiddleware.test_template_response_rendering_logs",
+          "TestResponseRenderingMiddleware.test_exception_handling_creates_fallback",
+          "TestResponseRenderingMiddleware.test_fallback_response_creation",
+          "TestResponseTypeValidationMiddleware.test_api_endpoint_response_logging",
+          "TestResponseTypeValidationMiddleware.test_non_api_endpoint_no_logging",
+          "TestResponseTypeValidationMiddleware.test_unrendered_template_response_warning",
+          "TestContentAccessProtectionMiddleware.test_normal_response_content_access",
+          "TestContentAccessProtectionMiddleware.test_content_access_error_handling",
+          "TestContentAccessProtectionMiddleware.test_template_response_rendering_on_content_error",
+          "test_regular_http_response_passthrough",
+          "test_drf_response_passthrough",
+          "test_template_response_rendering",
+          "test_already_rendered_template_response",
+          "test_template_response_rendering_logs",
+          "test_exception_handling_creates_fallback",
+          "test_fallback_response_creation",
+          "test_api_endpoint_response_logging",
+          "test_non_api_endpoint_no_logging",
+          "test_unrendered_template_response_warning",
+          "test_normal_response_content_access",
+          "test_content_access_error_handling",
+          "test_template_response_rendering_on_content_error"
+        ],
+        "test_classes": [
+          "TestResponseRenderingMiddleware",
+          "TestResponseTypeValidationMiddleware",
+          "TestContentAccessProtectionMiddleware"
+        ],
+        "line_count": 270,
+        "imports": [
+          "pytest",
+          "unittest.mock",
+          "django.test",
+          "django.http",
+          "django.template.response",
+          "django.template",
+          "rest_framework.response",
+          "rest_framework",
+          "response_rendering_middleware"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_middleware_error_handling_unit.py": {
+        "test_methods": [
+          "TestMiddlewareErrorHandling.test_content_not_rendered_error_detection",
+          "TestMiddlewareErrorHandling.test_attribute_error_handling",
+          "TestMiddlewareErrorHandling.test_generic_error_handling",
+          "TestMiddlewareErrorHandling.test_api_vs_non_api_response_handling",
+          "TestMiddlewareErrorHandling.test_error_logging_without_sensitive_data",
+          "TestMiddlewareErrorHandling.test_graceful_degradation",
+          "TestMiddlewareErrorHandling.test_error_context_preservation",
+          "TestMiddlewareErrorHandling.test_middleware_chain_resilience",
+          "TestMiddlewareErrorHandling.test_rate_limiting_error_handling",
+          "TestMiddlewareErrorHandling.test_security_monitoring_error_handling",
+          "TestMiddlewareErrorHandlingIntegration.test_complete_error_handling_flow",
+          "TestMiddlewareErrorHandlingIntegration.test_error_recovery_mechanisms",
+          "test_content_not_rendered_error_detection",
+          "test_attribute_error_handling",
+          "test_generic_error_handling",
+          "test_api_vs_non_api_response_handling",
+          "test_error_logging_without_sensitive_data",
+          "test_graceful_degradation",
+          "test_error_context_preservation",
+          "test_middleware_chain_resilience",
+          "test_rate_limiting_error_handling",
+          "test_security_monitoring_error_handling",
+          "test_complete_error_handling_flow",
+          "test_error_recovery_mechanisms"
+        ],
+        "test_classes": [
+          "TestMiddlewareErrorHandling",
+          "TestMiddlewareErrorHandlingIntegration"
+        ],
+        "line_count": 425,
+        "imports": [
+          "unittest",
+          "unittest.mock",
+          "sys",
+          "os"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_exception_handler_simple.py": {
+        "test_methods": [
+          "test_response_rendering_logic",
+          "test_exception_handling_logic",
+          "test_response_validation_logic",
+          "test_ensure_response_rendered",
+          "test_content_not_rendered_handling"
+        ],
+        "test_classes": [],
+        "line_count": 199,
+        "imports": [
+          "sys",
+          "os",
+          "django.template.response",
+          "django.http",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_background_tasks.py": {
+        "test_methods": [
+          "test_background_task_processor_status",
+          "test_file_processing_simulation",
+          "test_deal_workflow_processing",
+          "test_email_notification_processing",
+          "test_task_monitoring",
+          "test_automated_business_process_manager",
+          "test_automated_business_processes",
+          "test_celery_configuration",
+          "test_task_routing",
+          "test_enhanced_file_upload_views",
+          "test_url_configuration",
+          "test_password_notification_integration"
+        ],
+        "test_classes": [],
+        "line_count": 416,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "tempfile",
+          "logging",
+          "typing",
+          "django.test",
+          "django.contrib.auth",
+          "django.core.files.uploadedfile",
+          "django.utils",
+          "datetime",
+          "json",
+          "time",
+          "core_config.background_task_processor",
+          "core_config.automated_business_processes",
+          "core_config.celery",
+          "core_config.celery",
+          "core_config.enhanced_file_upload_views",
+          "core_config.enhanced_file_upload_urls",
+          "core_config.background_task_urls",
+          "authentication.password_views"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_enhanced_middleware_error_handling.py": {
+        "test_methods": [
+          "TestEnhancedCommonMiddleware.test_content_not_rendered_error_handling",
+          "TestEnhancedCommonMiddleware.test_attribute_error_handling",
+          "TestEnhancedCommonMiddleware.test_generic_exception_handling",
+          "TestEnhancedCsrfViewMiddleware.test_csrf_request_error_handling",
+          "TestEnhancedCsrfViewMiddleware.test_csrf_view_error_handling",
+          "TestEnhancedAuthenticationMiddleware.test_authentication_error_handling",
+          "TestEnhancedSessionMiddleware.test_session_request_error_handling",
+          "TestEnhancedSessionMiddleware.test_session_response_error_handling",
+          "TestMiddlewareErrorHandler.test_content_not_rendered_error_api",
+          "TestMiddlewareErrorHandler.test_content_not_rendered_error_non_api",
+          "TestMiddlewareErrorHandler.test_generic_error_handling",
+          "TestCriticalMiddlewareProtector.test_request_context_setup",
+          "TestCriticalMiddlewareProtector.test_exception_handling",
+          "TestValidationMiddlewareErrorHandling.test_attribute_error_handling",
+          "TestValidationMiddlewareErrorHandling.test_value_error_handling",
+          "TestRateLimitMiddlewareErrorHandling.test_connection_error_handling",
+          "TestRateLimitMiddlewareErrorHandling.test_generic_error_handling",
+          "TestSecurityHeadersMiddlewareErrorHandling.test_attribute_error_handling",
+          "TestSecurityHeadersMiddlewareErrorHandling.test_generic_error_handling",
+          "TestMiddlewareIntegration.test_middleware_chain_with_errors",
+          "TestMiddlewareIntegration.test_api_error_responses_are_json",
+          "TestMiddlewareIntegration.test_non_api_error_responses_are_html",
+          "test_content_not_rendered_error_handling",
+          "test_attribute_error_handling",
+          "test_generic_exception_handling",
+          "test_csrf_request_error_handling",
+          "test_csrf_view_error_handling",
+          "test_authentication_error_handling",
+          "test_session_request_error_handling",
+          "test_session_response_error_handling",
+          "test_content_not_rendered_error_api",
+          "test_content_not_rendered_error_non_api",
+          "test_generic_error_handling",
+          "test_request_context_setup",
+          "test_exception_handling",
+          "test_attribute_error_handling",
+          "test_value_error_handling",
+          "test_connection_error_handling",
+          "test_generic_error_handling",
+          "test_attribute_error_handling",
+          "test_generic_error_handling",
+          "test_middleware_chain_with_errors",
+          "test_api_error_responses_are_json",
+          "test_non_api_error_responses_are_html"
+        ],
+        "test_classes": [
+          "TestEnhancedCommonMiddleware",
+          "TestEnhancedCsrfViewMiddleware",
+          "TestEnhancedAuthenticationMiddleware",
+          "TestEnhancedSessionMiddleware",
+          "TestMiddlewareErrorHandler",
+          "TestCriticalMiddlewareProtector",
+          "TestValidationMiddlewareErrorHandling",
+          "TestRateLimitMiddlewareErrorHandling",
+          "TestSecurityHeadersMiddlewareErrorHandling",
+          "TestMiddlewareIntegration"
+        ],
+        "line_count": 401,
+        "imports": [
+          "pytest",
+          "unittest.mock",
+          "django.test",
+          "django.http",
+          "django.template.response",
+          "django.contrib.auth.models",
+          "django.core.cache",
+          "django.conf",
+          "enhanced_middleware_error_handling",
+          "validation_middleware",
+          "middleware"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "core_config/test_middleware_error_handling_simple.py": {
+        "test_methods": [
+          "TestEnhancedMiddlewareErrorHandling.test_enhanced_common_middleware_content_error",
+          "TestEnhancedMiddlewareErrorHandling.test_enhanced_common_middleware_attribute_error",
+          "TestEnhancedMiddlewareErrorHandling.test_enhanced_common_middleware_generic_error",
+          "TestEnhancedMiddlewareErrorHandling.test_middleware_error_handler_content_error_api",
+          "TestEnhancedMiddlewareErrorHandling.test_middleware_error_handler_content_error_non_api",
+          "TestEnhancedMiddlewareErrorHandling.test_middleware_error_handler_generic_error",
+          "TestEnhancedMiddlewareErrorHandling.test_critical_middleware_protector_setup",
+          "TestEnhancedMiddlewareErrorHandling.test_critical_middleware_protector_exception_handling",
+          "TestEnhancedMiddlewareErrorHandling.test_error_logging_without_sensitive_info",
+          "TestEnhancedMiddlewareErrorHandling.test_graceful_degradation",
+          "TestEnhancedMiddlewareErrorHandling.test_api_vs_non_api_response_types",
+          "TestEnhancedMiddlewareErrorHandling.test_error_context_preservation",
+          "TestMiddlewareErrorHandlingIntegration.test_middleware_chain_resilience",
+          "TestMiddlewareErrorHandlingIntegration.test_multiple_error_handlers",
+          "test_enhanced_common_middleware_content_error",
+          "test_enhanced_common_middleware_attribute_error",
+          "test_enhanced_common_middleware_generic_error",
+          "test_middleware_error_handler_content_error_api",
+          "test_middleware_error_handler_content_error_non_api",
+          "test_middleware_error_handler_generic_error",
+          "test_critical_middleware_protector_setup",
+          "test_critical_middleware_protector_exception_handling",
+          "test_error_logging_without_sensitive_info",
+          "test_graceful_degradation",
+          "test_api_vs_non_api_response_types",
+          "test_error_context_preservation",
+          "test_middleware_chain_resilience",
+          "test_multiple_error_handlers"
+        ],
+        "test_classes": [
+          "TestEnhancedMiddlewareErrorHandling",
+          "TestMiddlewareErrorHandlingIntegration"
+        ],
+        "line_count": 326,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.conf",
+          "unittest",
+          "unittest.mock",
+          "django.http",
+          "django.template.response",
+          "django.test",
+          "enhanced_middleware_error_handling"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "authentication/test_actual_responses.py": {
+        "test_methods": [
+          "test_view_response_type"
+        ],
+        "test_classes": [],
+        "line_count": 180,
+        "imports": [
+          "sys",
+          "os",
+          "django",
+          "unittest.mock",
+          "django.test",
+          "django.contrib.auth",
+          "rest_framework.response",
+          "rest_framework.authtoken.models",
+          "django.template.response",
+          "django.http",
+          "authentication.views",
+          "authentication.password_views",
+          "authentication.response_validators"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "authentication/test_response_decorator_integration.py": {
+        "test_methods": [
+          "test_login_view_response_validation",
+          "test_register_view_response_validation",
+          "test_logout_view_response_validation",
+          "test_password_change_view_response_validation",
+          "test_health_check_response_validation",
+          "test_password_policy_dashboard_response_validation",
+          "test_validate_password_strength_response_validation",
+          "test_response_content_type_consistency"
+        ],
+        "test_classes": [],
+        "line_count": 243,
+        "imports": [
+          "os",
+          "sys",
+          "django",
+          "django.test",
+          "django.contrib.auth",
+          "django.urls",
+          "rest_framework.test",
+          "rest_framework",
+          "json",
+          "unittest"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": true,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "authentication/test_response_validation.py": {
+        "test_methods": [
+          "test_validate_response_type_decorator",
+          "test_ensure_drf_response_decorator",
+          "test_log_response_type_decorator",
+          "test_error_handling"
+        ],
+        "test_classes": [],
+        "line_count": 174,
+        "imports": [
+          "sys",
+          "os",
+          "django",
+          "unittest.mock",
+          "django.http",
+          "django.template.response",
+          "rest_framework.response",
+          "authentication.response_validators",
+          "traceback"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "authentication/tests/test_response_types.py": {
+        "test_methods": [
+          "test_login_view_response_type",
+          "test_register_view_response_type",
+          "test_logout_view_response_type",
+          "test_password_change_view_response_type",
+          "test_super_admin_login_response_type",
+          "test_org_admin_login_response_type",
+          "test_health_check_response_type",
+          "test_user_profile_view_response_type",
+          "test_set_sales_target_response_type",
+          "test_login_stats_response_type",
+          "test_validate_response_type_decorator",
+          "test_ensure_drf_response_decorator",
+          "test_log_response_type_decorator",
+          "test_password_policy_dashboard_response_type",
+          "test_validate_password_strength_response_type",
+          "test_password_analytics_response_type",
+          "test_force_password_reset_organization_response_type"
+        ],
+        "test_classes": [],
+        "line_count": 352,
+        "imports": [
+          "json",
+          "django.test",
+          "django.urls",
+          "django.contrib.auth",
+          "rest_framework.test",
+          "rest_framework.authtoken.models",
+          "rest_framework.response",
+          "django.template.response",
+          "django.http",
+          "unittest.mock",
+          "authentication.models",
+          "organization.models",
+          "permissions.models",
+          "authentication.response_validators",
+          "authentication.response_validators",
+          "authentication.response_validators"
+        ],
+        "test_types": {
+          "unit_tests": true,
+          "integration_tests": true,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "deals/management/commands/test_atomic_operations.py": {
+        "test_methods": [
+          "test_deal_status_change",
+          "test_payment_creation",
+          "test_commission_calculation",
+          "test_optimistic_locking",
+          "test_race_conditions"
+        ],
+        "test_classes": [],
+        "line_count": 311,
+        "imports": [
+          "django.core.management.base",
+          "django.utils",
+          "datetime",
+          "decimal",
+          "deals.models",
+          "commission.models",
+          "deals.atomic_operations",
+          "organization.models",
+          "authentication.models",
+          "logging",
+          "threading",
+          "time"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": false,
+          "serializer_tests": false
+        }
+      },
+      "core_config/management/commands/test_secure_token_manager.py": {
+        "test_methods": [],
+        "test_classes": [],
+        "line_count": 250,
+        "imports": [
+          "django.core.management.base",
+          "django.contrib.auth",
+          "django.test",
+          "core_config.jwt_auth",
+          "rest_framework.exceptions",
+          "time",
+          "django.http"
+        ],
+        "test_types": {
+          "unit_tests": false,
+          "integration_tests": false,
+          "model_tests": false,
+          "view_tests": true,
+          "serializer_tests": false
+        }
+      },
+      "authentication/tests": {
+        "test_files_in_dir": [
+          {
+            "file": "test_response_types.py",
+            "test_count": 17
+          }
+        ],
+        "total_tests": 17,
+        "directory_structure": {}
+      }
+    },
+    "coverage_gaps": {
+      "untested_models": [
+        "authentication.PasswordExpiration"
+      ],
+      "untested_views": [],
+      "untested_serializers": [],
+      "missing_test_types": {}
+    },
+    "test_patterns": {
+      "setup_patterns": {
+        "backend": {
+          "has_setup": false,
+          "has_teardown": false,
+          "uses_fixtures": false
+        },
+        "core_config": {
+          "has_setup": true,
+          "has_teardown": false,
+          "uses_fixtures": true
+        },
+        "authentication": {
+          "has_setup": false,
+          "has_teardown": false,
+          "uses_fixtures": false
+        },
+        "tests": {
+          "has_setup": true,
+          "has_teardown": false,
+          "uses_fixtures": false
+        },
+        "commands": {
+          "has_setup": false,
+          "has_teardown": false,
+          "uses_fixtures": false
+        }
+      },
+      "assertion_patterns": {
+        "backend": 0,
+        "core_config": 30,
+        "authentication": 0,
+        "tests": 49,
+        "commands": 0
+      },
+      "mocking_usage": {
+        "backend": {
+          "uses_mock": false,
+          "uses_patch": false
+        },
+        "core_config": {
+          "uses_mock": true,
+          "uses_patch": true
+        },
+        "authentication": {
+          "uses_mock": true,
+          "uses_patch": true
+        },
+        "tests": {
+          "uses_mock": true,
+          "uses_patch": true
+        },
+        "commands": {
+          "uses_mock": false,
+          "uses_patch": false
+        }
+      },
+      "fixture_usage": {}
+    },
+    "recommendations": []
+  },
+  "maintainability_metrics": {
+    "complexity_score": 53.449,
+    "coupling_score": 0,
+    "cohesion_score": 75,
+    "test_coverage_score": 100,
+    "documentation_score": 0,
+    "overall_maintainability": 56.0347
+  },
+  "recommendations": [
+    {
+      "category": "Code Organization",
+      "priority": "High",
+      "issue": "High complexity in apps: core_config, authentication, permissions, commission, deals, notifications, Sales_dashboard",
+      "recommendation": "Consider breaking down large apps into smaller, more focused modules",
+      "impact": "Improved maintainability and easier testing"
+    },
+    {
+      "category": "Model Relationships",
+      "priority": "Medium",
+      "issue": "High coupling detected in 1 models",
+      "recommendation": "Review model relationships and consider using composition over inheritance",
+      "impact": "Reduced coupling and improved flexibility"
+    },
+    {
+      "category": "Testing Coverage",
+      "priority": "High",
+      "issue": "1 models lack test coverage",
+      "recommendation": "Add comprehensive unit tests for all models, especially critical business logic",
+      "impact": "Improved reliability and easier refactoring"
+    },
+    {
+      "category": "Serializer Implementation",
+      "priority": "Medium",
+      "issue": "Complex serializers detected in: deals, Sales_dashboard, authentication",
+      "recommendation": "Break down large serializers into smaller, focused ones",
+      "impact": "Improved readability and easier maintenance"
+    },
+    {
+      "category": "Overall Maintainability",
+      "priority": "High",
+      "issue": "Overall maintainability score is 56.0/100",
+      "recommendation": "Focus on improving test coverage, reducing complexity, and documenting code",
+      "impact": "Significantly improved long-term maintainability"
+    }
+  ]
+}

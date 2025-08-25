@@ -1,0 +1,218 @@
+{
+  "timestamp": "2025-08-16T18:41:05.250817",
+  "file_upload_security": {
+    "allowed_extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".bmp",
+      ".tiff",
+      ".tif",
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx",
+      ".txt",
+      ".rtf",
+      ".csv"
+    ],
+    "max_file_size": 0,
+    "malware_scanner": {
+      "enabled": true,
+      "quarantine_enabled": false,
+      "scan_methods": [
+        "signature_scan",
+        "hash_check"
+      ]
+    },
+    "validation_rules": {
+      "validator_available": true,
+      "mime_type_validation": false,
+      "file_size_validation": true,
+      "filename_validation": true,
+      "content_validation": false,
+      "signature_validation": true,
+      "bypass_detection": true
+    },
+    "directory_security": {
+      "/Users/shishirkafle/Desktop/Frontend/Backend_PRS/backend/media": {
+        "exists": true,
+        "permissions": "755",
+        "writable": true
+      }
+    },
+    "quarantine_configured": false
+  },
+  "input_validation": {
+    "features": {
+      "service_available": true,
+      "sql_injection_detection": false,
+      "xss_detection": false,
+      "command_injection_detection": false,
+      "path_traversal_detection": false,
+      "input_sanitization": false,
+      "validate_input": false
+    },
+    "middleware_enabled": true,
+    "middleware_classes": [
+      "django.middleware.security.SecurityMiddleware",
+      "whitenoise.middleware.WhiteNoiseMiddleware",
+      "core_config.content_rendering_middleware.ContentNotRenderedErrorMiddleware",
+      "core_config.response_rendering_middleware.ResponseRenderingMiddleware",
+      "django.contrib.sessions.middleware.SessionMiddleware",
+      "corsheaders.middleware.CorsMiddleware",
+      "core_config.middleware.CORSPreflightMiddleware",
+      "django.middleware.common.CommonMiddleware",
+      "django.middleware.csrf.CsrfViewMiddleware",
+      "core_config.validation_middleware.InputValidationMiddleware",
+      "core_config.token_middleware.TokenAuthMiddleware",
+      "django.contrib.auth.middleware.AuthenticationMiddleware",
+      "django.contrib.messages.middleware.MessageMiddleware",
+      "django.middleware.clickjacking.XFrameOptionsMiddleware",
+      "core_config.validation_middleware.SecurityHeadersMiddleware",
+      "core_config.validation_middleware.RateLimitMiddleware",
+      "core_config.middleware.SecurityMonitoringMiddleware",
+      "core_config.middleware.RequestLoggingMiddleware",
+      "core_config.query_performance_middleware.QueryPerformanceMiddleware",
+      "core_config.response_rendering_middleware.ResponseTypeValidationMiddleware",
+      "core_config.content_rendering_middleware.ResponseContentAccessMiddleware",
+      "core_config.error_sanitization_middleware.ErrorSanitizationMiddleware",
+      "core_config.error_sanitization_middleware.SecurityEventMiddleware"
+    ],
+    "test_results": {
+      "note": "Input validation service not available or validate_input method not found"
+    },
+    "django_validation": {
+      "form_validation": true,
+      "model_validation": true,
+      "serializer_validation": true
+    }
+  },
+  "sql_injection_protection": {
+    "orm_usage": true,
+    "parameterized_queries": true,
+    "raw_sql_found": true,
+    "raw_sql_locations": [
+      {
+        "file": "database_performance_analysis_simple.py",
+        "pattern": "cursor\\.execute\\("
+      },
+      {
+        "file": "database_performance_analysis_simple.py",
+        "pattern": "connection\\.cursor\\("
+      },
+      {
+        "file": "reset_database.py",
+        "pattern": "cursor\\.execute\\("
+      },
+      {
+        "file": "reset_database.py",
+        "pattern": "connection\\.cursor\\("
+      },
+      {
+        "file": "test_security_implementation_analysis.py",
+        "pattern": "SELECT.*FROM.*WHERE"
+      },
+      {
+        "file": "test_security_implementation_analysis.py",
+        "pattern": "INSERT.*INTO.*VALUES"
+      },
+      {
+        "file": "test_security_implementation_analysis.py",
+        "pattern": "UPDATE.*SET.*WHERE"
+      },
+      {
+        "file": "test_security_implementation_analysis.py",
+        "pattern": "DELETE.*FROM.*WHERE"
+      },
+      {
+        "file": "fix_critical_logic_errors.py",
+        "pattern": "cursor\\.execute\\("
+      },
+      {
+        "file": "fix_critical_logic_errors.py",
+        "pattern": "connection\\.cursor\\("
+      },
+      {
+        "file": "test_database_performance_indexing_analysis.py",
+        "pattern": "cursor\\.execute\\("
+      },
+      {
+        "file": "test_database_performance_indexing_analysis.py",
+        "pattern": "connection\\.cursor\\("
+      }
+    ],
+    "database_security": {
+      "engine": "django.db.backends.postgresql",
+      "ssl_enabled": false,
+      "connection_pooling": true
+    }
+  },
+  "xss_protection": {
+    "auto_escaping_enabled": [
+      "django.template.context_processors.request",
+      "django.contrib.auth.context_processors.auth",
+      "django.contrib.messages.context_processors.messages"
+    ],
+    "csrf_middleware_enabled": true,
+    "security_middleware_enabled": true,
+    "template_auto_escape": true,
+    "csp_enabled": false,
+    "xss_filter_header": true,
+    "unsafe_template_usage": []
+  },
+  "csrf_protection": {
+    "middleware_enabled": true,
+    "csrf_cookie_secure": false,
+    "csrf_cookie_httponly": true,
+    "csrf_cookie_samesite": "Lax",
+    "csrf_use_sessions": false,
+    "templates_with_csrf_tokens": [],
+    "csrf_exempt_usage": [
+      "test_security_implementation_analysis.py"
+    ]
+  },
+  "security_headers": {
+    "django_security_settings": {
+      "SECURE_SSL_REDIRECT": false,
+      "SECURE_HSTS_SECONDS": 0,
+      "SECURE_HSTS_INCLUDE_SUBDOMAINS": false,
+      "SECURE_HSTS_PRELOAD": false,
+      "SECURE_CONTENT_TYPE_NOSNIFF": true,
+      "SECURE_BROWSER_XSS_FILTER": true,
+      "SECURE_REFERRER_POLICY": "strict-origin-when-cross-origin",
+      "X_FRAME_OPTIONS": "SAMEORIGIN"
+    },
+    "session_security": {
+      "SESSION_COOKIE_SECURE": false,
+      "SESSION_COOKIE_HTTPONLY": true,
+      "SESSION_COOKIE_SAMESITE": "Strict",
+      "SESSION_COOKIE_AGE": 3600
+    },
+    "custom_security_middleware": [
+      "core_config.validation_middleware.SecurityHeadersMiddleware",
+      "core_config.middleware.SecurityMonitoringMiddleware",
+      "core_config.error_sanitization_middleware.SecurityEventMiddleware"
+    ],
+    "security_middleware_enabled": true
+  },
+  "overall_assessment": {
+    "security_score": 58,
+    "max_score": 100,
+    "security_percentage": 58.0,
+    "security_level": "POOR",
+    "critical_issues": [
+      "MIME type validation missing",
+      "Raw SQL usage detected - review for injection vulnerabilities"
+    ],
+    "recommendations": [
+      "Implement file quarantine system",
+      "Implement Content Security Policy"
+    ]
+  }
+}

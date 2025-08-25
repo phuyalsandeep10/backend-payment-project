@@ -1,0 +1,621 @@
+{
+  "indexing_analysis": {
+    "existing_indexes": {
+      "authentication_user": [
+        {
+          "name": "authenticat_date_jo_88689a_idx",
+          "definition": "CREATE INDEX authenticat_date_jo_88689a_idx ON public.authentication_user USING btree (date_joined, organization_id, is_active)"
+        },
+        {
+          "name": "authenticat_email_7c2cb6_idx",
+          "definition": "CREATE INDEX authenticat_email_7c2cb6_idx ON public.authentication_user USING btree (email, is_active)"
+        },
+        {
+          "name": "authenticat_is_acti_b52e8b_idx",
+          "definition": "CREATE INDEX authenticat_is_acti_b52e8b_idx ON public.authentication_user USING btree (is_active, last_login, organization_id)"
+        },
+        {
+          "name": "authenticat_login_c_7d75ba_idx",
+          "definition": "CREATE INDEX authenticat_login_c_7d75ba_idx ON public.authentication_user USING btree (login_count, organization_id)"
+        },
+        {
+          "name": "authenticat_must_ch_b1c96d_idx",
+          "definition": "CREATE INDEX authenticat_must_ch_b1c96d_idx ON public.authentication_user USING btree (must_change_password, organization_id)"
+        },
+        {
+          "name": "authenticat_organiz_04db03_idx",
+          "definition": "CREATE INDEX authenticat_organiz_04db03_idx ON public.authentication_user USING btree (organization_id, last_login)"
+        },
+        {
+          "name": "authenticat_organiz_1f85f7_idx",
+          "definition": "CREATE INDEX authenticat_organiz_1f85f7_idx ON public.authentication_user USING btree (organization_id, status, is_active)"
+        },
+        {
+          "name": "authenticat_organiz_20d060_idx",
+          "definition": "CREATE INDEX authenticat_organiz_20d060_idx ON public.authentication_user USING btree (organization_id, username, is_active)"
+        },
+        {
+          "name": "authenticat_organiz_86d97f_idx",
+          "definition": "CREATE INDEX authenticat_organiz_86d97f_idx ON public.authentication_user USING btree (organization_id, is_active)"
+        },
+        {
+          "name": "authenticat_organiz_b80c5d_idx",
+          "definition": "CREATE INDEX authenticat_organiz_b80c5d_idx ON public.authentication_user USING btree (organization_id, role_id, status)"
+        },
+        {
+          "name": "authenticat_organiz_c08f2c_idx",
+          "definition": "CREATE INDEX authenticat_organiz_c08f2c_idx ON public.authentication_user USING btree (organization_id, role_id)"
+        },
+        {
+          "name": "authenticat_organiz_c42a61_idx",
+          "definition": "CREATE INDEX authenticat_organiz_c42a61_idx ON public.authentication_user USING btree (organization_id, date_joined)"
+        },
+        {
+          "name": "authenticat_organiz_cb949f_idx",
+          "definition": "CREATE INDEX authenticat_organiz_cb949f_idx ON public.authentication_user USING btree (organization_id, status)"
+        },
+        {
+          "name": "authenticat_organiz_ea4a4b_idx",
+          "definition": "CREATE INDEX authenticat_organiz_ea4a4b_idx ON public.authentication_user USING btree (organization_id, sales_target, is_active)"
+        },
+        {
+          "name": "authenticat_role_id_305d6e_idx",
+          "definition": "CREATE INDEX authenticat_role_id_305d6e_idx ON public.authentication_user USING btree (role_id, is_active)"
+        },
+        {
+          "name": "authenticat_role_id_6a9e3a_idx",
+          "definition": "CREATE INDEX authenticat_role_id_6a9e3a_idx ON public.authentication_user USING btree (role_id, status, date_joined)"
+        },
+        {
+          "name": "authenticat_role_id_bf6ece_idx",
+          "definition": "CREATE INDEX authenticat_role_id_bf6ece_idx ON public.authentication_user USING btree (role_id, organization_id)"
+        },
+        {
+          "name": "authenticat_status_35d44c_idx",
+          "definition": "CREATE INDEX authenticat_status_35d44c_idx ON public.authentication_user USING btree (status)"
+        },
+        {
+          "name": "authenticat_streak_a54910_idx",
+          "definition": "CREATE INDEX authenticat_streak_a54910_idx ON public.authentication_user USING btree (streak, organization_id, role_id)"
+        },
+        {
+          "name": "authenticat_team_id_2b631e_idx",
+          "definition": "CREATE INDEX authenticat_team_id_2b631e_idx ON public.authentication_user USING btree (team_id, organization_id)"
+        },
+        {
+          "name": "authentication_user_email_2220eff5_like",
+          "definition": "CREATE INDEX authentication_user_email_2220eff5_like ON public.authentication_user USING btree (email varchar_pattern_ops)"
+        },
+        {
+          "name": "authentication_user_email_key",
+          "definition": "CREATE UNIQUE INDEX authentication_user_email_key ON public.authentication_user USING btree (email)"
+        },
+        {
+          "name": "authentication_user_organization_id_d85c0efb",
+          "definition": "CREATE INDEX authentication_user_organization_id_d85c0efb ON public.authentication_user USING btree (organization_id)"
+        },
+        {
+          "name": "authentication_user_pkey",
+          "definition": "CREATE UNIQUE INDEX authentication_user_pkey ON public.authentication_user USING btree (id)"
+        },
+        {
+          "name": "authentication_user_role_id_24664e00",
+          "definition": "CREATE INDEX authentication_user_role_id_24664e00 ON public.authentication_user USING btree (role_id)"
+        },
+        {
+          "name": "authentication_user_team_id_cfc9f3b3",
+          "definition": "CREATE INDEX authentication_user_team_id_cfc9f3b3 ON public.authentication_user USING btree (team_id)"
+        }
+      ],
+      "deals_deal": [
+        {
+          "name": "deals_deal_client__2e8c75_idx",
+          "definition": "CREATE INDEX deals_deal_client__2e8c75_idx ON public.deals_deal USING btree (client_id, deal_value, created_at)"
+        },
+        {
+          "name": "deals_deal_client__e3b36f_idx",
+          "definition": "CREATE INDEX deals_deal_client__e3b36f_idx ON public.deals_deal USING btree (client_id, verification_status, payment_status)"
+        },
+        {
+          "name": "deals_deal_client__ea8c0b_idx",
+          "definition": "CREATE INDEX deals_deal_client__ea8c0b_idx ON public.deals_deal USING btree (client_id, created_at)"
+        },
+        {
+          "name": "deals_deal_client__fcdb30_idx",
+          "definition": "CREATE INDEX deals_deal_client__fcdb30_idx ON public.deals_deal USING btree (client_status, organization_id, created_at)"
+        },
+        {
+          "name": "deals_deal_client_id_26543475",
+          "definition": "CREATE INDEX deals_deal_client_id_26543475 ON public.deals_deal USING btree (client_id)"
+        },
+        {
+          "name": "deals_deal_created_1e8bda_idx",
+          "definition": "CREATE INDEX deals_deal_created_1e8bda_idx ON public.deals_deal USING btree (created_at, verification_status)"
+        },
+        {
+          "name": "deals_deal_created_90cc76_idx",
+          "definition": "CREATE INDEX deals_deal_created_90cc76_idx ON public.deals_deal USING btree (created_by_id, deal_date)"
+        },
+        {
+          "name": "deals_deal_created_by_id_b839d486",
+          "definition": "CREATE INDEX deals_deal_created_by_id_b839d486 ON public.deals_deal USING btree (created_by_id)"
+        },
+        {
+          "name": "deals_deal_created_ee7b84_idx",
+          "definition": "CREATE INDEX deals_deal_created_ee7b84_idx ON public.deals_deal USING btree (created_by_id, organization_id, created_at)"
+        },
+        {
+          "name": "deals_deal_currenc_1290b3_idx",
+          "definition": "CREATE INDEX deals_deal_currenc_1290b3_idx ON public.deals_deal USING btree (currency, organization_id)"
+        },
+        {
+          "name": "deals_deal_deal_da_0375ca_idx",
+          "definition": "CREATE INDEX deals_deal_deal_da_0375ca_idx ON public.deals_deal USING btree (deal_date, payment_status)"
+        },
+        {
+          "name": "deals_deal_deal_id_431752d7",
+          "definition": "CREATE INDEX deals_deal_deal_id_431752d7 ON public.deals_deal USING btree (deal_id)"
+        },
+        {
+          "name": "deals_deal_deal_id_431752d7_like",
+          "definition": "CREATE INDEX deals_deal_deal_id_431752d7_like ON public.deals_deal USING btree (deal_id varchar_pattern_ops)"
+        },
+        {
+          "name": "deals_deal_deal_va_6beb9c_idx",
+          "definition": "CREATE INDEX deals_deal_deal_va_6beb9c_idx ON public.deals_deal USING btree (deal_value)"
+        },
+        {
+          "name": "deals_deal_deal_va_cc8846_idx",
+          "definition": "CREATE INDEX deals_deal_deal_va_cc8846_idx ON public.deals_deal USING btree (deal_value, organization_id)"
+        },
+        {
+          "name": "deals_deal_due_dat_75ec44_idx",
+          "definition": "CREATE INDEX deals_deal_due_dat_75ec44_idx ON public.deals_deal USING btree (due_date, payment_status)"
+        },
+        {
+          "name": "deals_deal_due_dat_e9fed1_idx",
+          "definition": "CREATE INDEX deals_deal_due_dat_e9fed1_idx ON public.deals_deal USING btree (due_date)"
+        },
+        {
+          "name": "deals_deal_organiz_0966aa_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_0966aa_idx ON public.deals_deal USING btree (organization_id, deal_value, verification_status)"
+        },
+        {
+          "name": "deals_deal_organiz_2a1ddf_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_2a1ddf_idx ON public.deals_deal USING btree (organization_id, deal_date, verification_status)"
+        },
+        {
+          "name": "deals_deal_organiz_34fafc_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_34fafc_idx ON public.deals_deal USING btree (organization_id, verification_status)"
+        },
+        {
+          "name": "deals_deal_organiz_4be6b6_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_4be6b6_idx ON public.deals_deal USING btree (organization_id, verification_status, payment_status)"
+        },
+        {
+          "name": "deals_deal_organiz_508457_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_508457_idx ON public.deals_deal USING btree (organization_id, created_at, deal_value)"
+        },
+        {
+          "name": "deals_deal_organiz_68b86d_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_68b86d_idx ON public.deals_deal USING btree (organization_id, payment_status, created_at)"
+        },
+        {
+          "name": "deals_deal_organiz_ab09d2_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_ab09d2_idx ON public.deals_deal USING btree (organization_id, deal_date)"
+        },
+        {
+          "name": "deals_deal_organiz_bce80f_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_bce80f_idx ON public.deals_deal USING btree (organization_id, client_status, verification_status)"
+        },
+        {
+          "name": "deals_deal_organiz_c47a2a_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_c47a2a_idx ON public.deals_deal USING btree (organization_id, source_type, created_at)"
+        },
+        {
+          "name": "deals_deal_organiz_cdfde6_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_cdfde6_idx ON public.deals_deal USING btree (organization_id, created_by_id)"
+        },
+        {
+          "name": "deals_deal_organiz_d63623_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_d63623_idx ON public.deals_deal USING btree (organization_id, payment_method, payment_status)"
+        },
+        {
+          "name": "deals_deal_organiz_f2913e_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_f2913e_idx ON public.deals_deal USING btree (organization_id, verification_status, created_at)"
+        },
+        {
+          "name": "deals_deal_organiz_f86d09_idx",
+          "definition": "CREATE INDEX deals_deal_organiz_f86d09_idx ON public.deals_deal USING btree (organization_id, payment_status)"
+        },
+        {
+          "name": "deals_deal_organization_id_af237672",
+          "definition": "CREATE INDEX deals_deal_organization_id_af237672 ON public.deals_deal USING btree (organization_id)"
+        },
+        {
+          "name": "deals_deal_organization_id_deal_id_6d8a509b_uniq",
+          "definition": "CREATE UNIQUE INDEX deals_deal_organization_id_deal_id_6d8a509b_uniq ON public.deals_deal USING btree (organization_id, deal_id)"
+        },
+        {
+          "name": "deals_deal_payment_46f778_idx",
+          "definition": "CREATE INDEX deals_deal_payment_46f778_idx ON public.deals_deal USING btree (payment_count, organization_id)"
+        },
+        {
+          "name": "deals_deal_payment_7ed096_idx",
+          "definition": "CREATE INDEX deals_deal_payment_7ed096_idx ON public.deals_deal USING btree (payment_status, verification_status)"
+        },
+        {
+          "name": "deals_deal_pkey",
+          "definition": "CREATE UNIQUE INDEX deals_deal_pkey ON public.deals_deal USING btree (id)"
+        },
+        {
+          "name": "deals_deal_project_69947d_idx",
+          "definition": "CREATE INDEX deals_deal_project_69947d_idx ON public.deals_deal USING btree (project_id, organization_id, verification_status)"
+        },
+        {
+          "name": "deals_deal_project_id_e42dab5e",
+          "definition": "CREATE INDEX deals_deal_project_id_e42dab5e ON public.deals_deal USING btree (project_id)"
+        },
+        {
+          "name": "deals_deal_source__b59f34_idx",
+          "definition": "CREATE INDEX deals_deal_source__b59f34_idx ON public.deals_deal USING btree (source_type)"
+        },
+        {
+          "name": "deals_deal_updated_18626c_idx",
+          "definition": "CREATE INDEX deals_deal_updated_18626c_idx ON public.deals_deal USING btree (updated_at, organization_id)"
+        },
+        {
+          "name": "deals_deal_updated_3d1b15_idx",
+          "definition": "CREATE INDEX deals_deal_updated_3d1b15_idx ON public.deals_deal USING btree (updated_by_id, organization_id, updated_at)"
+        },
+        {
+          "name": "deals_deal_updated_by_id_d7571c9f",
+          "definition": "CREATE INDEX deals_deal_updated_by_id_d7571c9f ON public.deals_deal USING btree (updated_by_id)"
+        },
+        {
+          "name": "deals_deal_version_d30115_idx",
+          "definition": "CREATE INDEX deals_deal_version_d30115_idx ON public.deals_deal USING btree (version, organization_id, updated_at)"
+        }
+      ],
+      "clients_client": [
+        {
+          "name": "clients_cli_organiz_1a4276_idx",
+          "definition": "CREATE INDEX clients_cli_organiz_1a4276_idx ON public.clients_client USING btree (organization_id, created_by_id)"
+        },
+        {
+          "name": "clients_cli_status_ce0d15_idx",
+          "definition": "CREATE INDEX clients_cli_status_ce0d15_idx ON public.clients_client USING btree (status)"
+        },
+        {
+          "name": "clients_client_client_name_9f1b0a20",
+          "definition": "CREATE INDEX clients_client_client_name_9f1b0a20 ON public.clients_client USING btree (client_name)"
+        },
+        {
+          "name": "clients_client_client_name_9f1b0a20_like",
+          "definition": "CREATE INDEX clients_client_client_name_9f1b0a20_like ON public.clients_client USING btree (client_name varchar_pattern_ops)"
+        },
+        {
+          "name": "clients_client_created_by_id_c8f840e4",
+          "definition": "CREATE INDEX clients_client_created_by_id_c8f840e4 ON public.clients_client USING btree (created_by_id)"
+        },
+        {
+          "name": "clients_client_email_29ccf6eb",
+          "definition": "CREATE INDEX clients_client_email_29ccf6eb ON public.clients_client USING btree (email)"
+        },
+        {
+          "name": "clients_client_email_29ccf6eb_like",
+          "definition": "CREATE INDEX clients_client_email_29ccf6eb_like ON public.clients_client USING btree (email varchar_pattern_ops)"
+        },
+        {
+          "name": "clients_client_email_organization_id_120d7420_uniq",
+          "definition": "CREATE UNIQUE INDEX clients_client_email_organization_id_120d7420_uniq ON public.clients_client USING btree (email, organization_id)"
+        },
+        {
+          "name": "clients_client_organization_id_b5f1893f",
+          "definition": "CREATE INDEX clients_client_organization_id_b5f1893f ON public.clients_client USING btree (organization_id)"
+        },
+        {
+          "name": "clients_client_pkey",
+          "definition": "CREATE UNIQUE INDEX clients_client_pkey ON public.clients_client USING btree (id)"
+        },
+        {
+          "name": "clients_client_updated_by_id_07e39988",
+          "definition": "CREATE INDEX clients_client_updated_by_id_07e39988 ON public.clients_client USING btree (updated_by_id)"
+        }
+      ],
+      "commission_commission": [
+        {
+          "name": "commission__created_3f82e2_idx",
+          "definition": "CREATE INDEX commission__created_3f82e2_idx ON public.commission_commission USING btree (created_by_id, organization_id)"
+        },
+        {
+          "name": "commission__created_ec6ce7_idx",
+          "definition": "CREATE INDEX commission__created_ec6ce7_idx ON public.commission_commission USING btree (created_at, organization_id)"
+        },
+        {
+          "name": "commission__currenc_540a04_idx",
+          "definition": "CREATE INDEX commission__currenc_540a04_idx ON public.commission_commission USING btree (currency, organization_id)"
+        },
+        {
+          "name": "commission__exchang_646239_idx",
+          "definition": "CREATE INDEX commission__exchang_646239_idx ON public.commission_commission USING btree (exchange_rate, created_at)"
+        },
+        {
+          "name": "commission__organiz_3e282b_idx",
+          "definition": "CREATE INDEX commission__organiz_3e282b_idx ON public.commission_commission USING btree (organization_id, total_sales, created_at)"
+        },
+        {
+          "name": "commission__organiz_430dcf_idx",
+          "definition": "CREATE INDEX commission__organiz_430dcf_idx ON public.commission_commission USING btree (organization_id, total_commission, created_at)"
+        },
+        {
+          "name": "commission__organiz_8af37b_idx",
+          "definition": "CREATE INDEX commission__organiz_8af37b_idx ON public.commission_commission USING btree (organization_id, created_at)"
+        },
+        {
+          "name": "commission__organiz_dba360_idx",
+          "definition": "CREATE INDEX commission__organiz_dba360_idx ON public.commission_commission USING btree (organization_id, start_date, end_date)"
+        },
+        {
+          "name": "commission__organiz_f156f1_idx",
+          "definition": "CREATE INDEX commission__organiz_f156f1_idx ON public.commission_commission USING btree (organization_id, user_id)"
+        },
+        {
+          "name": "commission__organiz_fa9d7a_idx",
+          "definition": "CREATE INDEX commission__organiz_fa9d7a_idx ON public.commission_commission USING btree (organization_id, commission_rate)"
+        },
+        {
+          "name": "commission__start_d_8cf2f0_idx",
+          "definition": "CREATE INDEX commission__start_d_8cf2f0_idx ON public.commission_commission USING btree (start_date, end_date)"
+        },
+        {
+          "name": "commission__updated_6ca16d_idx",
+          "definition": "CREATE INDEX commission__updated_6ca16d_idx ON public.commission_commission USING btree (updated_by_id, updated_at)"
+        },
+        {
+          "name": "commission__updated_9ac584_idx",
+          "definition": "CREATE INDEX commission__updated_9ac584_idx ON public.commission_commission USING btree (updated_at, organization_id)"
+        },
+        {
+          "name": "commission__user_id_afa372_idx",
+          "definition": "CREATE INDEX commission__user_id_afa372_idx ON public.commission_commission USING btree (user_id, start_date, end_date)"
+        },
+        {
+          "name": "commission__user_id_d93c1e_idx",
+          "definition": "CREATE INDEX commission__user_id_d93c1e_idx ON public.commission_commission USING btree (user_id, created_at)"
+        },
+        {
+          "name": "commission_commission_created_by_id_4b07c2dd",
+          "definition": "CREATE INDEX commission_commission_created_by_id_4b07c2dd ON public.commission_commission USING btree (created_by_id)"
+        },
+        {
+          "name": "commission_commission_organization_id_0b47d619",
+          "definition": "CREATE INDEX commission_commission_organization_id_0b47d619 ON public.commission_commission USING btree (organization_id)"
+        },
+        {
+          "name": "commission_commission_pkey",
+          "definition": "CREATE UNIQUE INDEX commission_commission_pkey ON public.commission_commission USING btree (id)"
+        },
+        {
+          "name": "commission_commission_updated_by_id_3bdd5ffc",
+          "definition": "CREATE INDEX commission_commission_updated_by_id_3bdd5ffc ON public.commission_commission USING btree (updated_by_id)"
+        },
+        {
+          "name": "commission_commission_user_id_43b8ecdb",
+          "definition": "CREATE INDEX commission_commission_user_id_43b8ecdb ON public.commission_commission USING btree (user_id)"
+        },
+        {
+          "name": "commission_commission_user_id_organization_id__fd5dfa44_uniq",
+          "definition": "CREATE UNIQUE INDEX commission_commission_user_id_organization_id__fd5dfa44_uniq ON public.commission_commission USING btree (user_id, organization_id, start_date, end_date)"
+        }
+      ],
+      "organization_organization": [
+        {
+          "name": "organization_organization_created_by_id_6558d3a2",
+          "definition": "CREATE INDEX organization_organization_created_by_id_6558d3a2 ON public.organization_organization USING btree (created_by_id)"
+        },
+        {
+          "name": "organization_organization_name_0069aa31_like",
+          "definition": "CREATE INDEX organization_organization_name_0069aa31_like ON public.organization_organization USING btree (name varchar_pattern_ops)"
+        },
+        {
+          "name": "organization_organization_name_key",
+          "definition": "CREATE UNIQUE INDEX organization_organization_name_key ON public.organization_organization USING btree (name)"
+        },
+        {
+          "name": "organization_organization_pkey",
+          "definition": "CREATE UNIQUE INDEX organization_organization_pkey ON public.organization_organization USING btree (id)"
+        }
+      ]
+    },
+    "table_statistics": {
+      "authentication_user": {
+        "total_size": "488 kB",
+        "table_size": "32 kB"
+      },
+      "deals_deal": {
+        "total_size": "1480 kB",
+        "table_size": "96 kB"
+      },
+      "clients_client": {
+        "total_size": "272 kB",
+        "table_size": "40 kB"
+      },
+      "commission_commission": {
+        "total_size": "384 kB",
+        "table_size": "16 kB"
+      },
+      "organization_organization": {
+        "total_size": "112 kB",
+        "table_size": "8192 bytes"
+      }
+    },
+    "missing_indexes": [
+      {
+        "table": "authentication_user",
+        "columns": [
+          "organization_id",
+          "is_active",
+          "role_id"
+        ],
+        "reason": "Optimize active user queries by organization and role"
+      },
+      {
+        "table": "deals_deal",
+        "columns": [
+          "organization_id",
+          "verification_status",
+          "payment_status"
+        ],
+        "reason": "Optimize deal filtering by organization and status"
+      },
+      {
+        "table": "deals_deal",
+        "columns": [
+          "organization_id",
+          "created_at",
+          "deal_value"
+        ],
+        "reason": "Optimize deal reporting and analytics queries"
+      },
+      {
+        "table": "clients_client",
+        "columns": [
+          "organization_id",
+          "created_by_id"
+        ],
+        "reason": "Optimize client queries by organization and creator"
+      }
+    ]
+  },
+  "query_performance": {
+    "user_queries": {
+      "time": 0.0019991397857666016,
+      "query_count": 2,
+      "records": 3
+    },
+    "deal_queries": {
+      "time": 0.004876852035522461,
+      "query_count": 1,
+      "records": 20
+    },
+    "aggregation_queries": {
+      "time": 0.0013298988342285156,
+      "query_count": 1,
+      "stats": {
+        "total_deals": 270,
+        "total_value": "3191711.00",
+        "avg_value": "11821.151851851852"
+      }
+    },
+    "filtering_queries": {
+      "time": 0.004804849624633789,
+      "query_count": 1,
+      "records": 0
+    }
+  },
+  "n_plus_one_analysis": {
+    "detected_patterns": [
+      {
+        "pattern": "deals_and_clients",
+        "bad_performance": {
+          "time": 0.0005888938903808594,
+          "queries": 1
+        },
+        "optimized_performance": {
+          "time": 0.0007729530334472656,
+          "queries": 1
+        },
+        "improvement": {
+          "time_saved": 0,
+          "queries_saved": 0
+        }
+      },
+      {
+        "pattern": "users_and_deals",
+        "bad_performance": {
+          "time": 0.0004012584686279297,
+          "queries": 1
+        },
+        "optimized_performance": {
+          "time": 0.0007860660552978516,
+          "queries": 1
+        },
+        "improvement": {
+          "time_saved": 0,
+          "queries_saved": 0
+        }
+      }
+    ],
+    "recommendations": []
+  },
+  "transaction_analysis": {
+    "atomic_operations": [
+      {
+        "test": "simple_read_transaction",
+        "status": "success",
+        "time": 0.0005402565002441406,
+        "operations": 2
+      }
+    ],
+    "rollback_tests": [
+      {
+        "test": "rollback_behavior",
+        "status": "success",
+        "initial_count": 9,
+        "final_count": 9
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "category": "indexing",
+      "priority": "high",
+      "title": "Add composite index to authentication_user",
+      "description": "Optimize active user queries by organization and role",
+      "implementation": "CREATE INDEX CONCURRENTLY idx_authentication_user_organization_id_is_active_role_id ON authentication_user (organization_id, is_active, role_id)",
+      "expected_benefit": "Improved query performance for organization-scoped operations"
+    },
+    {
+      "category": "indexing",
+      "priority": "high",
+      "title": "Add composite index to deals_deal",
+      "description": "Optimize deal filtering by organization and status",
+      "implementation": "CREATE INDEX CONCURRENTLY idx_deals_deal_organization_id_verification_status_payment_status ON deals_deal (organization_id, verification_status, payment_status)",
+      "expected_benefit": "Improved query performance for organization-scoped operations"
+    },
+    {
+      "category": "indexing",
+      "priority": "high",
+      "title": "Add composite index to deals_deal",
+      "description": "Optimize deal reporting and analytics queries",
+      "implementation": "CREATE INDEX CONCURRENTLY idx_deals_deal_organization_id_created_at_deal_value ON deals_deal (organization_id, created_at, deal_value)",
+      "expected_benefit": "Improved query performance for organization-scoped operations"
+    },
+    {
+      "category": "indexing",
+      "priority": "high",
+      "title": "Add composite index to clients_client",
+      "description": "Optimize client queries by organization and creator",
+      "implementation": "CREATE INDEX CONCURRENTLY idx_clients_client_organization_id_created_by_id ON clients_client (organization_id, created_by_id)",
+      "expected_benefit": "Improved query performance for organization-scoped operations"
+    },
+    {
+      "category": "general_optimization",
+      "priority": "medium",
+      "title": "Implement query result caching",
+      "description": "Cache frequently accessed organization data",
+      "implementation": "Use Redis/Memcached for caching organization statistics",
+      "expected_benefit": "Reduced database load and faster response times"
+    },
+    {
+      "category": "monitoring",
+      "priority": "low",
+      "title": "Set up database performance monitoring",
+      "description": "Monitor slow queries and database performance",
+      "implementation": "Enable pg_stat_statements and set up monitoring dashboards",
+      "expected_benefit": "Proactive identification of performance issues"
+    }
+  ],
+  "analysis_timestamp": "2025-08-16T18:36:39.543179+00:00"
+}

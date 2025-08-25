@@ -1,0 +1,174 @@
+{
+  "state_machine_analysis": {
+    "verification_state_machine": {
+      "implemented": true,
+      "states": [
+        "pending",
+        "verified",
+        "rejected"
+      ],
+      "total_states": 3,
+      "transitions": {
+        "pending": [
+          "verified",
+          "rejected"
+        ],
+        "verified": [
+          "rejected"
+        ],
+        "rejected": []
+      },
+      "final_states": [
+        "rejected"
+      ]
+    },
+    "payment_state_machine": {
+      "implemented": true,
+      "states": [
+        "initial payment",
+        "partial_payment",
+        "full_payment"
+      ],
+      "total_states": 3,
+      "transitions": {
+        "initial payment": [
+          "partial_payment",
+          "full_payment"
+        ],
+        "partial_payment": [
+          "full_payment"
+        ],
+        "full_payment": []
+      },
+      "final_states": [
+        "full_payment"
+      ]
+    },
+    "validation_methods": {
+      "implemented": [
+        "validate_verification_status_transition",
+        "validate_payment_status_transition",
+        "can_transition_verification_status",
+        "can_transition_payment_status"
+      ],
+      "count": 4,
+      "comprehensive": true
+    }
+  },
+  "payment_workflow_analysis": {
+    "deal_payment_methods": {
+      "methods": [
+        "_validate_payment_consistency",
+        "_validate_payment_consistency_enhanced",
+        "can_transition_payment_status",
+        "get_payment_method_display",
+        "get_payment_progress",
+        "get_payment_status_display",
+        "get_remaining_balance",
+        "get_total_paid_amount",
+        "validate_additional_payment",
+        "validate_payment_status_transition"
+      ],
+      "count": 10
+    },
+    "critical_payment_methods": {
+      "required": [
+        "get_total_paid_amount",
+        "get_remaining_balance",
+        "get_payment_progress",
+        "validate_additional_payment"
+      ],
+      "implemented": [
+        "get_total_paid_amount",
+        "get_remaining_balance",
+        "get_payment_progress",
+        "validate_additional_payment"
+      ],
+      "coverage": 100.0
+    },
+    "payment_validation": {
+      "methods": [
+        "clean",
+        "clean_fields",
+        "full_clean",
+        "validate_constraints",
+        "validate_financial_fields",
+        "validate_unique"
+      ],
+      "has_clean_method": true,
+      "has_validation": true
+    },
+    "financial_optimization": {
+      "integrated": true,
+      "mixin_used": true
+    }
+  },
+  "business_logic_analysis": {
+    "workflow_components": [
+      {
+        "component": "DealWorkflowEngine",
+        "methods": 6,
+        "available": true
+      },
+      {
+        "component": "AtomicFinancialOperations",
+        "methods": 7,
+        "available": true
+      },
+      {
+        "component": "FinancialFieldOptimizer",
+        "methods": 11,
+        "available": true
+      }
+    ],
+    "optimistic_locking": {
+      "deal_model": true,
+      "payment_model": false,
+      "mixin_available": true,
+      "mixin_methods": 2
+    }
+  },
+  "code_quality_analysis": {
+    "database_optimization": {
+      "deal_fields": 27,
+      "payment_fields": 14,
+      "deal_indexes": 33,
+      "payment_indexes": 14,
+      "comprehensive_indexing": true
+    },
+    "financial_field_types": {
+      "decimal_fields": [
+        "deal_value",
+        "received_amount"
+      ],
+      "proper_precision": true
+    },
+    "model_constraints": {
+      "deal_constraints": 0,
+      "payment_constraints": 0,
+      "validation_implemented": false
+    },
+    "permission_system": {
+      "deal_permissions": 5,
+      "payment_permissions": 1,
+      "granular_permissions": true
+    }
+  },
+  "summary": {
+    "overall_score": 100,
+    "strengths": [
+      "Comprehensive state machine implementation",
+      "Strong payment calculation methods",
+      "Advanced workflow automation components",
+      "Comprehensive database indexing strategy"
+    ],
+    "weaknesses": [
+      "Limited database constraints for data integrity"
+    ],
+    "recommendations": [
+      "System is production-ready with minor optimizations needed",
+      "Add comprehensive automated testing for all workflow scenarios",
+      "Implement performance monitoring and alerting"
+    ]
+  }
+}
