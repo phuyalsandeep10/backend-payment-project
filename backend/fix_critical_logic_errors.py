@@ -76,12 +76,13 @@ def validate_business_constraints():
         print("✅ All deals have verification status")
 
 def check_database_integrity():
-    """Check database integrity"""
+    """Check database integrity using Django ORM"""
     from django.db import connection
+    from authentication.models import User
     
     try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
+        # Use Django ORM to test database connection instead of raw SQL
+        User.objects.exists()
         print("✅ Database connection is working")
     except Exception as e:
         print(f"❌ Database connection error: {e}")

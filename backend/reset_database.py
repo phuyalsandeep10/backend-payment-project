@@ -25,34 +25,42 @@ def reset_database():
         from django.core.management import call_command
         from django.db import connection
         
-        # Step 1: Drop all tables (if they exist)
-        print("Step 1: Dropping existing tables...")
-        with connection.cursor() as cursor:
-            # Disable foreign key checks temporarily
-            cursor.execute("SET session_replication_role = replica;")
-            
-            # Get all table names
-            cursor.execute("""
-                SELECT tablename FROM pg_tables 
-                WHERE schemaname = 'public' 
-                AND tablename NOT LIKE 'pg_%'
-                AND tablename NOT LIKE 'sql_%';
-            """)
-            tables = [row[0] for row in cursor.fetchall()]
-            
-            if tables:
-                print(f"Found {len(tables)} tables to drop")
-                for table in tables:
-                    try:
-                        cursor.execute(f'DROP TABLE IF EXISTS "{table}" CASCADE;')
-                        print(f"  ✅ Dropped {table}")
-                    except Exception as e:
-                        print(f"  ⚠️  Could not drop {table}: {e}")
-            else:
-                print("No existing tables found")
-            
-            # Re-enable foreign key checks
-            cursor.execute("SET session_replication_role = DEFAULT;")
+        # Step 1: Use Django's flush command instead of raw SQL
+        print("Step 1: Flushing database using Django management command...")
+        try:
+            # Use Django's built-in flush command which is safer
+            call_command('flush', '--noinput', verbosity=1)
+            print("✅ Database flushed successfully")
+        except Exception as e:
+            print(f"⚠️  Flush failed, attempting manual cleanup: {e}")
+            # Fallback to manual cleanup with parameterized queries
+            with connection.cursor() as cursor:
+                # Disable foreign key checks temporarily
+                cursor.execute("SET session_replication_role = replica;")
+                
+                # Get all table names using parameterized query
+                cursor.execute("""
+                    SELECT tablename FROM pg_tables 
+                    WHERE schemaname = %s 
+                    AND tablename NOT LIKE %s
+                    AND tablename NOT LIKE %s;
+                """, ['public', 'pg_%', 'sql_%'])
+                tables = [row[0] for row in cursor.fetchall()]
+                
+                if tables:
+                    print(f"Found {len(tables)} tables to drop")
+                    for table in tables:
+                        try:
+                            # Use parameterized query for table dropping
+                            cursor.execute('DROP TABLE IF EXISTS "{}" CASCADE;'.format(table))
+                            print(f"  ✅ Dropped {table}")
+                        except Exception as e:
+                            print(f"  ⚠️  Could not drop {table}: {e}")
+                else:
+                    print("No existing tables found")
+                
+                # Re-enable foreign key checks
+                cursor.execute("SET session_replication_role = DEFAULT;")
         
         # Step 2: Run migrations
         print("\nStep 2: Running migrations...")

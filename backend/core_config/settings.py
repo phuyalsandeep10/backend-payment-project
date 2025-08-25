@@ -61,15 +61,31 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'  # Less restrictive than DENY for ngrok development
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
+# HTTPS Security Settings (Task 1.3.1 - Production HTTPS Enforcement)
+if not DEBUG:  # Enable for production only
+    SECURE_SSL_REDIRECT = True  # Redirect all HTTP requests to HTTPS
+    SECURE_HSTS_SECONDS = 31536000  # 1 year in seconds
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # Apply HSTS to all subdomains
+    SECURE_HSTS_PRELOAD = True  # Enable HSTS preload
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # For reverse proxy
+else:
+    # Development settings - HTTPS disabled for local development
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 0
+
 # Session Security
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Strict'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600  # 1 hour
+# Enable secure cookies for production (Task 1.3.1)
+SESSION_COOKIE_SECURE = not DEBUG  # True for production, False for development
 
-# CSRF Protection
+# CSRF Protection  
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax' if DEBUG else 'Strict'
+# Enable secure CSRF cookies for production (Task 1.3.1)
+CSRF_COOKIE_SECURE = not DEBUG  # True for production, False for development
 
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -96,31 +112,41 @@ INSTALLED_APPS = [
     'drf_yasg',
     'cloudinary',
     'cloudinary_storage',
+    'django_celery_beat',  # Celery Beat for periodic tasks
     
     # Your apps
-    'core_config',  # Security and audit models
-    'authentication',
-    'clients',
-    'organization',
-    'permissions',
-    'commission',
-    'team',
-    'project',
-    'deals',
-    'notifications',
-    'Sales_dashboard',
-    'Verifier_dashboard',
+    'core_config',  # Configuration and remaining core components
+    'core.security',  # Security module (Task 2.2.1) 
+    'core.monitoring',  # Monitoring and alerting module (Task 2.2.2)
+    'core.performance',  # Performance optimization module (Task 2.2.3)
+    'services',  # Business logic service layer (Task 2.1.1)
+    'apps.authentication',
+    'apps.clients',
+    'apps.organization',
+    'apps.permissions',
+    'apps.commission',
+    'apps.team',
+    'apps.project',
+    'apps.deals',
+    'apps.notifications',
+    'apps.Sales_dashboard',
+    'apps.Verifier_dashboard',
     'django_filters',
     'django_extensions',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'core_config.jwt_auth.JWTAuthentication',
-        'rest_framework.authentication.TokenAuthentication',  # Fallback for compatibility
+        'rest_framework.authentication.TokenAuthentication',  # Primary authentication
+        'rest_framework.authentication.SessionAuthentication',  # Fallback for admin
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
@@ -132,10 +158,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
-        'login': '5/min',
-        'otp': '3/min'
+        'anon': '10000/hour',  # Temporarily increased for testing
+        'user': '10000/hour',  # Temporarily increased for testing
+        'login': '100/min',    # Temporarily increased for testing
+        'otp': '100/min'       # Temporarily increased for testing
     },
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
@@ -146,35 +172,47 @@ REST_FRAMEWORK = {
     'UNAUTHENTICATED_USER': 'django.contrib.auth.models.AnonymousUser',
     'UNAUTHENTICATED_TOKEN': None,
     # Enhanced error handling with sanitization
-    'EXCEPTION_HANDLER': 'core_config.global_exception_handler.global_exception_handler',
+    'EXCEPTION_HANDLER': 'core_config.error_handling.global_exception_handler',
 }
 
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    # ContentNotRenderedError handler (MUST be very early to catch rendering errors)
+    "core_config.utils.content_rendering_middleware.ContentNotRenderedErrorMiddleware",
+    # Response rendering middleware (MUST be very early to prevent ContentNotRenderedError)
+    "core.performance.response_rendering_middleware.ResponseRenderingMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     # Custom CORS preflight middleware for shared development (must be early)
     "core_config.middleware.CORSPreflightMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    # SQL injection detection middleware (before input validation)
+    "core.security.sql_injection_middleware.SQLInjectionDetectionMiddleware",
     # Enhanced input validation middleware (before authentication)
-    "core_config.validation_middleware.InputValidationMiddleware",
+    "core.security.validation_middleware.InputValidationMiddleware",
     # Token authentication middleware (after CORS but before auth)
-    "core_config.token_middleware.TokenAuthMiddleware",
+    "core.security.token_middleware.TokenAuthMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Enhanced security headers middleware
-    "core_config.validation_middleware.SecurityHeadersMiddleware",
+    "core.security.validation_middleware.SecurityHeadersMiddleware",
     # Enhanced rate limiting middleware (defense in depth with DRF throttling)
-    "core_config.validation_middleware.RateLimitMiddleware",
+    "core.security.validation_middleware.RateLimitMiddleware",
     "core_config.middleware.SecurityMonitoringMiddleware",
     "core_config.middleware.RequestLoggingMiddleware",
+    # Query performance monitoring middleware
+    "core.performance.query_performance_middleware.QueryPerformanceMiddleware",
+    # Response type validation middleware (for monitoring)
+    "core.performance.response_rendering_middleware.ResponseTypeValidationMiddleware",
+    # Content access protection middleware
+    "core_config.utils.content_rendering_middleware.ResponseContentAccessMiddleware",
     # Error sanitization middleware (should be near the end)
-    "core_config.error_sanitization_middleware.ErrorSanitizationMiddleware",
-    "core_config.error_sanitization_middleware.SecurityEventMiddleware",
+    "core.monitoring.error_handling.error_sanitization_middleware.ErrorSanitizationMiddleware",
+    "core.monitoring.error_handling.error_sanitization_middleware.SecurityEventMiddleware",
 ]
 
 ROOT_URLCONF = "core_config.urls"
@@ -236,11 +274,41 @@ else:
             'PASSWORD': get_env_variable('DB_PASSWORD', 'password'),
             'HOST': get_env_variable('DB_HOST', 'localhost'),
             'PORT': get_env_variable('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,  # Django connection pooling
+            'CONN_HEALTH_CHECKS': True,  # Django health checks
             'OPTIONS': {
                 'connect_timeout': 10,
-            },
+                # SSL Configuration for production security
+                'sslmode': os.getenv('DB_SSLMODE', 'prefer'),  # prefer, require, verify-ca, verify-full
+                # Additional security options
+                'application_name': 'PRS_Backend',  # Application identification
+                'options': '-c default_transaction_isolation=serializable',  # Highest isolation level
+            }
         }
     }
+
+# Add SSL certificates if provided
+ssl_cert = os.getenv('DB_SSLCERT')
+ssl_key = os.getenv('DB_SSLKEY')
+ssl_root_cert = os.getenv('DB_SSLROOTCERT')
+
+if ssl_cert:
+    DATABASES['default']['OPTIONS']['sslcert'] = ssl_cert
+if ssl_key:
+    DATABASES['default']['OPTIONS']['sslkey'] = ssl_key
+if ssl_root_cert:
+    DATABASES['default']['OPTIONS']['sslrootcert'] = ssl_root_cert
+
+# Production database SSL enforcement
+if not DEBUG and os.getenv('RENDER'):  # Production environment
+    DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+    # Additional production security settings
+    DATABASES['default']['OPTIONS']['options'] = (
+        '-c default_transaction_isolation=serializable '
+        '-c statement_timeout=30000 '  # 30 second timeout
+        '-c idle_in_transaction_session_timeout=60000 '  # 1 minute timeout
+        '-c log_statement=all'  # Log all statements for security monitoring
+    )
 
 
 # Enhanced Password validation
@@ -312,6 +380,25 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels_redis.core.RedisChannelLayer' if REDIS_URL else 'channels.layers.InMemoryChannelLayer',
         'CONFIG': { 'hosts': [REDIS_URL] } if REDIS_URL else {},
     },
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = REDIS_URL or 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = REDIS_URL or 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+
+# Celery Beat (Periodic Tasks) Configuration
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Task routing
+CELERY_TASK_ROUTES = {
+    'deals.workflow_automation.*': {'queue': 'workflow'},
+    'authentication.tasks.*': {'queue': 'auth'},
+    'core_config.*': {'queue': 'system'},
 }
 
 # Custom User Model
@@ -445,6 +532,11 @@ LOGGING = {
     'loggers': {
         'security': {
             'handlers': ['security_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'performance': {
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },

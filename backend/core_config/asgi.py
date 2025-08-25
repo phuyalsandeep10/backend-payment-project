@@ -11,7 +11,7 @@ import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-from notifications.consumers import NotificationConsumer
+from apps.notifications.consumers import NotificationConsumer
 from django.urls import path, re_path
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core_config.settings')
