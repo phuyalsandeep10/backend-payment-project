@@ -54,13 +54,16 @@ jobs:
             # Log in to AWS ECR on the EC2 instance
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 550487074506.dkr.ecr.us-east-1.amazonaws.com
             
-            # Pull latest image
-            docker pull 550487074506.dkr.ecr.us-east-1.amazonaws.com/prs-backend:latest
-
             # Go to project directory
             cd /home/ubuntu/Backend_PRS
             git fetch origin main
             git reset --hard origin/main
+            
+            
+            # Pull latest image
+            docker pull 550487074506.dkr.ecr.us-east-1.amazonaws.com/prs-backend:latest
+
+            
 
             # Pull latest code
             git pull origin main
