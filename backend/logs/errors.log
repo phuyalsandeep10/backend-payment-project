@@ -5564,3 +5564,647 @@ Traceback (most recent call last):
         "The response content must be rendered before it can be accessed."
     )
 django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:06,905 log 67398 6250016768 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:08,698 log 67398 6233190400 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:08,926 log 67398 6250016768 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:09,094 log 67398 6233190400 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:30,450 log 67490 6238318592 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:31,462 log 67490 6238318592 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:31,658 log 67490 6238318592 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:31,820 log 67490 6255144960 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:33,352 log 67490 6238318592 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:33,557 log 67490 6238318592 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:33,753 log 67490 6237745152 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 05:24:33,911 log 67490 6237745152 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:52:37,019 log 73847 6171734016 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:52:38,141 log 73847 6188560384 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:52:38,381 log 73847 6171160576 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:52:38,593 log 73847 6187986944 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:52:38,781 log 73847 6171160576 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:02,351 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:03,186 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:03,404 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:03,621 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:03,825 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:04,038 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:04,244 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:04,439 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:04,621 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:04,807 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:04,986 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:05,167 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 06:53:05,329 log 73898 6230487040 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/Users/sandy/Desktop/Backend_PRS/backend/.venv/lib/python3.13/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+        "The response content must be rendered before it can be accessed."
+    )
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:37,644 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:38,414 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:38,499 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:38,712 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:38,911 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:39,095 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:39,304 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:39,453 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:39,676 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:16:39,855 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:19:13,820 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:19:33,952 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 08:19:34,920 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 09:10:18,798 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 09:10:19,607 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.
+ERROR 2025-08-27 09:57:29,797 log 53 281472615379360 Internal Server Error: /favicon.ico
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/utils/deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/middleware/common.py", line 113, in process_response
+    response.headers["Content-Length"] = str(len(response.content))
+                                                 ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/template/response.py", line 135, in content
+    raise ContentNotRenderedError(
+django.template.response.ContentNotRenderedError: The response content must be rendered before it can be accessed.

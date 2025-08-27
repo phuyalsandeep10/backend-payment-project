@@ -81,3 +81,6 @@ user-agents==2.2.0
 channels==4.0.0
 channels-redis==4.2.0
 daphne==4.1.1
+celery==5.3
+django_celery_beat==2.8.0
+psycopg2-binary==2.9

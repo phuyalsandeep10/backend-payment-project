@@ -1,0 +1,101 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app                # change this to /app
+    command: >
+      sh -c "
+        python manage.py makemigrations &&
+        python manage.py migrate --fake-initial &&
+        python manage.py create_super_admin &&
+        python manage.py setup_permissions &&
+        python manage.py collectstatic --noinput &&
+        daphne -b 0.0.0.0 -p 8000 core_config.asgi:application
+      "
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app                        # mount to /app, matching working_dir
+      - backend_static:/srv/static
+      - backend_media:/srv/media
+    env_file:
+      - ./.env
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=your_secret_key_change_this_in_production
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USE_TLS=True
+      - EMAIL_HOST_USER=paymentrecordsys33@gmail.com
+      - EMAIL_HOST_PASSWORD=wcup zrvf ubiu bxsg
+      - DEFAULT_FROM_EMAIL=paymentrecordsys33@gmail.com
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - prs-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - prs-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    networks:
+      - prs-network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+volumes:
+  pgdata:
+    driver: local
+  redis_data:
+    driver: local
+  backend_static:
+    driver: local
+  backend_media:
+    driver: local
+
+networks:
+  prs-network:
+    driver: bridge
