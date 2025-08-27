@@ -59,6 +59,8 @@ jobs:
 
             # Go to project directory
             cd /home/ubuntu/Backend_PRS
+            git fetch origin main
+            git reset --hard origin/main
 
             # Pull latest code
             git pull origin main
