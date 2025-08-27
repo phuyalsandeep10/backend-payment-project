@@ -51,24 +51,22 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }} 
           script: |
-            # Log in to AWS ECR on the EC2 instance
-            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 550487074506.dkr.ecr.us-east-1.amazonaws.com
-            
-            # Go to project directory
-            cd /home/ubuntu/Backend_PRS
-            git fetch origin main
-            git reset --hard origin/main
+            cd /home/ubuntu/Backend_PRS/backend
 
-            # Pull latest code
-            git pull origin main
-            
-            
-            # Pull latest image
-            docker pull 550487074506.dkr.ecr.us-east-1.amazonaws.com/prs-backend:latest
+            # Make sure local branch matches remote
+              git fetch origin main
+               git reset --hard origin/main
 
-            # Restart services using the .env file
-            docker-compose --env-file .env down
-            docker-compose --env-file .env up -d
+             # Log in to AWS ECR
+             aws ecr get-login-password --region us-east-1 | \
+              docker login --username AWS --password-stdin 550487074506.dkr.ecr.us-east-1.amazonaws.com
 
-            # Run Django migrations
-            docker-compose --env-file .env exec -T backend python manage.py migrate
+              # Pull latest Docker image
+             docker pull 550487074506.dkr.ecr.us-east-1.amazonaws.com/prs-backend:latest
+
+              # Bring down and up containers using docker-compose
+              docker-compose --env-file .env down
+              docker-compose --env-file .env up -d
+
+              # Run Django migrations inside container
+              docker-compose --env-file .env exec -T backend python manage.py migrate
