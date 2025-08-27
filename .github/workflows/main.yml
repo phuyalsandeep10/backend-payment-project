@@ -58,15 +58,13 @@ jobs:
             cd /home/ubuntu/Backend_PRS
             git fetch origin main
             git reset --hard origin/main
+
+            # Pull latest code
+            git pull origin main
             
             
             # Pull latest image
             docker pull 550487074506.dkr.ecr.us-east-1.amazonaws.com/prs-backend:latest
-
-            
-
-            # Pull latest code
-            git pull origin main
 
             # Restart services using the .env file
             docker-compose --env-file .env down
