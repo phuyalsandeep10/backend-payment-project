@@ -26,7 +26,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t prs-backend .
+          docker build -t prs-backend ./backend
 
       - name: Tag Docker image
         run: |
@@ -47,7 +47,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
+          username: ${{ secrets.EC2_USERNAME }}l
           key: ${{ secrets.EC2_SSH_KEY }}
           # port is optional; default is 22
           script: |
