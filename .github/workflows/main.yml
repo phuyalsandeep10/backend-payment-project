@@ -49,7 +49,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}l
           key: ${{ secrets.EC2_SSH_KEY }}
-          # port is optional; default is 22
+          port: ${{ secrets.EC2_PORT }} 
           script: |
             # Log in to AWS ECR on the EC2 instance
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 550487074506.dkr.ecr.us-east-1.amazonaws.com
