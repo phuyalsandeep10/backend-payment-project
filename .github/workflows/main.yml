@@ -56,6 +56,8 @@ jobs:
             # Make sure local branch matches remote
               git fetch origin main
                git reset --hard origin/main
+                git pull origin main
+
 
              # Log in to AWS ECR
              aws ecr get-login-password --region us-east-1 | \
